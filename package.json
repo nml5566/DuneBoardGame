@@ -1,0 +1,10 @@
+{
+  "name": "DuneBoardGame",
+  "version": "0.0.0",
+  "description": "HTML5 implementation of Dune board game",
+  "dependencies": {
+    "express": "latest",
+    "jade": "latest"
+  },
+  "author": "Nathan Liles"
+}
