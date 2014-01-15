@@ -1,0 +1,7 @@
+{
+  "name": "dune-tests",
+  "version": "0.0.0",
+  "devDependencies": {
+    "tap": "*"
+  }
+}
