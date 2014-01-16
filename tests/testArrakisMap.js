@@ -48,6 +48,32 @@ function testTerritories() {
   testCielagoDepression();
   testFalseWallSouth();
   testCielagoEast();
+  testOldGap();
+  testFalseWallWest();
+  testArrakeen();
+  testCielagoSouth();
+  testTheGreaterFlat();
+  testWindPassNorth();
+  testTheGreatFlat();
+  testRimWallWest();
+  testCielagoWest();
+  testBrokenLand();
+  testPastyMesa();
+  testHoleInTheRock();
+  testFuneralPlain();
+  testBightOfTheCliff();
+  testBasin();
+  testSietchTabr();
+  testRockOutcropping();
+  testTueksSietch();
+  testSihayaRidge();
+  testMeridian();
+  testSouthMesa();
+  testGaraKulon();
+  testRedChasm();
+  testHabbanyaRidgeFlat();
+  testHabbanyaErg();
+  testHabbanyaSietch();
 }
 
 function testPolarSink() {
@@ -107,13 +133,116 @@ function testCielagoDepression() {
 }
 
 function testFalseWallSouth() {
-  testTerritory({"module": "FalseWallSouth", "neighbors": 5});
+  testTerritory({"module": "FalseWallSouth", "neighbors": 7});
 }
 
 function testCielagoEast() {
   testTerritory({"module": "CielagoEast", "neighbors": 5});
 }
 
+function testOldGap() {
+  testTerritory({"module": "OldGap", "neighbors": 6});
+}
+
+function testFalseWallWest() {
+  testTerritory({"module": "FalseWallWest", "neighbors": 5});
+}
+
+function testArrakeen() {
+  testTerritory({"module": "Arrakeen", "neighbors": 3});
+}
+
+function testCielagoSouth() {
+  testTerritory({"module": "CielagoSouth", "neighbors": 3});
+}
+
+function testTheGreaterFlat() {
+  testTerritory({"module": "TheGreaterFlat", "neighbors": 4});
+}
+
+function testWindPassNorth() {
+  testTerritory({"module": "WindPassNorth", "neighbors": 4});
+}
+
+function testTheGreatFlat() {
+  testTerritory({"module": "TheGreatFlat", "neighbors": 4});
+}
+
+function testRimWallWest() {
+  testTerritory({"module": "RimWallWest", "neighbors": 5});
+}
+
+function testCielagoWest() {
+  testTerritory({"module": "CielagoWest", "neighbors": 7});
+}
+
+function testBrokenLand() {
+  testTerritory({"module": "BrokenLand", "neighbors": 4});
+}
+
+function testPastyMesa() {
+  testTerritory({"module": "PastyMesa", "neighbors": 7});
+}
+
+function testHoleInTheRock() {
+  testTerritory({"module": "HoleInTheRock", "neighbors": 5});
+}
+
+function testFuneralPlain() {
+  testTerritory({"module": "FuneralPlain", "neighbors": 3});
+}
+
+function testBightOfTheCliff() {
+  testTerritory({"module": "BightOfTheCliff", "neighbors": 4});
+}
+
+function testBasin() {
+  testTerritory({"module": "Basin", "neighbors": 4});
+}
+
+function testSietchTabr() {
+  testTerritory({"module": "SietchTabr", "neighbors": 3});
+}
+
+function testRockOutcropping() {
+  testTerritory({"module": "RockOutcropping", "neighbors": 4});
+}
+
+function testTueksSietch() {
+  testTerritory({"module": "TueksSietch", "neighbors": 3});
+}
+
+function testSihayaRidge() {
+  testTerritory({"module": "SihayaRidge", "neighbors": 4});
+}
+
+function testMeridian() {
+  testTerritory({"module": "Meridian", "neighbors": 4});
+}
+
+function testSouthMesa() {
+  testTerritory({"module": "SouthMesa", "neighbors": 5});
+}
+
+function testGaraKulon() {
+  testTerritory({"module": "GaraKulon", "neighbors": 3});
+}
+
+function testRedChasm() {
+  testTerritory({"module": "RedChasm", "neighbors": 2});
+}
+
+function testHabbanyaRidgeFlat() {
+  testTerritory({"module": "HabbanyaRidgeFlat", "neighbors": 5});
+}
+
+function testHabbanyaErg() {
+  testTerritory({"module": "HabbanyaErg", "neighbors": 3});
+}
+
+function testHabbanyaSietch() {
+  testTerritory({"module": "HabbanyaSietch", "neighbors": 1});
+}
 
 function testTerritory(obj) {
   var territory = map.getTerritory(obj.module);
