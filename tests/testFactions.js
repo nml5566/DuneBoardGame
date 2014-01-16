@@ -21,40 +21,40 @@ function testFactions() {
 }
 
 function testBaseFaction() {
-  testCommonFactionAttributes({"spice": 0, "module": "Base"}); 
+  testFaction({"spice": 0, "module": "Base"}); 
 }
 
 function testAtreidesFaction() {
-  testCommonFactionAttributes({"spice": 10, "module": "Atreides"}); 
+  testFaction({"spice": 10, "module": "Atreides"}); 
 }
 
 function testBeneGesseritFaction() {
-  testCommonFactionAttributes({"spice": 5, "module": "BeneGesserit"}); 
+  testFaction({"spice": 5, "module": "BeneGesserit"}); 
 }
 
 function testEmperorFaction() {
-  testCommonFactionAttributes({"spice": 10, "module": "Emperor"}); 
+  testFaction({"spice": 10, "module": "Emperor"}); 
 }
 
 function testGuildFaction() {
-  testCommonFactionAttributes({"spice": 5, "module": "Guild"}); 
+  testFaction({"spice": 5, "module": "Guild"}); 
 }
 
 function testGuildFaction() {
-  testCommonFactionAttributes({"spice": 5, "module": "Guild"}); 
+  testFaction({"spice": 5, "module": "Guild"}); 
 }
 
 function testHarkonnenFaction() {
-  testCommonFactionAttributes({"spice": 10, "module": "Harkonnen"}); 
+  testFaction({"spice": 10, "module": "Harkonnen"}); 
 }
 
-function testCommonFactionAttributes(obj) {
+function testFaction(obj) {
   var faction = game.newFaction(obj.module);
   faction.module = obj.module;
 
   testFactionInheritance(faction);
 
-  testStartingTroops(faction);
+  testFactionTroops(faction);
   testStartingSpice(faction,obj.spice);
 }
 
@@ -72,7 +72,10 @@ function testFactionBaseInheritance(faction) {
       faction.name + " faction inherts from base class");
 }
 
-function testStartingTroops(faction) {
+function testFactionTroops(faction) {
+  var troops = faction.getTroops(8);
+  assert(troops.length == 8, "Got 8 " + faction.name + " troops");
+
   assert.ok(faction.getTroopCount() == 20, faction.name + " starts with 20 troops");
 }
 
