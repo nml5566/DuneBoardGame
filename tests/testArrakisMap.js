@@ -261,17 +261,27 @@ function testTerritoryNeighbors(territory, neighborCount) {
 
 function testTerritoryOccupation(territory) {
   var atreides = game.newFaction('Atreides');
-  var troops = atreides.getTroops(8);
+  var troopA = atreides.getTroops(8);
+  var troopB = atreides.getTroops(3);
 
   /* Territory should start empty */
   assert(territory.getFactions().length == 0);
 
-  territory.occupyWith(troops);
+  territory.occupy(troopA);
   assert(territory.getFactions().length == 1);
-  
+
+
   var factions = territory.getFactions();
   assert(factions.length == 1);
-  assert(factions[0].length == 8);
+  assert(factions[0].getSize() == 8,
+      "Atriedes occupation is 8 troops");
+
+  territory.occupy(troopB);
+
+  factions = territory.getFactions();
+  assert(factions.length == 1,
+      "Multiple occupations by same faction combine correctly")
+  assert(factions[0].getSize() == 11, "Faction troops combine correctly");
 
 }
 

@@ -73,10 +73,17 @@ function testFactionBaseInheritance(faction) {
 }
 
 function testFactionTroops(faction) {
-  var troops = faction.getTroops(8);
-  assert(troops.length == 8, "Got 8 " + faction.name + " troops");
 
+  testFactionGetTroops(faction);
   assert.ok(faction.getTroopCount() == 20, faction.name + " starts with 20 troops");
+}
+
+function testFactionGetTroops(faction) {
+  var troops = faction.getTroops(8);
+  assert(troops.getSize() == 8, "Got 8 " + faction.name + " troops");
+
+  assert(troops.getFaction() === faction.constructor.name,
+      "Troops know their faction name");
 }
 
 function testStartingSpice(faction, count) {
