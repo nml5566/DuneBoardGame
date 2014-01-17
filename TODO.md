@@ -11,7 +11,6 @@ Need a method to re-add dead troops back to reserve
 
 ### Tests
 * Withdrawing too many troops (greater than 20) (v0.0.301)
-* Troops cannot occupy territory more than once
 
 Map 
 ---

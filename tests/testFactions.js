@@ -77,8 +77,10 @@ function testFactionBaseInheritance(faction) {
 
 function testFactionTroops(faction) {
 
-  testFactionGetTroops(faction);
   assert.ok(faction.getTroopSize() == 20, faction.name + " starts with 20 troops");
+
+  testFactionGetTroops(faction);
+  testFactionGetTooManyTroops(faction);
 }
 
 function testFactionGetTroops(faction) {
@@ -87,6 +89,20 @@ function testFactionGetTroops(faction) {
 
   assert(troop.getFaction() === faction.constructor.name,
       "Troops know their faction name");
+}
+
+function testFactionGetTooManyTroops(faction) {
+  assert.throws(
+    function() {
+      faction.getTroops(21);
+    },
+    function(err) {
+      if (err instanceof Error) {
+	return true;
+      }
+    },
+    "Asking for more that available troops throws error."
+  );
 }
 
 function testStartingSpice(faction, count) {
