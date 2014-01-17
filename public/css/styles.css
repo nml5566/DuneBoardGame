@@ -1,0 +1,26 @@
+#gamecontainer {
+  background: url(/img/splashscreen.png);
+  /* iPad dimensions */
+  width: 768px;
+  height: 1024px;
+  background-size: cover; /* stretch image */
+  background-repeat: no-repeat;
+}
+
+.gamelayer {
+  width: 768px;
+  height: 1024px;
+  position: absolute;
+  display: none;
+}
+
+#gamestartscreen {
+  display: block;
+  padding-top: 450px;
+  padding-left: 30px;
+  text-align: center;
+}
+  #gamestartscreen img {
+    margin: 10px;
+    cursor: pointer;
+  }

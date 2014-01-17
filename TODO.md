@@ -1,6 +1,17 @@
 Milestones
 ==========
 
+UI
+--
+### Splashscreen (v0.0.35)
+### Player Select Screen (v0.0.4)
+* Display all 6 factions 
+  - start with question mark buttons
+  - faction images should use crest
+* Back and Start Button
+* Start button should be greyed out until 2 player selected
+
+
 Factions 
 ---------------
 Factions need to know troop breakdown:
@@ -10,14 +21,11 @@ Need a method to re-add dead troops back to reserve
 
 Map
 ---
-### Territories 
-* Attributes (v0.0.31)
-  - battle status (conflict, control, co-existence)
 
-Card Decks (v0.0.6)
+Card Decks 
 ----------
-* Traitor (v0.0.4)
-* Treachery (v0.0.5)
+* Traitor 
+* Treachery 
 * Spice
 * Storm
 
