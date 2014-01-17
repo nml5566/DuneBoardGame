@@ -85,11 +85,6 @@ function testFactionGetTroops(faction) {
   var troop = faction.getTroops(8);
   assert(troop.getSize() == 8, "Got 8 " + faction.name + " troops");
 
-  var soldiers = troop.removeContents();
-
-  assert(soldiers.length === 8);
-  assert(troop.getSize() === 0);
-
   assert(troop.getFaction() === faction.constructor.name,
       "Troops know their faction name");
 }

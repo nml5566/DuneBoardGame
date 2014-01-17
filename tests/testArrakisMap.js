@@ -274,24 +274,33 @@ function testTerritory_1_Faction_1_Occupation(faction, territory) {
   var troopA = faction.getTroops(8);
 
   /* Territory should start empty */
-  assert(territory.getFactions().length == 0);
+  assert(territory.getFactionSize() == 0);
 
-  territory.occupy(troopA);
+  troopA.occupy(territory);
 
-  assert(territory.getFactions().length == 1);
+  assert(territory.getFactionSize() == 1,
+      territory.name + " has 1 occupation");
 
-  assert(territory.getFactions()[0].getSize() == 8,
+  var factions = territory.getFactions();
+  assert(factions[faction.constructor.name][0].getSize() == 8,
       faction.name + " occupation is 8 troops");
 
 }
 
 function testTerritory_1_Faction_2_Occupations(faction, territory) {
   var troopB = faction.getTroops(3);
-  territory.occupy(troopB);
+  troopB.occupy(territory);
 
   var factions = territory.getFactions();
-  assert(factions.length == 1);
-  assert(factions[0].getSize() == 11,
+  assert(territory.getFactionSize() == 1);
+
+  var faction = factions[faction.constructor.name];
+
+  var count = 0;
+  for (var i = 0; i < faction.length; i++) {
+    count += faction[i].getSize();
+  }
+  assert(count == 11,
       "Atriedes occupation is 11 troops now");
 
 }
@@ -306,15 +315,16 @@ function testTerritoryOccupationFactionsCombine(territory) {
 function testTerritoryOccupationConflict(territory) {
   var harkonnen = game.newFaction('Harkonnen');
   var harkonnenTroops = harkonnen.getTroops(8);
-  territory.occupy(harkonnenTroops);
+
+  harkonnenTroops.occupy(territory);
 
   var guild = game.newFaction('Guild');
   var guildTroops = guild.getTroops(8);
-  territory.occupy(guildTroops);
+  guildTroops.occupy(territory);
 
   var factions = territory.getFactions();
 
-  assert(factions.length == 3);
+  assert(territory.getFactionSize() == 3, "Territory now has 3 factions");
 
   assert(map.getConflicts().length == 1, "Map has 1 territory conflict")
   
