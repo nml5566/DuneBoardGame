@@ -306,9 +306,9 @@ function testTerritoryCacheByNeighborRequest(territory) {
   var randomSlot = Math.floor((Math.random()*neighbors.length)+0)
 
   var neighbor1 = territory.getNeighbors()[randomSlot];
-  var neighbor2 = neighbor1.getNeighbor(territory.constructor.name);
+  var territoryRef = neighbor1.getNeighbor(territory.constructor.name);
 
-  assert.ok(neighbor2 === territory,
+  assert.ok(territoryRef === territory,
       "Territory can pass by reference via getNeighbors()");
 
 }

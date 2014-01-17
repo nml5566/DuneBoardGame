@@ -8,22 +8,24 @@ Factions need to know troop breakdown:
 
 Need a method to re-add dead troops back to reserve
 
+Change getTroopCount() to getTroopSize();
+
 ### Tests
-* Troops need to know their faction (v0.0.2601)
-* Withdrawing too many troops (greater than 20)
+* Withdrawing too many troops (greater than 20) (v0.0.2603)
 
 Map 
 ---
-### Territories (v0.0.3)
-* Potential Bug (v0.0.2602)
-  Test that faction troops correctly group together when occupying multiple times
+### Territories 
+Refactor Map.js into individual territories (v0.0.3)
 * Attributes (v0.0.29)
   - battle status (conflict, control, co-existence)
 
 Card Decks (v0.0.6)
 ----------
-* Traitor cards (v0.0.4)
-* Treachery cards (v0.0.5)
+* Traitor (v0.0.4)
+* Treachery (v0.0.5)
+* Spice
+* Storm
 
 Leaders
 -------
