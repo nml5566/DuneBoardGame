@@ -61,6 +61,9 @@ function testFaction(obj) {
 function testFactionInheritance(faction) {
   var FactionClass = require("Dune/Factions/"+faction.module);
 
+  assert.ok(faction.constructor.name === faction.module+"Faction", 
+      faction.module + " constructor name matches its class name");
+
   testFactionBaseInheritance(faction);
   assert.ok(faction instanceof FactionClass,
       faction.name + " faction inherts from " + faction.module + " class");
@@ -75,14 +78,19 @@ function testFactionBaseInheritance(faction) {
 function testFactionTroops(faction) {
 
   testFactionGetTroops(faction);
-  assert.ok(faction.getTroopCount() == 20, faction.name + " starts with 20 troops");
+  assert.ok(faction.getTroopSize() == 20, faction.name + " starts with 20 troops");
 }
 
 function testFactionGetTroops(faction) {
-  var troops = faction.getTroops(8);
-  assert(troops.getSize() == 8, "Got 8 " + faction.name + " troops");
+  var troop = faction.getTroops(8);
+  assert(troop.getSize() == 8, "Got 8 " + faction.name + " troops");
 
-  assert(troops.getFaction() === faction.constructor.name,
+  var soldiers = troop.removeContents();
+
+  assert(soldiers.length === 8);
+  assert(troop.getSize() === 0);
+
+  assert(troop.getFaction() === faction.constructor.name,
       "Troops know their faction name");
 }
 

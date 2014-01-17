@@ -260,29 +260,65 @@ function testTerritoryNeighbors(territory, neighborCount) {
 
 
 function testTerritoryOccupation(territory) {
-  var atreides = game.newFaction('Atreides');
-  var troopA = atreides.getTroops(8);
-  var troopB = atreides.getTroops(3);
+  var faction = game.newFaction('Atreides');
+
+  testTerritory_1_Faction_1_Occupation(faction, territory);
+  testTerritory_1_Faction_2_Occupations(faction, territory);
+
+  testTerritoryOccupationConflict(territory);
+
+  territory.clearFactions();
+}
+
+function testTerritory_1_Faction_1_Occupation(faction, territory) {
+  var troopA = faction.getTroops(8);
 
   /* Territory should start empty */
   assert(territory.getFactions().length == 0);
 
   territory.occupy(troopA);
+
   assert(territory.getFactions().length == 1);
 
+  assert(territory.getFactions()[0].getSize() == 8,
+      faction.name + " occupation is 8 troops");
+
+}
+
+function testTerritory_1_Faction_2_Occupations(faction, territory) {
+  var troopB = faction.getTroops(3);
+  territory.occupy(troopB);
 
   var factions = territory.getFactions();
   assert(factions.length == 1);
-  assert(factions[0].getSize() == 8,
-      "Atriedes occupation is 8 troops");
+  assert(factions[0].getSize() == 11,
+      "Atriedes occupation is 11 troops now");
 
-  territory.occupy(troopB);
+}
 
+function testTerritoryOccupationFactionsCombine(territory) {
   factions = territory.getFactions();
   assert(factions.length == 1,
       "Multiple occupations by same faction combine correctly")
   assert(factions[0].getSize() == 11, "Faction troops combine correctly");
+}
 
+function testTerritoryOccupationConflict(territory) {
+  var harkonnen = game.newFaction('Harkonnen');
+  var harkonnenTroops = harkonnen.getTroops(8);
+  territory.occupy(harkonnenTroops);
+
+  var guild = game.newFaction('Guild');
+  var guildTroops = guild.getTroops(8);
+  territory.occupy(guildTroops);
+
+  var factions = territory.getFactions();
+
+  assert(factions.length == 3);
+
+  assert(map.getConflicts().length == 1, "Map has 1 territory conflict")
+  
+  map.clearConflicts();
 }
 
 function testTerritoryCache(territory) {
