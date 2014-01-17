@@ -9,7 +9,9 @@ body
   div#gamecontainer
     canvas(id="gamecanvas" class="gamelayer")
     div(id="gamestartscreen" class="gamelayer")
-      img(src="img/icons/play.png" alt="Play Game")
+      img(src="img/icons/play.png" id="playbutton" alt="Play Game")
     div(id="factionselectscreen" class="gamelayer")
+      div#factionselectcontainer
+
     div(id="mapscreen" class="gamelayer")
   script(src="js/game.js" type="text/javascript" charset="utf-8")

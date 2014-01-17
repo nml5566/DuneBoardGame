@@ -7,7 +7,7 @@ UI
 ### Player Select Screen (v0.0.4)
 * Display all 6 factions 
   - start with question mark buttons
-  - faction images should use crest
+  - faction images should use shield crest
 * Back and Start Button
 * Start button should be greyed out until 2 player selected
 

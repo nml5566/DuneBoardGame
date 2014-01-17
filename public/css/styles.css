@@ -15,7 +15,7 @@
 }
 
 #gamestartscreen {
-  display: block;
+  /*display: block;*/
   padding-top: 450px;
   padding-left: 30px;
   text-align: center;
@@ -24,3 +24,33 @@
     margin: 10px;
     cursor: pointer;
   }
+
+#factionselectscreen {
+  display: block;
+}
+
+#factionselectcontainer {
+  position: relative;
+  /*padding-top: 150px;*/
+  /*padding-left: 50px;*/
+  width: 700px;
+  height: auto;
+  margin: 0 auto;
+  margin-top: 50px;
+  /*border: 1px solid black;*/
+  background-color: black;
+}
+  #factionselectcontainer img {
+    margin-left: 168px;
+    margin-top: 59px;
+    margin-bottom: 79px;
+    cursor: pointer;
+  }
+
+#mapscreen {
+  /*display: block;*/
+  background: url(/img/map.png);
+  /*background-size: contain;*/
+  background-size: contain;
+  background-repeat: no-repeat;
+}
