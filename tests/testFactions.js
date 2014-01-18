@@ -69,6 +69,7 @@ function testFaction(obj) {
   testFactionTroops(faction);
   testStartingSpice(faction,obj.spice);
   testFactionLeaders(faction, obj.leader);
+  testFactionSetTraitor(faction);
 }
 
 function testFactionInheritance(faction, module) {
@@ -131,4 +132,8 @@ function testFactionLeaders(faction, expectedLeader) {
   var leader = faction.getLeader(expectedLeader[0]);
   assert(leader.name == expectedLeader[0], "Got expected leader");
   assert(leader.strength == expectedLeader[1], "Got expected leader strength");
+}
+
+function testFactionSetTraitor(faction) {
+  assert(faction.setTraitor("Foo Bar"));
 }

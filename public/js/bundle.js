@@ -2,51 +2,212 @@
 var GameController = require("Dune/Controller");
 
 window.onload = function() {
- new GameController();
+  var gameController = new GameController();
 
- //var t = require("Dune/Factions/Atreides");
- var DuneGame = require("Dune/Game");
- var game = new DuneGame();
- var faction = game.newFaction('Atreides');
- 
- /* DEBUG MODE */
- //var mapView = new MapView(["Atreides","Harkonnen"]);
- //mapView.show();
+  /* DEBUG MODE */
+  gameController.debugSetFactions(new Array("Atreides", "Harkonnen"));
+  gameController.startGame();
 }
 
 
 
 
-},{"Dune/Controller":2,"Dune/Game":5}],2:[function(require,module,exports){
+},{"Dune/Controller":2}],2:[function(require,module,exports){
 module.exports = GameController;
 
-var FactionSelectView = require("./Views/FactionSelect");
-var StartMenuView = require("./Views/StartMenu");
 
 function GameController() {
 
-  var startMenuView = new StartMenuView();
-  var factionSelectView = new FactionSelectView();
+  var factions = [];
+  var views = {};
+  var turn = 0;
+  var game = undefined;
+  var traitorPool = new Array();
+  var that = this;
 
-  init();
+  getStartMenuView();
 
-  function init() {
-    addPlayClickEvent();
+  function getStartMenuView() {
+    if (! views.startMenu) {
+      var StartMenuView = require("./Views/StartMenu");
+      views.startMenu = new StartMenuView(that);
+    }
+
+    return views.startMenu
+
   }
 
-  function addPlayClickEvent() {
-    var playButton = document.getElementById("playbutton");
-    playButton.onclick = showFactionSelectView;
+  this.startGame = function() {
+    hideFactionSelectView();
+    initNewGame();
+    initFactionViews();
+    initMapView();
+    shuffleTurnOrder();
+    makeTraitorPool();
+    startInitialTurn();
   }
 
-  function showFactionSelectView() {
+  function hideFactionSelectView() {
+    var factionSelectView = that.getFactionSelectView();
+    factionSelectView.hide();
+  }
+
+  this.hideStartMenuView = function() {
+    var startMenuView = getStartMenuView();
     startMenuView.hide();
+  }
+
+  this.showFactionSelectView = function() {
+    var factionSelectView = this.getFactionSelectView();
     factionSelectView.show();
+  }
+
+  this.getFactionSelectView = function() {
+    if (! views.factionSelect) {
+      var FactionSelectView = require("./Views/FactionSelect");
+      views.factionSelect = new FactionSelectView(that);
+    }
+
+    return views.factionSelect;
+  }
+
+  function initNewGame() {
+    var DuneGame = require("Dune/Game");
+    that.setGame(new DuneGame());
+  }
+
+  this.getGame = function() { return game }
+  this.setGame = function(newGame) { game = newGame }
+
+  function initFactionViews() {
+    var factionViews = new Array();
+
+    for (var i = 0; i < factions.length; i++) {
+      var FactionView = getFactionViewConstructor(factions[i]);
+      factionViews.push(new FactionView(that));
+    }
+
+    setFactionViews(factionViews);
+  }
+
+  function getFactionViewConstructor(factionName) {
+    switch(factionName) {
+      case "Atreides":
+      	return require("./Views/Factions/Atreides");
+      case "Harkonnen":
+      	return require("./Views/Factions/Harkonnen");
+      case "BeneGesserit":
+      	return require("./Views/Factions/BeneGesserit");
+      case "Fremen":
+      	return require("./Views/Factions/Fremen");
+      case "Guild":
+      	return require("./Views/Factions/Guild");
+      case "Emperor":
+      	return require("./Views/Factions/Emperor");
+      default:
+      	throw new Error("Invalid faction view: "+factionName);
+    }
+  }
+
+  function setFactionViews(array) {
+    views.factions = array;
+  }
+
+  function initMapView() {
+    var mapView = that.getMapView();
+    mapView.show();
+  }
+
+  this.debugSetFactions = function (factionsArray) {
+  /* This is a debug function and should go away once gameplay finalized */
+    factions = factionsArray;
+  }
+
+
+
+  this.getMapView = function() {
+    if (! views.map) {
+      var MapView = require("./Views/Map");
+      views.map = new MapView();
+    }
+
+    return views.map
+  }
+
+  function shuffleTurnOrder() {
+    var factionViews = getFactionViews();
+    shuffleArray(factionViews);
+    setFactionViews(factionViews);
+  }
+
+  function getFactionViews() {
+    return views.factions;
+  }
+
+  function shuffleArray(array) {
+    var currentIndex = array.length, 
+    	temporaryValue, 
+    	randomIndex;
+    
+    // While there remain elements to shuffle...
+    while (0 !== currentIndex) {
+      //Pick a remaining element
+      randomIndex = Math.floor(Math.random() * currentIndex);
+      currentIndex -= 1;
+      // And swap it with the current element
+      temporaryValue = array[currentIndex];
+      array[currentIndex] = array[randomIndex];
+      array[randomIndex] = temporaryValue;
+    }
+
+    return array;
+  }
+
+  function startInitialTurn() {
+    makeTraitorPool();
+    var factionView = getNextTurnOrder();
+    factionView.startInitialTurn();
+  }
+
+  function makeTraitorPool() {
+  /* Generate a pool of traitors that each player will choose from */
+    var allLeaders = new Array();
+    var factionViews = getFactionViews();
+    for (var i = 0; i < factionViews.length; i++) {
+      var factionView = factionViews[i];
+      var factionLeaders = factionView.getLeaders();
+      allLeaders = allLeaders.concat(factionLeaders);
+    }
+
+    shuffleArray(allLeaders);
+    traitorPool = allLeaders;
+  }
+
+  this.dealTraitorHand = function() { 
+    var traitorHand = new Array();
+    for (var i = 0; i < 4; i++) {
+      var traitorCard = traitorPool.shift();
+      traitorHand.push(traitorCard);
+    }
+    return traitorHand;
+  }
+
+  function getNextTurnOrder() {
+    var factionViews = getFactionViews();
+    var nextFactionView = factionViews[0];
+    rotateFactionViews(factionViews);
+    return nextFactionView;
+  }
+
+  function rotateFactionViews(factionViews) {
+    var factionView = factionViews.shift();
+    factionViews.push(factionView);
+    setFactionViews(factionViews);
   }
 
 }
 
-},{"./Views/FactionSelect":8,"./Views/StartMenu":10}],3:[function(require,module,exports){
+},{"./Views/FactionSelect":13,"./Views/Factions/Atreides":14,"./Views/Factions/BeneGesserit":16,"./Views/Factions/Emperor":17,"./Views/Factions/Fremen":18,"./Views/Factions/Guild":19,"./Views/Factions/Harkonnen":20,"./Views/Map":21,"./Views/StartMenu":22,"Dune/Game":10}],3:[function(require,module,exports){
 module.exports = AtreidesFaction;
 
 var BaseFaction = require("./Base.js");
@@ -77,9 +238,9 @@ function BaseFaction() {
   var spice = 0;
   var troops = [];
   var leaders = [];
+  var traitor = undefined;
 
   assignTroops(troops);
-  //assignLeaders(leaders);
 
   this.getTroopSize = getTroopSize;
   this.getTroops = getTroops;
@@ -129,7 +290,10 @@ function BaseFaction() {
     leaders = leaderArray;
   }
 
-  return this;
+  this.setTraitor = function(traitorName) {
+    return traitor = traitorName;
+  }
+
 }
 
 function assignTroops(troopArray) {
@@ -187,31 +351,150 @@ function BaseFactionTroop() {
 //}
 
 },{}],5:[function(require,module,exports){
-module.exports = Game;
+module.exports = BeneGesseritFaction;
 
-var modulePath = "./Factions";
-var AtreidesFaction = require("./Factions/Atreides");
-//var AtreidesFaction = require(modulePath + "/Atreides");
+var BaseFaction = require("./Base.js");
+BeneGesseritFaction.prototype = new BaseFaction();
+BeneGesseritFaction.prototype.constructor = BeneGesseritFaction;
+
+function BeneGesseritFaction() { 
+  this.name = "Bene Gesserit";
+
+ this.setLeaders(new Array(
+    {"name": "Alia", "strength": 5},
+    {"name": "Wanna Marcus", "strength": 5},
+    {"name": "Princess Irulan", "strength": 5},
+    {"name": "Margot Lady Fenring", "strength": 5},
+    {"name": "Mother Ramallo", "strength": 5}
+  ));
+
+  this.setSpice(5);
+}
+
+},{"./Base.js":4}],6:[function(require,module,exports){
+module.exports = EmperorFaction;
+
+var BaseFaction = require("./Base.js");
+EmperorFaction.prototype = new BaseFaction();
+EmperorFaction.prototype.constructor = EmperorFaction;
+
+function EmperorFaction() { 
+  this.name = "Emperor";
+
+  this.setLeaders(new Array(
+    {"name": "Bashar", "strength": 2},
+    {"name": "Burseg", "strength": 3},
+    {"name": "Caid", "strength": 3},
+    {"name": "Captain Arasham", "strength": 5},
+    {"name": "Hasmir Fenring", "strength": 6}
+  ));
+
+  this.setSpice(10);
+}
+
+},{"./Base.js":4}],7:[function(require,module,exports){
+module.exports = FremenFaction;
+
+var BaseFaction = require("./Base.js");
+FremenFaction.prototype = new BaseFaction();
+FremenFaction.prototype.constructor = FremenFaction;
+
+function FremenFaction() { 
+  this.name = "Fremen";
+
+ this.setLeaders(new Array(
+    {"name": "Jamis", "strength": 2},
+    {"name": "Shadout Mapes", "strength": 3},
+    {"name": "Otheym", "strength": 5},
+    {"name": "Chani", "strength": 6},
+    {"name": "Stilgar", "strength": 7}
+  ));
+
+  this.setSpice(3);
+}
+
+
+},{"./Base.js":4}],8:[function(require,module,exports){
+module.exports = GuildFaction;
+
+var BaseFaction = require("./Base.js");
+GuildFaction.prototype = new BaseFaction();
+GuildFaction.prototype.constructor = GuildFaction;
+
+function GuildFaction() { 
+  this.name = "Guild";
+  this.setLeaders(new Array(
+    {"name": "Guild Rep.", "strength": 1},
+    {"name": "Soo-Soo Sook", "strength": 2},
+    {"name": "Esmar Tuek", "strength": 3},
+    {"name": "Master Bewt", "strength": 3},
+    {"name": "Staban Tuek", "strength": 5}
+  ));
+
+  this.setSpice(5);
+}
+
+},{"./Base.js":4}],9:[function(require,module,exports){
+module.exports = HarkonnenFaction;
+
+var BaseFaction = require("./Base.js");
+HarkonnenFaction.prototype = new BaseFaction();
+HarkonnenFaction.prototype.constructor = HarkonnenFaction;
+
+function HarkonnenFaction() { 
+  this.name = "Harkonnen";
+
+  this.setLeaders(new Array(
+    {"name": "Umman Kudu", "strength": 1},
+    {"name": "Captain Iakin Nefud", "strength": 2},
+    {"name": "Piter De Vries", "strength": 3},
+    {"name": "Beast Rabban", "strength": 4},
+    {"name": "Feyd Rautha", "strength": 6}
+  ));
+
+  this.setSpice(10);
+}
+
+},{"./Base.js":4}],10:[function(require,module,exports){
+module.exports = Game;
 
 function Game() {
 
-  this.newFaction = function(factionModule) {
+  this.newFaction = newFaction;
+  this.getMap = getMap;
 
-    //var modulePath = "./Factions/" + factionModule;
-    //var modulePath = "./Factions/" + factionModule;
-    //var FactionClass = require(modulePath);
-    //return new FactionClass();
-    return new AtreidesFaction();
-  };
+  function newFaction(factionName) {
+    var FactionModule = getFactionModule(factionName);
+    return new FactionModule();
+  }
 
-  this.getMap = function() {
+  function getFactionModule(factionName) {
+    switch(factionName) {
+      case "Atreides":
+	return require("./Factions/Atreides");
+      case "BeneGesserit":
+	return require("./Factions/BeneGesserit");
+      case "Harkonnen":
+	return require("./Factions/Harkonnen");
+      case "Fremen":
+	return require("./Factions/Fremen");
+      case "Guild":
+	return require("./Factions/Guild");
+      case "Emperor":
+	return require("./Factions/Emperor");
+      default:
+      	throw new Error("Invalid faction: " + factionName);
+    }
+  }
+
+  function getMap() {
     var ArrakisMap = require("./Map");
     return new ArrakisMap();
   }
 
 }
 
-},{"./Factions/Atreides":3,"./Map":6}],6:[function(require,module,exports){
+},{"./Factions/Atreides":3,"./Factions/BeneGesserit":5,"./Factions/Emperor":6,"./Factions/Fremen":7,"./Factions/Guild":8,"./Factions/Harkonnen":9,"./Map":11}],11:[function(require,module,exports){
 module.exports = ArrakisMap;
 
 function ArrakisMap() {
@@ -268,7 +551,7 @@ function ArrakisMap() {
 
 
 
-},{}],7:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 module.exports = BaseView;
 
 function BaseView() {
@@ -278,6 +561,7 @@ function BaseView() {
 
   this.getImagePath = getImagePath;
   this.getIconPath = getIconPath
+  this.getView = getView;
   this.setView = setView;
   this.show = show;
   this.hide = hide;
@@ -285,13 +569,14 @@ function BaseView() {
 
   function getImagePath() { return imagePath }
   function getIconPath() { return iconPath }
+  function getView(element) { return view }
   function setView(element) { view = element }
   function show() { view.style.display = "block" }
   function hide() { view.style.display = "none" }
 }
 
 
-},{}],8:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 module.exports = FactionSelectView;
 
 var BaseView = require("./Base");
@@ -300,7 +585,7 @@ var MapView = require("./Map");
 FactionSelectView.prototype = new BaseView();
 FactionSelectView.prototype.constructor = FactionSelectView;
 
-function FactionSelectView() {
+function FactionSelectView(controller) {
 
   var container = document.getElementById("factionselectcontainer");
 
@@ -323,21 +608,34 @@ function FactionSelectView() {
 
   var view = document.getElementById("factionselectscreen");
 
-  var me = this;
+  var that = this;
 
   init();
 
   function init() {
-    me.setView(view);
+    that.setView(view);
+    that.getSelectedFactions = getSelectedFactions;
     makeFactionImageElements();
     makeBackButtonElement();
     makeStartButtonElement();
   }
 
+  function getSelectedFactions() {
+    var factions = new Array();
+    for (var i = 0; i < factionImages.length; i++) {
+      var image = factionImages[i];
+      if (! image.selectedFaction) 
+      	continue;
+
+      factions.push(image.selectedFaction);
+    }
+    return factions;
+  }
+
   function makeFactionImageElements() {
     for (var i = 0; i < 6; i++) {
       var image = new Image();
-      image.src = me.getIconPath() + factionSelectIcon;
+      image.src = that.getIconPath() + factionSelectIcon;
       image.onclick = factionSelector;
 
       container.appendChild(image);
@@ -347,7 +645,7 @@ function FactionSelectView() {
 
   function makeBackButtonElement() {
     var backButton = new Image();
-    backButton.src = me.getIconPath() + "back.png";
+    backButton.src = that.getIconPath() + "back.png";
     container.appendChild(backButton);
     backButton.onclick = returnToStartScreen;
 
@@ -362,7 +660,7 @@ function FactionSelectView() {
 
   function makeStartButtonElement() {
     startButton = new Image();
-    startButton.src = me.getIconPath() + "start.png";
+    startButton.src = that.getIconPath() + "start.png";
     startButton.style.opacity = 0.6;
     startButton.style.cursor = "default";
     container.appendChild(startButton);
@@ -382,7 +680,7 @@ function FactionSelectView() {
       this.selectedFaction = faction;
     }
 
-    this.src = me.getIconPath() + faction + "125x125.png";
+    this.src = that.getIconPath() + faction + "125x125.png";
 
     checkIfGameReadyToStart();
   }
@@ -407,39 +705,243 @@ function FactionSelectView() {
   function enableStartButton() {
     startButton.style.opacity = 1.0;
     startButton.style.cursor = "pointer";
-    startButton.onclick = startGame;
+    startButton.onclick = startClick;
   }
 
-  
+  function startClick() {
+    var factions = that.getSelectedFactions()
+    controller.debugSetFactions(factions);
+    controller.startGame();
+  }
+
   function disableStartButton() {
     startButton.style.opacity = 0.6;
     startButton.style.cursor = "default";
     startButton.onclick = null; 
   }
 
-  function startGame() {
-    me.hide();
-    var factions = getSelectedFactions();
-    var mapView = new MapView(factions);
-    mapView.show();
+}
+
+
+},{"./Base":12,"./Map":21}],14:[function(require,module,exports){
+module.exports = AtreidesView;
+
+var BaseFactionView = require("./Base");
+var DuneGame = require("Dune/Game");
+
+AtreidesView.prototype = new BaseFactionView();
+AtreidesView.prototype.constructor = AtreidesView;
+
+function AtreidesView(controller) {
+
+  var game = controller.getGame();
+  var faction = game.newFaction("Atreides");
+  var that = this;
+
+  this.setController(controller);
+  this.setFaction(faction);
+
+  this.startInitialTurn = function() {
+    this.promptUserStartTurn();
   }
 
-  function getSelectedFactions() {
-    var factions = new Array();
-    for (var i = 0; i < factionImages.length; i++) {
-      var image = factionImages[i];
-      if (! image.selectedFaction) 
-      	continue;
+  this._startInitialTurn = function() {
+    this.promptUserSelectTraitor();
+    //this.deployInitialTroops()
+  }
 
-      factions.push(image.selectedFaction);
+
+  // TODO change variable require in Dune/Map
+  //this.deployInitialTroops = function() {
+    //var map = game.getMap();
+    //var Arrakeen = map.getTerritory("Arrakeen");
+
+    //var troops = faction.getTroops(10);
+    //troops.occupy(Arrakeen);
+  //}
+
+}
+
+},{"./Base":15,"Dune/Game":10}],15:[function(require,module,exports){
+module.exports = BaseFactionView;
+
+var BaseView = require("../Base");
+BaseFactionView.prototype = new BaseView();
+BaseFactionView.prototype.constructor = BaseFactionView;
+
+function BaseFactionView() {
+
+  var controller, faction;
+
+  var self = this;
+
+  this.setFaction = function(newFaction) {
+    faction = newFaction;
+  }
+
+  this.setController = function(newController) {
+    controller = newController
+  }
+
+  this.getController = function() { return controller }
+
+  this.promptUserStartTurn = function() {
+    var that = this;
+
+    var viewElement = getMapViewElement();
+
+    var shieldImage = new Image();
+    // TODO set shield image source when assets are in place
+    shieldImage.alt = faction.name + " turn";
+    shieldImage.style.cursor = "pointer";
+    shieldImage.style.color = "black";
+    shieldImage.style.backgroundColor = "white";
+    shieldImage.style.fontSize = "100px";
+    
+    shieldImage.onclick = dismissUserStartPrompt;
+
+    function dismissUserStartPrompt() {
+      viewElement.removeChild(this);
+      that._startInitialTurn();
     }
-    return factions;
+
+    viewElement.appendChild(shieldImage);
+  }
+
+  function getMapViewElement() {
+    var controller = self.getController();
+    var mapView = controller.getMapView();
+    var viewElement = mapView.getView();
+    return viewElement;
+  }
+
+  this._startInitialTurn = function() {
+    throw new Error('Method must be implemented by child class');
+  }
+
+  this.getLeaders = function() {
+    return faction.getLeaders();
+  }
+
+  this.promptUserSelectTraitor = function() {
+    var controller = this.getController();
+    var traitorHand = controller.dealTraitorHand();
+    displayTraitorCards(traitorHand);
+
+  }
+
+  function displayTraitorCards(traitorHand) {
+    var mapViewElement = getMapViewElement();
+
+    var traitorSelectionContainer = document.createElement("div");
+    var title = document.createElement("p");
+
+    var titleText = document.createTextNode("Choose a traitor");
+    title.style.color = "black";
+    title.style.backgroundColor = "white";
+    title.style.fontSize = "50px";
+
+    title.appendChild(titleText);
+    traitorSelectionContainer.appendChild(title);
+    mapViewElement.appendChild(traitorSelectionContainer);
+
+    makeTraitorCardImages(traitorHand, traitorSelectionContainer);
+
+
+  }
+
+  function makeTraitorCardImages(traitorHand, traitorSelectionContainer) {
+    var mapViewElement = getMapViewElement();
+
+    var traitorCardImages = new Array();
+
+    for (var i = 0; i < traitorHand.length; i++) {
+      var traitorCard = traitorHand[i];
+
+      var traitorCardImage = new Image();
+      traitorCardImage.alt = traitorCard.name;
+      traitorCardImage.style.cursor = "pointer";
+      traitorCardImage.style.color = "black";
+      traitorCardImage.style.backgroundColor = "white";
+      traitorCardImage.style.fontSize = "100px";
+
+      traitorCardImage.onclick = function() {
+      	self.selectTraitor(traitorCardImage.alt);
+	mapViewElement.removeChild(traitorSelectionContainer);
+      }
+
+      traitorCardImages.push(traitorCardImage);
+
+      traitorSelectionContainer.appendChild(traitorCardImage);
+    }
+
+  }
+
+  this.selectTraitor = function(traitorName) {
+    faction.setTraitor(traitorName);
   }
 
 }
 
+},{"../Base":12}],16:[function(require,module,exports){
 
-},{"./Base":7,"./Map":9}],9:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
+module.exports=require(16)
+},{}],18:[function(require,module,exports){
+module.exports = FremenView;
+
+var BaseFactionView = require("./Base");
+var DuneGame = require("Dune/Game");
+
+FremenView.prototype = new BaseFactionView();
+FremenView.prototype.constructor = FremenView;
+
+function FremenView(controller) {
+
+  var game = controller.getGame();
+  var faction = game.newFaction("Fremen");
+  var that = this;
+
+  this.setController(controller);
+
+  this.startInitialTurn = function() {
+    this.signalTurnStart(faction);
+  }
+
+}
+
+},{"./Base":15,"Dune/Game":10}],19:[function(require,module,exports){
+module.exports=require(16)
+},{}],20:[function(require,module,exports){
+module.exports = HarkonnenView;
+
+var BaseFactionView = require("./Base");
+var DuneGame = require("Dune/Game");
+
+HarkonnenView.prototype = new BaseFactionView();
+HarkonnenView.prototype.constructor = HarkonnenView;
+
+function HarkonnenView(controller) {
+
+  var game = controller.getGame();
+  var faction = game.newFaction("Harkonnen");
+  var that = this;
+
+  this.setController(controller);
+  this.setFaction(faction);
+
+  this.startInitialTurn = function() {
+    this.promptUserStartTurn();
+  }
+
+  this._startInitialTurn = function() {
+    this.promptUserSelectTraitor();
+  }
+
+
+}
+
+},{"./Base":15,"Dune/Game":10}],21:[function(require,module,exports){
 module.exports = MapView;
 
 var BaseView = require("./Base");
@@ -451,47 +953,19 @@ function MapView(factions) {
 // TODO draw storm marker function
 
   var view = document.getElementById("mapscreen");
-  var me = this;
+  var factionViews = new Array();
+
+  var that = this;
 
   init();
 
   function init() {
-    me.setView(view);
-    initFactions();
+    that.setView(view);
   }
 
-  function initFactions() {
-    var Dune = require("Dune/Game");
-    var dune = Dune();
-    //var t = dune.newFaction('Atreides');
-    //console.dir(dune);
-    //console.dir(t);
-    //for (var i = 0; i < factions.length; i++) {
-      //var faction = dune.newFaction(factions[i]);
-      //displayFactionShield(faction);
-    //}
-  }
-
-  function displayFactionShield(faction) {
-    var shieldImage = new Image();
-    //shieldImage.src = me.getImagePath() + "atreides-shield.png";
-    shieldImage.src = me.getImagePath() + "fake-shield.png";
-    shieldImage.alt = faction.name + " turn";
-    shieldImage.style.cursor = "pointer";
-    shieldImage.style.color = "white";
-    shieldImage.style.fontSize = "100px";
-    shieldImage.style.textShadow = 
-      "-2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000";
-    
-    shieldImage.onclick = function() {
-      view.removeChild(shieldImage);
-    }
-
-    view.appendChild(shieldImage);
-  }
 }
 
-},{"./Base":7,"Dune/Game":5}],10:[function(require,module,exports){
+},{"./Base":12}],22:[function(require,module,exports){
 module.exports = StartMenuView;
 
 var BaseView = require('./Base');
@@ -499,21 +973,29 @@ var BaseView = require('./Base');
 StartMenuView.prototype = new BaseView();
 StartMenuView.prototype.constructor = StartMenuView;
 
-function StartMenuView() {
+function StartMenuView(controller) {
 
   var view = document.getElementById("gamestartscreen");
 
-  this.show = hide;
-  this.hide = hide;
+  this.setView(view);
+  var that = this;
 
-  function show() {
-    view.style.display = "block";
+  addPlayClickEvent();
+
+  function addPlayClickEvent() {
+    var playButton = document.getElementById("playbutton");
+    playButton.onclick = showFactionSelectView;
   }
 
-  function hide() {
-    view.style.display = "none";
+  function showFactionSelectView() {
+    controller.hideStartMenuView();
+    controller.showFactionSelectView();
+    //that.hide();
+    //var factionSelectView = controller.getFactionSelectView();
+    //factionSelectView.show();
   }
+
 }
 
 
-},{"./Base":7}]},{},[1])
+},{"./Base":12}]},{},[1])
