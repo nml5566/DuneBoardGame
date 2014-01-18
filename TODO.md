@@ -3,13 +3,8 @@ Milestones
 
 UI
 --
-### Splashscreen (v0.0.35)
-### Player Select Screen (v0.0.4)
-* Display all 6 factions 
-  - start with question mark buttons
-  - faction images should use shield crest
-* Back and Start Button
-* Start button should be greyed out until 2 player selected
+### Map View
+* Traitor selection (v0.0.6)
 
 
 Factions 
@@ -24,7 +19,7 @@ Map
 
 Card Decks 
 ----------
-* Traitor 
+* Traitor (v0.0.5)
 * Treachery 
 * Spice
 * Storm
