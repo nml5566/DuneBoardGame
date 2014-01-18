@@ -19,8 +19,11 @@ Map
 
 Card Decks 
 ----------
-* Traitor (v0.0.5)
-* Treachery 
+### Traitor (v0.0.5)
+Traitor list can come from faction leaders. They don't need to be a separate
+deck
+
+### Treachery 
 * Spice
 * Storm
 

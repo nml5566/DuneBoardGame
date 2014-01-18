@@ -229,5 +229,6 @@ function MapView(factions) {
   }
 
   function init() {
+    // TODO draw storm marker function
   }
 }

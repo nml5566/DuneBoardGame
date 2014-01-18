@@ -7,7 +7,9 @@ var game = DuneGame();
 runTestsIfNotCalledAsModule();
 
 function runTestsIfNotCalledAsModule() {
-  if (module.parent) return;
+  if (module.parent) 
+    return;
+
   testFactions();
 }
 
@@ -25,27 +27,28 @@ function testBaseFaction() {
 }
 
 function testAtreidesFaction() {
-  testFaction({"spice": 10, "module": "Atreides"}); 
+  testFaction({"spice": 10, "module": "Atreides", 
+    "leader": ["Gurney Halleck", 4] }); 
 }
 
 function testBeneGesseritFaction() {
-  testFaction({"spice": 5, "module": "BeneGesserit"}); 
+  testFaction({"spice": 5, "module": "BeneGesserit",
+    "leader": ["Alia", 5] }); 
 }
 
 function testEmperorFaction() {
-  testFaction({"spice": 10, "module": "Emperor"}); 
+  testFaction({"spice": 10, "module": "Emperor",
+    "leader": ["Caid", 3] }); 
 }
 
 function testGuildFaction() {
-  testFaction({"spice": 5, "module": "Guild"}); 
-}
-
-function testGuildFaction() {
-  testFaction({"spice": 5, "module": "Guild"}); 
+  testFaction({"spice": 5, "module": "Guild",
+    "leader": ["Guild Rep.", 1] }); 
 }
 
 function testHarkonnenFaction() {
-  testFaction({"spice": 10, "module": "Harkonnen"}); 
+  testFaction({"spice": 10, "module": "Harkonnen",
+    "leader": ["Feyd Rautha", 6] }); 
 }
 
 function testFaction(obj) {
@@ -56,6 +59,7 @@ function testFaction(obj) {
 
   testFactionTroops(faction);
   testStartingSpice(faction,obj.spice);
+  testFactionLeaders(faction, obj.leader);
 }
 
 function testFactionInheritance(faction) {
@@ -108,4 +112,17 @@ function testFactionGetTooManyTroops(faction) {
 function testStartingSpice(faction, count) {
   assert.ok(faction.getSpice() == count, 
       faction.name + " faction starts with " + count + " spice");
+}
+
+function testFactionLeaders(faction, expectedLeader) {
+  /* BaseFaction doesn't have leaders, so don't test it */
+  if (faction.constructor.name == "BaseFaction")
+    return;
+
+  var leaders = faction.getLeaders();
+  assert(leaders.length == 5, faction.name + " has 5 leaders");
+
+  var leader = faction.getLeader(expectedLeader[0]);
+  assert(leader.name == expectedLeader[0], "Got expected leader");
+  assert(leader.strength == expectedLeader[1], "Got expected leader strength");
 }
