@@ -15,7 +15,7 @@
 }
 
 #gamestartscreen {
-  /*display: block;*/
+  display: block;
   padding-top: 450px;
   padding-left: 30px;
   text-align: center;
@@ -26,7 +26,7 @@
   }
 
 #factionselectscreen {
-  display: block;
+  /*display: block;*/
 }
 
 #factionselectcontainer {
@@ -43,7 +43,7 @@
   #factionselectcontainer img {
     margin-left: 168px;
     margin-top: 59px;
-    margin-bottom: 79px;
+    margin-bottom: 60px;
     cursor: pointer;
   }
 
