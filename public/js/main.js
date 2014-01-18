@@ -1,8 +1,12 @@
 window.onload = function() {
- new GameView();
+ new GameController();
+ 
+ /* DEBUG MODE */
+ var mapView = new MapView(["Atreides","Harkonnen"]);
+ mapView.show();
 }
 
-function GameView() {
+function GameController() {
 
   var startView = new StartView();
   var factionSelectView = new FactionSelectView();
@@ -25,6 +29,26 @@ function GameView() {
 
 }
 
+function BaseView() {
+  var imagePath = "/img/";
+  var iconPath = imagePath + "icons/";
+  var view = undefined;
+
+  this.getImagePath = getImagePath;
+  this.getIconPath = getIconPath
+  this.setView = setView;
+  this.show = show;
+  this.hide = hide;
+
+
+  function getImagePath() { return imagePath }
+  function getIconPath() { return iconPath }
+  function setView(element) { view = element }
+  function show() { view.style.display = "block" }
+  function hide() { view.style.display = "none" }
+}
+
+
 function StartView() {
 
   var view = document.getElementById("gamestartscreen");
@@ -41,10 +65,12 @@ function StartView() {
   }
 }
 
+FactionSelectView.prototype = new BaseView();
+FactionSelectView.prototype.constructor = FactionSelectView;
+
 function FactionSelectView() {
 
   var container = document.getElementById("factionselectcontainer");
-  var view = document.getElementById("factionselectscreen");
 
   var factionSelectIcon = "faction-select.png";
   var factionSelect = "faction-select";
@@ -59,35 +85,18 @@ function FactionSelectView() {
       factionSelect
   );
 
-  var factionIcons = new Array(
-      "atreides-emblem125x125.png",
-      //"atreides-shield200x224.png",
-      "fremen-emblem125x125.png",
-      "guild-emblem125x125.png",
-      "emperor-emblem125x125.png",
-      "harkonnen-emblem125x125.png",
-      "benegesserit-emblem125x125.png",
-      factionSelectIcon
-  );
   var factionImages = new Array();
 
-  var startButton;
+  var startButton = undefined;
+
+  var view = document.getElementById("factionselectscreen");
 
   var me = this;
-  this.show = show;
-  this.hide = hide;
 
   init();
 
-  function show() {
-    view.style.display = "block";
-  }
-
-  function hide() {
-    view.style.display = "none";
-  }
-
   function init() {
+    me.setView(view);
     makeFactionImageElements();
     makeBackButtonElement();
     makeStartButtonElement();
@@ -96,9 +105,8 @@ function FactionSelectView() {
   function makeFactionImageElements() {
     for (var i = 0; i < 6; i++) {
       var image = new Image();
-      image.src = "/img/icons/" + factionSelectIcon;
-      //image.onclick = factionSelector;
-      image.onclick = factionSelector2;
+      image.src = me.getIconPath() + factionSelectIcon;
+      image.onclick = factionSelector;
 
       container.appendChild(image);
       factionImages.push(image);
@@ -107,7 +115,7 @@ function FactionSelectView() {
 
   function makeBackButtonElement() {
     var backButton = new Image();
-    backButton.src = "/img/icons/back.png";
+    backButton.src = me.getIconPath() + "back.png";
     container.appendChild(backButton);
     backButton.onclick = returnToStartScreen;
 
@@ -122,7 +130,7 @@ function FactionSelectView() {
 
   function makeStartButtonElement() {
     startButton = new Image();
-    startButton.src = "/img/icons/start.png";
+    startButton.src = me.getIconPath() + "start.png";
     startButton.style.opacity = 0.6;
     startButton.style.cursor = "default";
     container.appendChild(startButton);
@@ -130,24 +138,6 @@ function FactionSelectView() {
 
 
   function factionSelector() {
-    var icon = factionIcons.shift();
-
-    if (this.selectedFaction) 
-      factionIcons.push(this.selectedFaction);
-
-    if (icon === factionSelectIcon) {
-      delete this.selectedFaction; 
-      factionIcons.push(factionSelectIcon);
-    } else {
-      this.selectedFaction = icon;
-    }
-
-    this.src = "/img/icons/" + icon;
-
-    checkIfGameReadyToStart();
-  }
-
-  function factionSelector2() {
     var faction = factions.shift();
 
     if (this.selectedFaction) 
@@ -160,7 +150,7 @@ function FactionSelectView() {
       this.selectedFaction = faction;
     }
 
-    this.src = "/img/icons/" + faction + "125x125.png";
+    this.src = me.getIconPath() + faction + "125x125.png";
 
     checkIfGameReadyToStart();
   }
@@ -216,19 +206,49 @@ function FactionSelectView() {
 
 }
 
+MapView.prototype = new BaseView();
+MapView.prototype.constructor = MapView;
+
 function MapView(factions) {
+// TODO draw storm marker function
 
   var view = document.getElementById("mapscreen");
-
-  this.show = show;
+  var me = this;
 
   init();
 
-  function show() {
-    view.style.display = "block";
+  function init() {
+    me.setView(view);
+    initFactions();
   }
 
-  function init() {
-    // TODO draw storm marker function
+  function initFactions() {
+    //var Dune = require("Dune/Game");
+    //var dune = Dune();
+    //var t = dune.newFaction('Atreides');
+    //console.dir(dune);
+    //console.dir(t);
+    //for (var i = 0; i < factions.length; i++) {
+      //var faction = dune.newFaction(factions[i]);
+      //displayFactionShield(faction);
+    //}
+  }
+
+  function displayFactionShield(faction) {
+    var shieldImage = new Image();
+    //shieldImage.src = me.getImagePath() + "atreides-shield.png";
+    shieldImage.src = me.getImagePath() + "fake-shield.png";
+    shieldImage.alt = faction.name + " turn";
+    shieldImage.style.cursor = "pointer";
+    shieldImage.style.color = "white";
+    shieldImage.style.fontSize = "100px";
+    shieldImage.style.textShadow = 
+      "-2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000";
+    
+    shieldImage.onclick = function() {
+      view.removeChild(shieldImage);
+    }
+
+    view.appendChild(shieldImage);
   }
 }
