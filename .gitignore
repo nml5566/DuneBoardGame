@@ -1,3 +1,6 @@
 node_modules/.bin
 node_modules/express
 node_modules/jade
+node_modules/browserify
+node_modules/watchify
+node_modules/nodemon

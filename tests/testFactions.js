@@ -2,7 +2,7 @@ module.exports = testFactions;
 
 var assert = require("assert");
 var DuneGame = require("Dune/Game");
-var game = DuneGame();
+var game = new DuneGame();
 
 runTestsIfNotCalledAsModule();
 
@@ -20,10 +20,16 @@ function testFactions() {
   testEmperorFaction();
   testGuildFaction();
   testHarkonnenFaction();
+  testFremenFaction();
 }
 
 function testBaseFaction() {
-  testFaction({"spice": 0, "module": "Base"}); 
+  var BaseFaction = require("Dune/Factions/Base");
+  var faction = new BaseFaction();
+
+  testFactionInheritance(faction, "Base")
+  testFactionTroops(faction);
+  testStartingSpice(faction,0);
 }
 
 function testAtreidesFaction() {
@@ -51,26 +57,29 @@ function testHarkonnenFaction() {
     "leader": ["Feyd Rautha", 6] }); 
 }
 
+function testFremenFaction() {
+  testFaction({"spice": 3, "module": "Fremen",
+    "leader": ["Otheym", 5] }); 
+}
+
 function testFaction(obj) {
   var faction = game.newFaction(obj.module);
-  faction.module = obj.module;
 
-  testFactionInheritance(faction);
-
+  testFactionInheritance(faction, obj.module);
   testFactionTroops(faction);
   testStartingSpice(faction,obj.spice);
   testFactionLeaders(faction, obj.leader);
 }
 
-function testFactionInheritance(faction) {
-  var FactionClass = require("Dune/Factions/"+faction.module);
+function testFactionInheritance(faction, module) {
+  var FactionClass = require("Dune/Factions/" + module);
 
-  assert.ok(faction.constructor.name === faction.module+"Faction", 
-      faction.module + " constructor name matches its class name");
+  assert.ok(faction.constructor.name === module+"Faction", 
+      module + " constructor name matches its class name");
 
   testFactionBaseInheritance(faction);
   assert.ok(faction instanceof FactionClass,
-      faction.name + " faction inherts from " + faction.module + " class");
+      faction.name + " faction inherts from " + module + " class");
 }
 
 function testFactionBaseInheritance(faction) {
@@ -115,9 +124,6 @@ function testStartingSpice(faction, count) {
 }
 
 function testFactionLeaders(faction, expectedLeader) {
-  /* BaseFaction doesn't have leaders, so don't test it */
-  if (faction.constructor.name == "BaseFaction")
-    return;
 
   var leaders = faction.getLeaders();
   assert(leaders.length == 5, faction.name + " has 5 leaders");

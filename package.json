@@ -2,9 +2,33 @@
   "name": "DuneBoardGame",
   "version": "0.0.5",
   "description": "HTML5 implementation of Dune board game",
-  "dependencies": {
-    "express": "latest",
-    "jade": "latest"
+  "main": "server.js",
+  "directories": {
+    "test": "tests"
   },
-  "author": "Nathan Liles"
+  "dependencies": {
+    "express": "~3.4.8",
+    "jade": "~1.1.5"
+  },
+  "devDependencies": {
+    "watchify": "~0.5.4",
+    "browserify": "~3.24.1",
+    "nodemon": "~1.0.13"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "watch": "watchify client/main.js -o public/js/bundle.js -v",
+    "build": "browserify client/main.js -o public/js/bundle.js",
+    "start": "npm run watch & nodemon server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nml5566/DuneBoardGame.git"
+  },
+  "author": "Nathan Liles",
+  "license": "BSD-2-Clause",
+  "bugs": {
+    "url": "https://github.com/nml5566/DuneBoardGame/issues"
+  },
+  "homepage": "https://github.com/nml5566/DuneBoardGame"
 }
