@@ -14,7 +14,7 @@ function runTestsIfNotCalledAsModule() {
 }
 
 function testFactions() {
-  testBaseFaction();
+  //testBaseFaction();
   testAtreidesFaction();
   testBeneGesseritFaction();
   testEmperorFaction();
@@ -23,14 +23,14 @@ function testFactions() {
   testFremenFaction();
 }
 
-function testBaseFaction() {
-  var BaseFaction = require("Dune/Factions/Base");
-  var faction = new BaseFaction();
+/*function testBaseFaction() {*/
+  //var BaseFaction = require("Dune/Factions/Base");
+  //var faction = new BaseFaction();
 
-  testFactionInheritance(faction, "Base")
-  testFactionTroops(faction);
-  testStartingSpice(faction,0);
-}
+  //testFactionInheritance(faction, "Base")
+  //testFactionTroops(faction);
+  //testStartingSpice(faction,0);
+/*}*/
 
 function testAtreidesFaction() {
   testFaction({"spice": 10, "module": "Atreides", 
@@ -78,7 +78,7 @@ function testFactionInheritance(faction, module) {
   assert.ok(faction.constructor.name === module+"Faction", 
       module + " constructor name matches its class name");
 
-  testFactionBaseInheritance(faction);
+  //testFactionBaseInheritance(faction);
   assert.ok(faction instanceof FactionClass,
       faction.name + " faction inherts from " + module + " class");
 }

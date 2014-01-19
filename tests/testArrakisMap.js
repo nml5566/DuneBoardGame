@@ -2,7 +2,7 @@ module.exports = testArrakisMap;
 
 var assert = require("assert");
 var DuneGame = require("Dune/Game");
-var game = DuneGame();
+var game = new DuneGame();
 var map = game.getMap();
 
 run();

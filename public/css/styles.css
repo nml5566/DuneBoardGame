@@ -1,8 +1,8 @@
 #gamecontainer {
   background: url(/img/splashscreen.png);
   /* iPad dimensions */
-  width: 768px;
-  height: 1024px;
+  /*width: 768px;*/
+  /*height: 1024px;*/
   background-size: cover; /* stretch image */
   background-repeat: no-repeat;
 }
@@ -12,6 +12,11 @@
   height: 1024px;
   position: absolute;
   display: none;
+}
+
+#gamecanvas {
+  z-index: 99;
+  display: block;
 }
 
 #gamestartscreen {
@@ -48,9 +53,9 @@
   }
 
 #mapscreen {
-  /*display: block;*/
+  /*width: 768px;*/
+  /*height: 1024px;*/
   background: url(/img/map.png);
-  /*background-size: contain;*/
   background-size: contain;
   background-repeat: no-repeat;
 }

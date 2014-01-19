@@ -4,9 +4,9 @@ Milestones
 UI
 --
 ### Controller
-* Traitor selection (v0.0.6)
-  - Dealing a traitor hand needs to come from the game logic layer
-  Also need a test for dealing traitors
+#### Traitor selection (v0.0.6)
+The Following functions need to be refactored into the game logic layer:
+* shuffleTurnOrder(), makeTraitorPool(), dealTraitorHand()
 
 
 Factions 
