@@ -25,11 +25,11 @@ var FactionSelectView = require("./View/FactionSelect");
 function GameController() {
 
   var factions = [];
-  var views = {
+  this.views = {
     "map": new MapView(this),
     "start": new StartMenuView(this),
     "select":new FactionSelectView(this),
-    "factions": []
+    "factions": {}
   };
   var turn = 0;
   var traitorPool = new Array();
@@ -37,48 +37,24 @@ function GameController() {
 
   this.game = new DuneGame();
 
-  //getStartMenuView();
-
-/*  function getStartMenuView() {*/
-    //if (! views.startMenu) {
-    //}
-
-    //return views.startMenu
-
-  /*}*/
-
   this.startGame = function() {
-
-    views.select.hide();
-    //hideFactionSelectView();
-    //initNewGame();
+    this.views.select.hide();
     initFactionViews();
-    this.game.start();
-    initMapView();
-    //shuffleTurnOrder();
-    //makeTraitorPool();
     startInitialTurn();
   }
 
-/*  this.hideStartMenuView = function() {*/
-    //var startMenuView = getStartMenuView();
-    //startMenuView.hide();
-  //}
-
-  //this.showFactionSelectView = function() {
-    //var factionSelectView = this.getFactionSelectView();
-    //factionSelectView.show();
-  /*}*/
 
   function initFactionViews() {
-    var factionViews = new Array();
+    console.log('init faction views');
+    console.log(factions);
+    //var factionViews = new Array();
 
     for (var i = 0; i < factions.length; i++) {
-      var FactionView = getFactionViewConstructor(factions[i]);
-      views.factions.push(new FactionView(that));
+      var factionName = factions[i];
+      var FactionView = getFactionViewConstructor(factionName);
+      that.views.factions[factionName] = new FactionView(that);
     }
 
-    setFactionViews(factionViews);
   }
 
   function getFactionViewConstructor(factionName) {
@@ -100,37 +76,41 @@ function GameController() {
     }
   }
 
-  function setFactionViews(array) {
-    views.factions = array;
-  }
-
   function initMapView() {
-    views.map.show();
-    views.map.drawStorm();
+    that.views.map.show();
+    that.views.map.loadImages();
   }
 
   this.debugSetFactions = function (factionsArray) {
+    console.log('debug set factions');
   /* This is a debug function and should go away once gameplay finalized */
     factions = factionsArray;
   }
 
   function startInitialTurn() {
-    //console.log('starting initial turn');
-    //makeTraitorPool();
-    //var factionView = getNextTurnOrder();
-    //factionView.startInitialTurn();
+    that.game.start();
+    initMapView();
   }
+
+  this.startPlayerTurn = function() {
+    var turnOrder = this.game.getTurnOrder();
+    var faction = turnOrder[0];
+
+    var factionView = this.views.factions[faction.constructor.name];
+
+    //factionView.promptUserStartTurn();
+  }  
 
 }
 
 },{"./View/Faction/Atreides":13,"./View/Faction/BeneGesserit":15,"./View/Faction/Emperor":16,"./View/Faction/Fremen":17,"./View/Faction/Guild":18,"./View/Faction/Harkonnen":19,"./View/FactionSelect":20,"./View/Map":21,"./View/StartMenu":22,"Dune/Game":10}],3:[function(require,module,exports){
-module.exports = AtreidesFaction;
+module.exports = Atreides;
 
 var internalDecorator = require("./Base.js");
-//AtreidesFaction.prototype = new BaseFaction();
-//AtreidesFaction.prototype.constructor = AtreidesFaction;
+//Atreides.prototype = new BaseFaction();
+//Atreides.prototype.constructor = Atreides;
 
-function AtreidesFaction(game) { 
+function Atreides(game) { 
 
  var leaders = new Array(
     {"name": "Dr. Yueh", "strength": 1},
@@ -400,13 +380,13 @@ function GuildFaction(game) {
 }
 
 },{"./Base.js":4}],9:[function(require,module,exports){
-module.exports = HarkonnenFaction;
+module.exports = Harkonnen;
 
 var internalDecorator = require("./Base.js");
 //HarkonnenFaction.prototype = new internalDecorator();
 //HarkonnenFaction.prototype.constructor = HarkonnenFaction;
 
-function HarkonnenFaction(game) { 
+function Harkonnen(game) { 
   var leaders = new Array(
     {"name": "Umman Kudu", "strength": 1},
     {"name": "Captain Iakin Nefud", "strength": 2},
@@ -742,14 +722,15 @@ function BaseFactionView() {
 
   this.getController = function() { return controller }
 
-  this.promptUserStartTurn = function() {
+  this.promptUserStartTurn = function(onDismiss) {
+    console.log('prompt user');
     var that = this;
 
-    var viewElement = getMapViewElement();
+    var viewElement = controller.views.map.element;
 
     var shieldImage = new Image();
     // TODO set shield image source when assets are in place
-    shieldImage.alt = faction.name + " turn";
+    shieldImage.alt = faction.constructor.name + " turn";
     shieldImage.style.cursor = "pointer";
     shieldImage.style.color = "black";
     shieldImage.style.backgroundColor = "white";
@@ -759,18 +740,18 @@ function BaseFactionView() {
 
     function dismissUserStartPrompt() {
       viewElement.removeChild(this);
-      that._startInitialTurn();
+      onDismiss();
     }
 
     viewElement.appendChild(shieldImage);
   }
 
-  function getMapViewElement() {
-    var controller = self.getController();
-    var mapView = controller.getMapView();
-    var viewElement = mapView.getView();
-    return viewElement;
-  }
+/*  function getMapViewElement() {*/
+    //var controller = self.getController();
+    //var mapView = controller.getMapView();
+    //var viewElement = mapView.getView();
+    //return viewElement;
+  /*}*/
 
   this._startInitialTurn = function() {
     throw new Error('Method must be implemented by child class');
@@ -1058,38 +1039,15 @@ function MapView(controller) {
   canvas.height = 1024;
 
   var view = document.getElementById("mapscreen");
+  this.element = document.getElementById("mapscreen");
 
   var context = canvas.getContext("2d");
 
-  var quadrantCoordinates = new Array(
-    [360, 60], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0]
-  );
-
+  var circle = {centerX:385, centerY:425, radius:338, angle: 0}
 
   var that = this;
 
-  var stormImage = makeStormImage();
-
-  var circle = {centerX:385, centerY:425, radius:338, angle:0}
-  var ball = {x:stormImage.x, y:stormImage.y, speed:stormImage.speed, 
-    radius:stormImage.radius};
-
-  function makeStormImage() {
-    var stormImageUrl = "img/icons/storm-marker.png";
-    var stormImage = new Image();
-
-    stormImage.src = stormImageUrl;
-    stormImage.x = 0; 
-    stormImage.y = 0; 
-    stormImage.speed = .01; 
-    stormImage.radius = 25;
-
-    stormImage.onload = function() {
-      drawScreen();
-    }
-
-    return stormImage;
-  }
+  var stormImage;
 
   init();
 
@@ -1097,49 +1055,303 @@ function MapView(controller) {
     that.setView(view);
   }
 
-  this.drawStorm = function() {
+  this.loadImages = function() {
+    var stormImageUrl = "img/icons/storm-marker.png";
+    stormImage = loader.loadImage(stormImageUrl);
+
+    //stormImage.onload = animateStormSetup;
+    //stormImage.onload = placeRectangularStormToken;
+    stormImage.onload = tester;
+
+    stormImage.xPos = 0; 
+    stormImage.yPos = 0; 
+    stormImage.speed = .01; 
+    stormImage.radius = 25;
+  }
+
+  function tester() {
     var stormQuadrant = controller.game.map.initStormPosition();
-    console.log("storm quadrant: "+stormQuadrant);
+
+    var img = stormImage;
+
+    var w = img.width;
+    var h = img.height;
+
+    var x = -w/2;
+    var y = -h/2;
+
+    circle.angle = convertQuadrantNumberToMapAngle(stormQuadrant);
+    var coordinates = new Array(
+	circle.centerX + Math.cos(circle.angle) * circle.radius
+	+ x
+	,circle.centerY + Math.sin(circle.angle) * circle.radius
+	+ y
+    );
+
+    context.save();
+    context.translate(coordinates[0],coordinates[1]);
+    context.translate(img.width/2, img.height/2);
+    var TO_RADIANS = Math.PI/180;
+
+    var degreesPerQuadrant = 20;
+    var degrees = (stormQuadrant - 3) * degreesPerQuadrant;
+    context.rotate(degrees * TO_RADIANS);
+    context.drawImage(img, -img.width/2, -img.height/2);
+    context.restore();
+
+    setInterval(function() {
+      context.clearRect(0, 0, canvas.width, canvas.height);
+
+      var coordinates = new Array(
+	  circle.centerX + Math.cos(circle.angle) * circle.radius
+	  + x
+	  ,circle.centerY + Math.sin(circle.angle) * circle.radius
+	  + y
+      );
+
+      circle.angle -= img.speed;
+
+      context.save();
+      context.translate(coordinates[0],coordinates[1]);
+      context.translate(img.width/2, img.height/2);
+
+      var TO_RADIANS = Math.PI/180;
+
+      //var degreesPerQuadrant = 20;
+      //var degrees = (stormQuadrant - 3) * degreesPerQuadrant;
+
+      var stormMarkerAngle = 291 * Math.PI/180;
+      //console.log(t * 180 / Math.PI);
+      var rotation = circle.angle + stormMarkerAngle;
+      context.rotate(rotation);
+
+      //console.log(circle.angle * 180 / Math.PI);
+      //context.rotate(degrees * TO_RADIANS);
+      context.drawImage(img, -img.width/2, -img.height/2);
+      context.restore();
+
+      //degrees++;
+      //context.save();
+
+      //context.translate(coordinates[0],coordinates[1]);
+
+      //context.translate(img.width/2, img.height/2);
+
+      //var TO_RADIANS = Math.PI/180;
+      //context.rotate(degrees * TO_RADIANS);
+      //context.drawImage(img, -img.width/2, -img.height/2);
+      //context.restore();
+    }, 33);
+  }
+
+  function placeRectangularStormToken() {
+      // pivot point coordinates = the center of the square
+      var cx = 200; // (60+200)/2
+      var cy = 200; // (60+200)/2
+
+      // Note that the x and y values of the square 
+      // are relative to the pivot point.
+      var x = -70; // cx + x = 130 - 70 = 60
+      var y = -70; // cy + y = 130 - 70 = 60
+      var w = 140; // (cx + x) + w = 60 + w = 200
+      var h = 140; // (cy + y) + h = 60 + h = 200
+      var deg = 0;
+
+      w = stormImage.width;
+      h = stormImage.height;
+
+      x = -w/2;
+      y = -h/2;
+
+      circle.angle = convertQuadrantNumberToMapAngle(3);
+      //var coordinates = calculateStormQuadrantCoordinatesBasedOnMapAngle();
+      console.log('a');
+      var coordinates = new Array(
+	  circle.centerX + Math.cos(circle.angle) * circle.radius
+	  + x
+	  ,circle.centerY + Math.sin(circle.angle) * circle.radius
+	  + y
+      );
+
+      console.log(coordinates);
+      cx = coordinates[0];
+      cy = coordinates[1];
+
+      context.drawImage(stormImage, cx, cy);
+
+      deg = 90;
+      context.save();
+
+      context.translate(cx + w, cy - h);
+      //context.translate(cx - x, cy - y);
+      context.rotate(deg * Math.PI/180);
+
+      context.drawImage(stormImage, 0, 0);
+      //context.drawImage(stormImage, x, y);
+
+      context.restore();
+
+/*     setInterval(function() {*/
+
+	//context.clearRect(0, 0, canvas.width, canvas.height);
+
+	//deg++;
+	//context.save();
+
+	////context.translate(cx, cy);
+	//context.translate(cx - x, cy - y);
+	//context.rotate(deg * Math.PI/180);
+
+	//context.drawImage(stormImage, 0, 0);
+	////context.drawImage(stormImage, x, y);
+
+	//context.restore();
+
+      /*}, 33);*/
+  }
+
+  function animateStormSetup() {
+    var stormQuadrant = controller.game.map.initStormPosition();
+
+    circle.angle = convertQuadrantNumberToMapAngle(stormQuadrant);
+
+    var startPoint = new Array(170, 15);
+
+    stormImage.xPos = startPoint[0];
+    stormImage.yPos = startPoint[1];
+
+
+    stormImage.onhalt = function() { controller.startPlayerTurn() }
+    moveImageToPoint(stormImage, coordinates);
+  }
+
+  function convertQuadrantNumberToMapAngle(quadrantNumber) {
+    var degreesPerQuadrant = 20;
+    
+    /* Dividing by 2 puts the angle in the center of the quadrant */
+    var degrees = (quadrantNumber * degreesPerQuadrant) + degreesPerQuadrant/2; 
+    var radians = degrees * (Math.PI/180);
+    return radians;
+  }
+
+  function moveImageToPoint(image, point) {
+    var finalX = point[0],
+	finalY = point[1];
+
+    image.xStep = (finalX - image.xPos) * image.speed;
+    image.yStep = (finalY - image.yPos) * image.speed;
+
+    image.movement = setInterval(function () {
+      animateImageMovement(image, [finalX, finalY]);
+    }, 10);
 
   }
 
-  function  drawScreen () {
-      //Clear last ball drawn
-      context.clearRect(
-	ball.x - ball.radius, ball.y - ball.radius, ball.radius*2, ball.radius*2);
+  function animateImageMovement(image, point) {
+    clearImage(image);
 
-      //context.fillStyle = '#EEEEEE';
-      //context.fillRect(0, 0, canvas.width, canvas.height);
-      //Box
-      //context.strokeStyle = '#000000';
-      //context.strokeRect(1,  1, canvas.width-2, canvas.height-2);
+    var x = point[0];
+    var y = point[1];
 
-      ball.x = circle.centerX + Math.cos(circle.angle) * circle.radius;
-      ball.y = circle.centerY + Math.sin(circle.angle) * circle.radius;
+    image.xPos += image.xStep;
+    image.yPos += image.yStep;
 
-      circle.angle -= ball.speed;
+    context.drawImage(image, image.xPos, image.yPos);
 
+    if (image.yPos + image.yStep >= y) {
+      clearInterval(image.movement);
+      delete image.movement;
+      delete image.xStep;
+      delete image.yStep;
 
-      context.drawImage(stormImage, ball.x - ball.radius, ball.y - ball.radius);
-      /* Draw ball */
-/*      context.fillStyle = "#000000";*/
-      //context.beginPath();
+      clearImage(image);
 
-      //var startAngle = 0;
-      //var endAngle = Math.PI*2;
-      //context.arc(ball.x,ball.y, ball.radius, startAngle, endAngle, true);
+      image.xPos = x
+      image.yPos = y
 
-      //context.closePath();
-      /*context.fill();*/
+      context.drawImage(image, image.xPos, image.yPos);
 
-      //context.strokeStyle = 'red';
-      //context.strokeRect(
-      //context.clearRect(
-	//ball.x - ball.radius, ball.y - ball.radius, ball.radius*2, ball.radius*2);
+      if (image.onhalt) {
+	  image.onhalt();
+	  image.onhalt = undefined;
+      }
 
-   }
+      //setInterval(animateStormQuadrantMovement, 33);
+      //animateStormQuadrantMovement();
+    }
+  }
+
+  function clearImage(image) {
+    context.clearRect(image.xPos, image.yPos,
+      image.width, image.height);
+  }
+
+  function calculateStormQuadrantCoordinatesBasedOnMapAngle() {
+      return new Array(
+	circle.centerX + Math.cos(circle.angle) * circle.radius
+	  - stormImage.radius,
+	circle.centerY + Math.sin(circle.angle) * circle.radius
+	- stormImage.radius);
+  }
+
+  function  animateStormQuadrantMovement() {
+
+      clearImage(stormImage);
+
+      var coordinates = calculateStormQuadrantCoordinatesBasedOnMapAngle();
+      stormImage.xPos = coordinates[0];
+      stormImage.yPos = coordinates[1];
+
+      circle.angle -= stormImage.speed;
+
+      context.drawImage(stormImage, stormImage.xPos, stormImage.yPos);
+  }
 
 }
+
+var loader = {
+    loaded:true,
+    loadedCount:0, // Assets that have been loaded so far
+    totalCount:0, // Total number of assets that need to be loaded
+    
+    loadImage:function(url){
+        this.totalCount++;
+        this.loaded = false;
+
+	var loadingScreen = document.getElementById('loadingscreen');
+	loadingScreen.style.display = "block";
+        //$('#loadingscreen').show();
+
+        var image = new Image();
+        image.src = url;
+        image.onload = loader.itemLoaded;
+        return image;
+    },
+    itemLoaded:function(){
+        loader.loadedCount++;
+
+	var loadingMessage = document.getElementById('loadingmessage');
+        loadingMessage.innerHTML = 
+	  'Loaded '+loader.loadedCount+' of '+loader.totalCount;
+
+        if (loader.loadedCount === loader.totalCount){
+            // Loader has loaded completely..
+            loader.loaded = true;
+
+            // Hide the loading screen 
+	    var loadingScreen = document.getElementById('loadingscreen');
+	    loadingScreen.style.display = "none";
+            //$('#loadingscreen').hide();
+
+            //and call the loader.onload method if it exists
+            if(loader.onload){
+                loader.onload();
+                loader.onload = undefined;
+            }
+        }
+    }
+}
+
 
 },{"./Base":12}],22:[function(require,module,exports){
 module.exports = StartMenuView;
