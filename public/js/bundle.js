@@ -38,23 +38,21 @@ function GameController() {
   this.game = new DuneGame();
 
   this.startGame = function() {
+    that.game.start();
     this.views.select.hide();
     initFactionViews();
-    startInitialTurn();
+
+
+    initMapView();
   }
 
 
   function initFactionViews() {
-    console.log('init faction views');
-    console.log(factions);
-    //var factionViews = new Array();
-
     for (var i = 0; i < factions.length; i++) {
       var factionName = factions[i];
       var FactionView = getFactionViewConstructor(factionName);
       that.views.factions[factionName] = new FactionView(that);
     }
-
   }
 
   function getFactionViewConstructor(factionName) {
@@ -76,20 +74,15 @@ function GameController() {
     }
   }
 
-  function initMapView() {
-    that.views.map.show();
-    that.views.map.loadImages();
-  }
 
   this.debugSetFactions = function (factionsArray) {
-    console.log('debug set factions');
   /* This is a debug function and should go away once gameplay finalized */
     factions = factionsArray;
   }
 
-  function startInitialTurn() {
-    that.game.start();
-    initMapView();
+  function initMapView() {
+    that.views.map.show();
+    that.views.map.loadImages();
   }
 
   this.startPlayerTurn = function() {
@@ -107,8 +100,6 @@ function GameController() {
 module.exports = Atreides;
 
 var internalDecorator = require("./Base.js");
-//Atreides.prototype = new BaseFaction();
-//Atreides.prototype.constructor = Atreides;
 
 function Atreides(game) { 
 
@@ -124,7 +115,6 @@ function Atreides(game) {
       {"spice": 10, "leaders": leaders, "name": "Atreides", "game": game});
 
 
-  //this.setSpice(10);
 }
 
 
@@ -180,70 +170,6 @@ function BaseFaction(obj, props) {
   }
 
 }
-
-/*function BaseFactionBak() {*/
-  //this.name = "Base";
-
-  //var spice = 0;
-  //var troops = [];
-  //var leaders = [];
-  //var traitor = undefined;
-
-  //assignTroops(troops);
-
-  //this.getTroopSize = getTroopSize;
-  //this.getTroops = getTroops;
-  //this.getSpice = getSpice;
-  //this.setSpice = setSpice;
-  //this.getLeaders = getLeaders;
-  //this.getLeader = getLeader;
-  //this.setLeaders = setLeaders;
-
-  
-  //function getTroopSize() {
-    //return troops.length;
-  //}
-
-  //function getTroops(count) {
-    //if (count > troops.length) 
-      //throw Error("Not enough troops");
-
-    //var container = new BaseTroopContainer(this, troops.slice(0,count));
-    //return container;
-  //};
-
-  //function getSpice() {
-    //return spice;
-  //};
-
-  //function setSpice(value) {
-    //spice = value;
-  //}
-
-  //function getLeaders() {
-    //return leaders;
-  //}
-
-  //function getLeader(leaderName) {
-    //for (var i = 0; i < leaders.length; i++) {
-      //var leader = leaders[i];
-      //if (leader.name == leaderName) {
-              //return leader;
-      //}
-    //} 
-
-    //throw new Error(this.name + " leader does not exist: "+leaderName);
-  //}
-
-  //function setLeaders(leaderArray) {
-    //leaders = leaderArray;
-  //}
-
-  //this.setTraitor = function(traitorName) {
-    //return traitor = traitorName;
-  //}
-
-/*}*/
 
 function assignTroops(troopArray) {
   var array = new Array();
@@ -442,15 +368,13 @@ function Game() {
 
 
   this.selectPlayer = function(factionName) {
-    if (isStarted) {
-      throw new Error("Game already started. Unable to add more factions");
+    console.log('select '+factionName);
+    if (! factions[factionName]) {
+      var FactionModule = getFactionModule(factionName);
+      factions[factionName] = new FactionModule(this);
     }
 
-    if (factions[factionName]) 
-      throw new Error(factionName + " faction has already been selected").stack;
-
-    var FactionModule = getFactionModule(factionName);
-    return factions[factionName] = new FactionModule(this);
+    return factions[factionName];
   }
 
   function getFactionModule(factionName) {
@@ -473,9 +397,12 @@ function Game() {
   }
 
   function assignPlayerSeats() {
+    console.log('assign player seats');
     var playerSeatQuadrants = new Array(0, 3, 6, 9, 12, 15);
     shuffleArray(playerSeatQuadrants);
 
+    console.log('factions');
+    console.log(factions);
     for (var name in factions) {
       var faction = factions[name];
       faction.seat = playerSeatQuadrants.shift();
@@ -640,27 +567,16 @@ function SpiceDeck() {
 },{"./shuffle":23}],12:[function(require,module,exports){
 module.exports = BaseView;
 
-function BaseView() {
-  var imagePath = "/img/";
-  var iconPath = imagePath + "icons/";
-  var view = undefined;
+function BaseView(obj, props) {
 
-  this.getImagePath = getImagePath;
-  this.getIconPath = getIconPath
-  this.getView = getView;
-  this.setView = setView;
-  this.show = show;
-  this.hide = hide;
+  obj.imagePath = "/img/";
+  obj.iconPath = obj.imagePath + "icons/";
+  var view = props.view;
 
+  obj.show = function() { view.style.display = "block" }
+  obj.hide = function() { view.style.display = "none" }
 
-  function getImagePath() { return imagePath }
-  function getIconPath() { return iconPath }
-  function getView(element) { return view }
-  function setView(element) { view = element }
-  function show() { view.style.display = "block" }
-  function hide() { view.style.display = "none" }
 }
-
 
 },{}],13:[function(require,module,exports){
 module.exports = AtreidesView;
@@ -673,6 +589,8 @@ AtreidesView.prototype.constructor = AtreidesView;
 function AtreidesView(controller) {
 
   var faction = controller.game.selectPlayer('Atreides');
+  console.log('faction.seat');
+  console.log(faction.seat);
   var that = this;
 
   this.setController(controller);
@@ -702,11 +620,11 @@ function AtreidesView(controller) {
 },{"./Base":14}],14:[function(require,module,exports){
 module.exports = BaseFactionView;
 
-var BaseView = require("../Base");
-BaseFactionView.prototype = new BaseView();
-BaseFactionView.prototype.constructor = BaseFactionView;
+var ViewDecorator = require("../Base");
 
 function BaseFactionView() {
+
+  ViewDecorator(this, { "view": undefined });
 
   var controller, faction;
 
@@ -745,13 +663,6 @@ function BaseFactionView() {
 
     viewElement.appendChild(shieldImage);
   }
-
-/*  function getMapViewElement() {*/
-    //var controller = self.getController();
-    //var mapView = controller.getMapView();
-    //var viewElement = mapView.getView();
-    //return viewElement;
-  /*}*/
 
   this._startInitialTurn = function() {
     throw new Error('Method must be implemented by child class');
@@ -880,13 +791,14 @@ function HarkonnenView(controller) {
 },{"./Base":14}],20:[function(require,module,exports){
 module.exports = FactionSelectView;
 
-var BaseView = require("./Base");
+var ViewDecorator = require("./Base");
 var MapView = require("./Map");
 
-FactionSelectView.prototype = new BaseView();
-FactionSelectView.prototype.constructor = FactionSelectView;
-
 function FactionSelectView(controller) {
+
+  ViewDecorator(this, { 
+    "view": document.getElementById("factionselectscreen")
+  });
 
   var container = document.getElementById("factionselectcontainer");
 
@@ -907,14 +819,12 @@ function FactionSelectView(controller) {
 
   var startButton = undefined;
 
-  var view = document.getElementById("factionselectscreen");
 
   var that = this;
 
   init();
 
   function init() {
-    that.setView(view);
     that.getSelectedFactions = getSelectedFactions;
     makeFactionImageElements();
     makeBackButtonElement();
@@ -936,7 +846,7 @@ function FactionSelectView(controller) {
   function makeFactionImageElements() {
     for (var i = 0; i < 6; i++) {
       var image = new Image();
-      image.src = that.getIconPath() + factionSelectIcon;
+      image.src = that.iconPath + factionSelectIcon;
       image.onclick = factionSelector;
 
       container.appendChild(image);
@@ -946,7 +856,7 @@ function FactionSelectView(controller) {
 
   function makeBackButtonElement() {
     var backButton = new Image();
-    backButton.src = that.getIconPath() + "back.png";
+    backButton.src = that.iconPath + "back.png";
     container.appendChild(backButton);
     backButton.onclick = returnToStartScreen;
 
@@ -961,7 +871,7 @@ function FactionSelectView(controller) {
 
   function makeStartButtonElement() {
     startButton = new Image();
-    startButton.src = that.getIconPath() + "start.png";
+    startButton.src = that.iconPath + "start.png";
     startButton.style.opacity = 0.6;
     startButton.style.cursor = "default";
     container.appendChild(startButton);
@@ -1027,18 +937,18 @@ function FactionSelectView(controller) {
 },{"./Base":12,"./Map":21}],21:[function(require,module,exports){
 module.exports = MapView;
 
-var BaseView = require("./Base");
-
-MapView.prototype = new BaseView();
-MapView.prototype.constructor = MapView;
+var ViewDecorator = require("./Base");
 
 function MapView(controller) {
+
+  ViewDecorator(this, { 
+    "view": document.getElementById("mapscreen") 
+  });
 
   var canvas = document.getElementById("gamecanvas");
   canvas.width = 768;
   canvas.height = 1024;
 
-  var view = document.getElementById("mapscreen");
   this.element = document.getElementById("mapscreen");
 
   var context = canvas.getContext("2d");
@@ -1049,19 +959,11 @@ function MapView(controller) {
 
   var stormImage;
 
-  init();
-
-  function init() {
-    that.setView(view);
-  }
-
   this.loadImages = function() {
     var stormImageUrl = "img/icons/storm-marker.png";
     stormImage = loader.loadImage(stormImageUrl);
 
-    //stormImage.onload = animateStormSetup;
-    //stormImage.onload = placeRectangularStormToken;
-    stormImage.onload = tester;
+    stormImage.onload = drawStormSetup;
 
     stormImage.xPos = 0; 
     stormImage.yPos = 0; 
@@ -1069,8 +971,8 @@ function MapView(controller) {
     stormImage.radius = 25;
   }
 
-  function tester() {
-    var stormQuadrant = controller.game.map.initStormPosition();
+  function drawStormSetup() {
+    var stormSector = controller.game.map.initStormPosition();
 
     var img = stormImage;
 
@@ -1080,7 +982,7 @@ function MapView(controller) {
     var x = -w/2;
     var y = -h/2;
 
-    circle.angle = convertQuadrantNumberToMapAngle(stormQuadrant);
+    circle.angle = convertSectorNumberToMapAngle(stormSector);
     var coordinates = new Array(
 	circle.centerX + Math.cos(circle.angle) * circle.radius
 	+ x
@@ -1091,16 +993,33 @@ function MapView(controller) {
     context.save();
     context.translate(coordinates[0],coordinates[1]);
     context.translate(img.width/2, img.height/2);
-    var TO_RADIANS = Math.PI/180;
 
-    var degreesPerQuadrant = 20;
-    var degrees = (stormQuadrant - 3) * degreesPerQuadrant;
+    var TO_RADIANS = Math.PI/180;
+    var degreesPerSector = 20;
+    var degrees = (stormSector - 3) * degreesPerSector;
+
     context.rotate(degrees * TO_RADIANS);
     context.drawImage(img, -img.width/2, -img.height/2);
     context.restore();
 
-    setInterval(function() {
+  }
+
+  function moveStormNumberOfSectors(img, sectors) {
+    var degreesPerSector = 20;
+    var movementDegrees = sectors * degreesPerSector;
+    var movementRadians = movementDegrees * Math.PI / 180;
+
+    var stopAngle = circle.angle - movementRadians;
+    animateStormSectorMovement(img, stopAngle);
+
+  }
+
+  function animateStormSectorMovement(img, stopAngle) {
+    var interval = setInterval(function() {
       context.clearRect(0, 0, canvas.width, canvas.height);
+
+      var x = -img.width/2;
+      var y = -img.height/2;
 
       var coordinates = new Array(
 	  circle.centerX + Math.cos(circle.angle) * circle.radius
@@ -1111,125 +1030,32 @@ function MapView(controller) {
 
       circle.angle -= img.speed;
 
+      if (circle.angle <= stopAngle) 
+	clearInterval(interval);
+
       context.save();
       context.translate(coordinates[0],coordinates[1]);
       context.translate(img.width/2, img.height/2);
 
       var TO_RADIANS = Math.PI/180;
 
-      //var degreesPerQuadrant = 20;
-      //var degrees = (stormQuadrant - 3) * degreesPerQuadrant;
 
+      /* Correct for the storm marker being skewed at an odd angle */
       var stormMarkerAngle = 291 * Math.PI/180;
-      //console.log(t * 180 / Math.PI);
       var rotation = circle.angle + stormMarkerAngle;
       context.rotate(rotation);
 
-      //console.log(circle.angle * 180 / Math.PI);
-      //context.rotate(degrees * TO_RADIANS);
       context.drawImage(img, -img.width/2, -img.height/2);
       context.restore();
 
-      //degrees++;
-      //context.save();
-
-      //context.translate(coordinates[0],coordinates[1]);
-
-      //context.translate(img.width/2, img.height/2);
-
-      //var TO_RADIANS = Math.PI/180;
-      //context.rotate(degrees * TO_RADIANS);
-      //context.drawImage(img, -img.width/2, -img.height/2);
-      //context.restore();
     }, 33);
   }
 
-  function placeRectangularStormToken() {
-      // pivot point coordinates = the center of the square
-      var cx = 200; // (60+200)/2
-      var cy = 200; // (60+200)/2
-
-      // Note that the x and y values of the square 
-      // are relative to the pivot point.
-      var x = -70; // cx + x = 130 - 70 = 60
-      var y = -70; // cy + y = 130 - 70 = 60
-      var w = 140; // (cx + x) + w = 60 + w = 200
-      var h = 140; // (cy + y) + h = 60 + h = 200
-      var deg = 0;
-
-      w = stormImage.width;
-      h = stormImage.height;
-
-      x = -w/2;
-      y = -h/2;
-
-      circle.angle = convertQuadrantNumberToMapAngle(3);
-      //var coordinates = calculateStormQuadrantCoordinatesBasedOnMapAngle();
-      console.log('a');
-      var coordinates = new Array(
-	  circle.centerX + Math.cos(circle.angle) * circle.radius
-	  + x
-	  ,circle.centerY + Math.sin(circle.angle) * circle.radius
-	  + y
-      );
-
-      console.log(coordinates);
-      cx = coordinates[0];
-      cy = coordinates[1];
-
-      context.drawImage(stormImage, cx, cy);
-
-      deg = 90;
-      context.save();
-
-      context.translate(cx + w, cy - h);
-      //context.translate(cx - x, cy - y);
-      context.rotate(deg * Math.PI/180);
-
-      context.drawImage(stormImage, 0, 0);
-      //context.drawImage(stormImage, x, y);
-
-      context.restore();
-
-/*     setInterval(function() {*/
-
-	//context.clearRect(0, 0, canvas.width, canvas.height);
-
-	//deg++;
-	//context.save();
-
-	////context.translate(cx, cy);
-	//context.translate(cx - x, cy - y);
-	//context.rotate(deg * Math.PI/180);
-
-	//context.drawImage(stormImage, 0, 0);
-	////context.drawImage(stormImage, x, y);
-
-	//context.restore();
-
-      /*}, 33);*/
-  }
-
-  function animateStormSetup() {
-    var stormQuadrant = controller.game.map.initStormPosition();
-
-    circle.angle = convertQuadrantNumberToMapAngle(stormQuadrant);
-
-    var startPoint = new Array(170, 15);
-
-    stormImage.xPos = startPoint[0];
-    stormImage.yPos = startPoint[1];
-
-
-    stormImage.onhalt = function() { controller.startPlayerTurn() }
-    moveImageToPoint(stormImage, coordinates);
-  }
-
-  function convertQuadrantNumberToMapAngle(quadrantNumber) {
-    var degreesPerQuadrant = 20;
+  function convertSectorNumberToMapAngle(sectorNumber) {
+    var degreesPerSector = 20;
     
-    /* Dividing by 2 puts the angle in the center of the quadrant */
-    var degrees = (quadrantNumber * degreesPerQuadrant) + degreesPerQuadrant/2; 
+    /* Dividing by 2 puts the angle in the center of the sector */
+    var degrees = (sectorNumber * degreesPerSector) + degreesPerSector/2; 
     var radians = degrees * (Math.PI/180);
     return radians;
   }
@@ -1276,8 +1102,6 @@ function MapView(controller) {
 	  image.onhalt = undefined;
       }
 
-      //setInterval(animateStormQuadrantMovement, 33);
-      //animateStormQuadrantMovement();
     }
   }
 
@@ -1286,25 +1110,12 @@ function MapView(controller) {
       image.width, image.height);
   }
 
-  function calculateStormQuadrantCoordinatesBasedOnMapAngle() {
+  function calculateStormSectorCoordinatesBasedOnMapAngle() {
       return new Array(
 	circle.centerX + Math.cos(circle.angle) * circle.radius
 	  - stormImage.radius,
 	circle.centerY + Math.sin(circle.angle) * circle.radius
 	- stormImage.radius);
-  }
-
-  function  animateStormQuadrantMovement() {
-
-      clearImage(stormImage);
-
-      var coordinates = calculateStormQuadrantCoordinatesBasedOnMapAngle();
-      stormImage.xPos = coordinates[0];
-      stormImage.yPos = coordinates[1];
-
-      circle.angle -= stormImage.speed;
-
-      context.drawImage(stormImage, stormImage.xPos, stormImage.yPos);
   }
 
 }
@@ -1320,7 +1131,6 @@ var loader = {
 
 	var loadingScreen = document.getElementById('loadingscreen');
 	loadingScreen.style.display = "block";
-        //$('#loadingscreen').show();
 
         var image = new Image();
         image.src = url;
@@ -1341,7 +1151,6 @@ var loader = {
             // Hide the loading screen 
 	    var loadingScreen = document.getElementById('loadingscreen');
 	    loadingScreen.style.display = "none";
-            //$('#loadingscreen').hide();
 
             //and call the loader.onload method if it exists
             if(loader.onload){
@@ -1356,17 +1165,14 @@ var loader = {
 },{"./Base":12}],22:[function(require,module,exports){
 module.exports = StartMenuView;
 
-var BaseView = require('./Base');
-
-StartMenuView.prototype = new BaseView();
-StartMenuView.prototype.constructor = StartMenuView;
+var ViewDecorator = require('./Base');
 
 function StartMenuView(controller) {
 
-  var view = document.getElementById("gamestartscreen");
+  ViewDecorator(this, { 
+    "view": document.getElementById("gamestartscreen")
+  });
 
-  this.setView(view);
-  var that = this;
 
   addPlayClickEvent();
 
@@ -1378,9 +1184,6 @@ function StartMenuView(controller) {
   function showFactionSelectView() {
     controller.hideStartMenuView();
     controller.showFactionSelectView();
-    //that.hide();
-    //var factionSelectView = controller.getFactionSelectView();
-    //factionSelectView.show();
   }
 
 }
