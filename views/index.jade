@@ -7,7 +7,7 @@ head
     charset="utf-8")
 body
   div#gamecontainer
-    canvas(id="gamecanvas" class="gamelayer")
+    canvas(id="gamecanvas" width="768" height="1024" class="gamelayer")
     div(id="gamestartscreen" class="gamelayer")
       img(src="img/icons/play.png" id="playbutton" alt="Play Game")
     div(id="factionselectscreen" class="gamelayer")
@@ -16,4 +16,5 @@ body
     div(id="mapscreen" class="gamelayer")
     div(id="loadingscreen" class="gamelayer")
       div#loadingmessage
+
   script(src="/js/bundle.js" type="text/javascript" charset="utf-8")

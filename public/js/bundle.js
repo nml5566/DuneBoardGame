@@ -9,9 +9,21 @@ window.onload = function() {
   /* DEBUG MODE */
   gameController.debugSetFactions(new Array("Atreides", "Harkonnen"));
   gameController.startGame();
+
+  //drawPlayerSeats();
 }
 
+/*var canvasController = new CanvasController();*/
 
+
+//function convertSectorNumberToMapAngle(sectorNumber) {
+  //var degreesPerSector = 20;
+  
+  //[> Dividing by 2 puts the angle in the center of the sector <]
+  //var degrees = (sectorNumber * degreesPerSector) + degreesPerSector/2; 
+  //var radians = degrees * (Math.PI/180);
+  //return radians;
+//}
 
 
 },{"Dune/Controller":2}],2:[function(require,module,exports){
@@ -25,27 +37,31 @@ var FactionSelectView = require("./View/FactionSelect");
 function GameController() {
 
   var factions = [];
+  
+  var turn = 0;
+  var traitorPool = new Array();
+  var that = this;
+
+  this.game = new DuneGame();
+  this.canvasContainer = new CanvasContainer();
+
   this.views = {
     "map": new MapView(this),
     "start": new StartMenuView(this),
     "select":new FactionSelectView(this),
     "factions": {}
   };
-  var turn = 0;
-  var traitorPool = new Array();
-  var that = this;
 
-  this.game = new DuneGame();
 
   this.startGame = function() {
-    that.game.start();
     this.views.select.hide();
     initFactionViews();
 
-
+    that.game.start();
+    
+    drawPlayerSeats();
     initMapView();
   }
-
 
   function initFactionViews() {
     for (var i = 0; i < factions.length; i++) {
@@ -80,6 +96,13 @@ function GameController() {
     factions = factionsArray;
   }
 
+  function drawPlayerSeats() {
+    for (var key in that.views.factions) {
+      var factionView = that.views.factions[key];
+      factionView.drawPlayerSeat();
+    }
+  }
+
   function initMapView() {
     that.views.map.show();
     that.views.map.loadImages();
@@ -94,6 +117,38 @@ function GameController() {
     //factionView.promptUserStartTurn();
   }  
 
+}
+
+function CanvasContainer() {
+
+  var container = document.getElementById("gamecontainer");
+
+  var layerMap = { };
+  var layerOrder = [];
+  
+  this.layer = function(layerName, width, height) {
+    if (! layerMap[layerName]) 
+      newLayer(layerName, width, height);
+
+    return layerMap[layerName]
+  }
+
+  function newLayer(layerName, width, height) {
+    var canvas = document.createElement("canvas");
+    canvas.id = layerName;
+    canvas.className = "gamelayer";
+    canvas.style.display = "block";
+
+    var zIndex = 99 + layerOrder.length;
+    canvas.style.zIndex = zIndex;
+
+    canvas.width = width ? width : 768;
+    canvas.height = height ? heigth : 1024;
+
+    layerMap[layerName] = canvas;
+    layerOrder.unshift(canvas);
+    container.appendChild(canvas);
+  }
 }
 
 },{"./View/Faction/Atreides":13,"./View/Faction/BeneGesserit":15,"./View/Faction/Emperor":16,"./View/Faction/Fremen":17,"./View/Faction/Guild":18,"./View/Faction/Harkonnen":19,"./View/FactionSelect":20,"./View/Map":21,"./View/StartMenu":22,"Dune/Game":10}],3:[function(require,module,exports){
@@ -368,7 +423,6 @@ function Game() {
 
 
   this.selectPlayer = function(factionName) {
-    console.log('select '+factionName);
     if (! factions[factionName]) {
       var FactionModule = getFactionModule(factionName);
       factions[factionName] = new FactionModule(this);
@@ -397,15 +451,12 @@ function Game() {
   }
 
   function assignPlayerSeats() {
-    console.log('assign player seats');
-    var playerSeatQuadrants = new Array(0, 3, 6, 9, 12, 15);
-    shuffleArray(playerSeatQuadrants);
+    var playerSeatSectors = new Array(1, 4, 7, 10, 13,16);
+    shuffleArray(playerSeatSectors);
 
-    console.log('factions');
-    console.log(factions);
     for (var name in factions) {
       var faction = factions[name];
-      faction.seat = playerSeatQuadrants.shift();
+      faction.seat = playerSeatSectors.shift();
     }
   }
 
@@ -581,20 +632,20 @@ function BaseView(obj, props) {
 },{}],13:[function(require,module,exports){
 module.exports = AtreidesView;
 
-var BaseFactionView = require("./Base");
+var FactionDecorator = require("./Base");
 
-AtreidesView.prototype = new BaseFactionView();
-AtreidesView.prototype.constructor = AtreidesView;
+//AtreidesView.prototype = new BaseFactionView();
+//AtreidesView.prototype.constructor = AtreidesView;
 
 function AtreidesView(controller) {
 
-  var faction = controller.game.selectPlayer('Atreides');
-  console.log('faction.seat');
-  console.log(faction.seat);
-  var that = this;
+  FactionDecorator(this, {
+    "faction": controller.game.selectPlayer('Atreides'),
+    "controller": controller,
+    "icon": "atreides-emblem53x53.png"
+  });
 
-  this.setController(controller);
-  this.setFaction(faction);
+  var that = this;
 
   this.startInitialTurn = function() {
     this.promptUserStartTurn();
@@ -602,6 +653,7 @@ function AtreidesView(controller) {
 
   this._startInitialTurn = function() {
     this.promptUserSelectTraitor();
+    // TODO
     //this.deployInitialTroops()
   }
 
@@ -622,25 +674,17 @@ module.exports = BaseFactionView;
 
 var ViewDecorator = require("../Base");
 
-function BaseFactionView() {
+function BaseFactionView(obj, args) {
 
-  ViewDecorator(this, { "view": undefined });
+  ViewDecorator(obj, { "view": undefined });
 
-  var controller, faction;
+  var controller = args.controller,
+      faction = args.faction,
+      icon = args.icon;
 
   var self = this;
 
-  this.setFaction = function(newFaction) {
-    faction = newFaction;
-  }
-
-  this.setController = function(newController) {
-    controller = newController
-  }
-
-  this.getController = function() { return controller }
-
-  this.promptUserStartTurn = function(onDismiss) {
+  obj.promptUserStartTurn = function(onDismiss) {
     console.log('prompt user');
     var that = this;
 
@@ -664,15 +708,15 @@ function BaseFactionView() {
     viewElement.appendChild(shieldImage);
   }
 
-  this._startInitialTurn = function() {
+  obj._startInitialTurn = function() {
     throw new Error('Method must be implemented by child class');
   }
 
-  this.getLeaders = function() {
+  obj.getLeaders = function() {
     return faction.getLeaders();
   }
 
-  this.promptUserSelectTraitor = function() {
+  obj.promptUserSelectTraitor = function() {
     var controller = this.getController();
     var traitorHand = controller.dealTraitorHand();
     displayTraitorCards(traitorHand);
@@ -726,8 +770,48 @@ function BaseFactionView() {
 
   }
 
-  this.selectTraitor = function(traitorName) {
+  obj.selectTraitor = function(traitorName) {
     faction.setTraitor(traitorName);
+  }
+
+  obj.drawPlayerSeat = function() {
+
+    var canvas = controller.canvasContainer.layer('playerseat');
+
+    var context = canvas.getContext("2d");
+
+    var factionIcon = new Image();
+    
+    factionIcon.src = this.iconPath + icon;
+
+    factionIcon.onload = function() {
+      var mapView = controller.views.map;
+
+      var circle = mapView.circle;
+      circle.angle = mapView.convertSectorNumberToMapAngle(faction.seat);
+
+      var iconOffset = factionIcon.width/2;
+
+      var coordinates = 
+      	mapView.calculateSectorEdgeFromMapAngle([iconOffset, iconOffset]);
+
+      var x = coordinates[0] - iconOffset;
+      var y = coordinates[1] - iconOffset;
+
+      context.drawImage(factionIcon, x, y);
+    }
+  }
+
+  function makeCanvas() {
+    var canvas = document.createElement("canvas");
+    canvas.id = "playerseatcanvas";
+    canvas.className = "gamelayer";
+    canvas.style.display = "block";
+    canvas.style.zIndex = 100;
+    canvas.width = 768;
+    canvas.height = 1024;
+
+    return canvas;
   }
 
 }
@@ -764,18 +848,20 @@ module.exports=require(15)
 },{}],19:[function(require,module,exports){
 module.exports = HarkonnenView;
 
-var BaseFactionView = require("./Base");
+var FactionDecorator = require("./Base");
 
-HarkonnenView.prototype = new BaseFactionView();
-HarkonnenView.prototype.constructor = HarkonnenView;
+//HarkonnenView.prototype = new BaseFactionView();
+//HarkonnenView.prototype.constructor = HarkonnenView;
 
 function HarkonnenView(controller) {
 
-  var faction = controller.game.selectPlayer('Harkonnen');
-  var that = this;
+  FactionDecorator(this, {
+    "faction": controller.game.selectPlayer('Harkonnen'),
+    "controller": controller,
+    "icon": "harkonnen-emblem53x53.png"
+  });
 
-  this.setController(controller);
-  this.setFaction(faction);
+  var that = this;
 
   this.startInitialTurn = function() {
     this.promptUserStartTurn();
@@ -945,15 +1031,14 @@ function MapView(controller) {
     "view": document.getElementById("mapscreen") 
   });
 
-  var canvas = document.getElementById("gamecanvas");
-  canvas.width = 768;
-  canvas.height = 1024;
+  var canvas = controller.canvasContainer.layer("storm");
 
   this.element = document.getElementById("mapscreen");
 
   var context = canvas.getContext("2d");
 
   var circle = {centerX:385, centerY:425, radius:338, angle: 0}
+  this.circle = circle;
 
   var that = this;
 
@@ -982,13 +1067,10 @@ function MapView(controller) {
     var x = -w/2;
     var y = -h/2;
 
-    circle.angle = convertSectorNumberToMapAngle(stormSector);
-    var coordinates = new Array(
-	circle.centerX + Math.cos(circle.angle) * circle.radius
-	+ x
-	,circle.centerY + Math.sin(circle.angle) * circle.radius
-	+ y
-    );
+    circle.angle = that.convertSectorNumberToMapAngle(stormSector);
+
+    var coordinates = that.calculateSectorEdgeFromMapAngle();
+    coordinates[0] += x, coordinates[1] += y;
 
     context.save();
     context.translate(coordinates[0],coordinates[1]);
@@ -1002,6 +1084,7 @@ function MapView(controller) {
     context.drawImage(img, -img.width/2, -img.height/2);
     context.restore();
 
+    //moveStormNumberOfSectors(img, 18);
   }
 
   function moveStormNumberOfSectors(img, sectors) {
@@ -1021,12 +1104,9 @@ function MapView(controller) {
       var x = -img.width/2;
       var y = -img.height/2;
 
-      var coordinates = new Array(
-	  circle.centerX + Math.cos(circle.angle) * circle.radius
-	  + x
-	  ,circle.centerY + Math.sin(circle.angle) * circle.radius
-	  + y
-      );
+      var coordinates = that.calculateSectorEdgeFromMapAngle();
+      coordinates[0] += x, coordinates[1] += y;
+
 
       circle.angle -= img.speed;
 
@@ -1051,7 +1131,7 @@ function MapView(controller) {
     }, 33);
   }
 
-  function convertSectorNumberToMapAngle(sectorNumber) {
+  this.convertSectorNumberToMapAngle = function(sectorNumber) {
     var degreesPerSector = 20;
     
     /* Dividing by 2 puts the angle in the center of the sector */
@@ -1110,12 +1190,15 @@ function MapView(controller) {
       image.width, image.height);
   }
 
-  function calculateStormSectorCoordinatesBasedOnMapAngle() {
-      return new Array(
-	circle.centerX + Math.cos(circle.angle) * circle.radius
-	  - stormImage.radius,
-	circle.centerY + Math.sin(circle.angle) * circle.radius
-	- stormImage.radius);
+  this.calculateSectorEdgeFromMapAngle = function(offset) {
+    var offsetX = 0, offsetY = 0;
+    if (offset) 
+      offsetX = offset[0], offsetY = offset[1];
+
+    return new Array(
+      circle.centerX + Math.cos(circle.angle) * (circle.radius + offsetX),
+      circle.centerY + Math.sin(circle.angle) * (circle.radius + offsetY)
+    );
   }
 
 }

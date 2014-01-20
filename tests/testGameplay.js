@@ -41,12 +41,7 @@ assert(initialStormPosition <= 17);
 while (! game.isOver()) {
   var newStormPosition = game.stormRound();
 
-  assert( newStormPosition != initialStormPosition, "Storm didn't change quadrants" );
-  assert( newStormPosition >= 0 && newStormPosition <= 17, "Storm not in valid quadrant" );
-  assert( 
-    ( (newStormPosition - initialStormPosition <= 6) 
-      || (initialStormPosition + 17 - newStormPosition <= 6) 
-    ), "Storm moved more than 6 quadrants" );
+  testStormMovement(initialStormPosition, newStormPosition)
 
   initialStormPosition = newStormPosition;
 
@@ -70,6 +65,15 @@ while (! game.isOver()) {
   game.battleRound();
   game.collectionRound();
   game.controlRound();
+}
+
+function testStormMovement(initialStormPosition, newStormPosition) {
+  assert( newStormPosition != initialStormPosition, "Storm didn't change quadrants" );
+  assert( newStormPosition >= 0 && newStormPosition <= 17, "Storm not in valid quadrant" );
+  assert( 
+    ( (newStormPosition - initialStormPosition <= 6) 
+      || (initialStormPosition + 17 - newStormPosition <= 6) 
+    ), "Storm moved more than 6 quadrants" );
 }
 
 function testTurnOrder(stormPosition, turnOrder) {
