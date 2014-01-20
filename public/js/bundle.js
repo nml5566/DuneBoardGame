@@ -7,24 +7,10 @@ window.onload = function() {
   var gameController = new GameController();
 
   /* DEBUG MODE */
-  gameController.debugSetFactions(new Array("Atreides", "Harkonnen"));
+  gameController.setFactions(new Array("Atreides", "Harkonnen"));
   gameController.startGame();
 
-  //drawPlayerSeats();
 }
-
-/*var canvasController = new CanvasController();*/
-
-
-//function convertSectorNumberToMapAngle(sectorNumber) {
-  //var degreesPerSector = 20;
-  
-  //[> Dividing by 2 puts the angle in the center of the sector <]
-  //var degrees = (sectorNumber * degreesPerSector) + degreesPerSector/2; 
-  //var radians = degrees * (Math.PI/180);
-  //return radians;
-//}
-
 
 },{"Dune/Controller":2}],2:[function(require,module,exports){
 module.exports = GameController;
@@ -36,15 +22,13 @@ var FactionSelectView = require("./View/FactionSelect");
 
 function GameController() {
 
-  var factions = [];
-  
   var turn = 0;
   var traitorPool = new Array();
-  var that = this;
 
   this.game = new DuneGame();
   this.canvasContainer = new CanvasContainer();
 
+  this.players = { };
   this.views = {
     "map": new MapView(this),
     "start": new StartMenuView(this),
@@ -52,6 +36,7 @@ function GameController() {
     "factions": {}
   };
 
+  var that = this;
 
   this.startGame = function() {
     this.views.select.hide();
@@ -64,8 +49,7 @@ function GameController() {
   }
 
   function initFactionViews() {
-    for (var i = 0; i < factions.length; i++) {
-      var factionName = factions[i];
+    for (var factionName in that.players) {
       var FactionView = getFactionViewConstructor(factionName);
       that.views.factions[factionName] = new FactionView(that);
     }
@@ -91,9 +75,12 @@ function GameController() {
   }
 
 
-  this.debugSetFactions = function (factionsArray) {
-  /* This is a debug function and should go away once gameplay finalized */
-    factions = factionsArray;
+  this.setFactions = function (factionsArray) {
+    for (var i = 0; i < factionsArray.length; i++) {
+      var factionName = factionsArray[i];
+      var player = this.game.selectPlayer(factionName);
+      this.players[factionName] = player;
+    }
   }
 
   function drawPlayerSeats() {
@@ -114,6 +101,7 @@ function GameController() {
 
     var factionView = this.views.factions[faction.constructor.name];
 
+    // TODO design the animation for this
     //factionView.promptUserStartTurn();
   }  
 
@@ -126,28 +114,33 @@ function CanvasContainer() {
   var layerMap = { };
   var layerOrder = [];
   
-  this.layer = function(layerName, width, height) {
+  this.layer = function(layerName) {
     if (! layerMap[layerName]) 
-      newLayer(layerName, width, height);
+      newLayer(layerName);
 
     return layerMap[layerName]
   }
 
-  function newLayer(layerName, width, height) {
+  function newLayer(layerName) {
     var canvas = document.createElement("canvas");
-    canvas.id = layerName;
-    canvas.className = "gamelayer";
-    canvas.style.display = "block";
 
-    var zIndex = 99 + layerOrder.length;
-    canvas.style.zIndex = zIndex;
-
-    canvas.width = width ? width : 768;
-    canvas.height = height ? heigth : 1024;
-
+    setCanvasAttributes(canvas, layerName);
+  
     layerMap[layerName] = canvas;
     layerOrder.unshift(canvas);
     container.appendChild(canvas);
+  }
+
+  function setCanvasAttributes(canvas, layerName) {
+    var zIndex = 99 + layerOrder.length;
+
+    canvas.id = layerName;
+    canvas.className = "gamelayer";
+    canvas.style.display = "block";
+    canvas.style.zIndex = zIndex;
+    canvas.width = 768;
+    canvas.height = 1024;
+
   }
 }
 
@@ -638,9 +631,8 @@ var FactionDecorator = require("./Base");
 //AtreidesView.prototype.constructor = AtreidesView;
 
 function AtreidesView(controller) {
-
   FactionDecorator(this, {
-    "faction": controller.game.selectPlayer('Atreides'),
+    "faction": controller.players['Atreides'],
     "controller": controller,
     "icon": "atreides-emblem53x53.png"
   });
@@ -856,7 +848,7 @@ var FactionDecorator = require("./Base");
 function HarkonnenView(controller) {
 
   FactionDecorator(this, {
-    "faction": controller.game.selectPlayer('Harkonnen'),
+    "faction": controller.players['Harkonnen'],
     "controller": controller,
     "icon": "harkonnen-emblem53x53.png"
   });
@@ -1007,7 +999,7 @@ function FactionSelectView(controller) {
 
   function startClick() {
     var factions = that.getSelectedFactions()
-    controller.debugSetFactions(factions);
+    controller.setFactions(factions);
     controller.startGame();
   }
 

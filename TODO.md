@@ -1,13 +1,11 @@
+Move game.selectFaction call from FactionView to controller
+===========================================================
 
-Rewrite BaseFactionView as decorator
-====================================
-
-Draw player seating arrangements
-================================
-Add separate canvas layer and draw on that
-
-Test it with storm movement
+Extend loader function to FactionViews
+======================================
+Tie image loading to playar seat draw
 
 
 Redraw userStartTurnPrompt using canvas
 =======================================
+v(0.0.5);
