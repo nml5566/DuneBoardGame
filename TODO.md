@@ -1,9 +1,8 @@
-Move game.selectFaction call from FactionView to controller
-===========================================================
-
 Extend loader function to FactionViews
 ======================================
-Tie image loading to playar seat draw
+* Move loader from MapView to Controller
+
+* Tie image loading to player seat draw
 
 
 Redraw userStartTurnPrompt using canvas

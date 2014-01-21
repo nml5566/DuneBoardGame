@@ -27,6 +27,7 @@ function GameController() {
 
   this.game = new DuneGame();
   this.canvasContainer = new CanvasContainer();
+  this.loader = new Loader();
 
   this.players = { };
   this.views = {
@@ -143,6 +144,54 @@ function CanvasContainer() {
 
   }
 }
+
+function Loader() {
+
+    var isLoaded = true,
+        assetsLoaded = 0, 
+        assetsToLoad = 0, 
+        loadingScreen = document.getElementById('loadingscreen'),
+	loadingMessage = document.getElementById('loadingmessage');
+
+    var that = this;
+    
+    this.loadImage = function(url) {
+        assetsToLoad++;
+        this.isLoaded = false;
+
+	var loadingScreen = document.getElementById('loadingscreen');
+	loadingScreen.style.display = "block";
+
+        var image = new Image();
+        image.src = url;
+        image.onload = this.itemLoaded;
+        return image;
+    };
+
+    this.itemLoaded = function () {
+        assetsLoaded++;
+
+        loadingMessage.innerHTML = 
+	  'isLoaded '+assetsLoaded+' of '+assetsToLoad;
+
+        if (assetsLoaded == assetsToLoad){
+            this.isLoaded = true;
+
+            hideLoadingScreen();
+
+            //and call the object onload method if it exists
+            if(that.onload){
+                that.onload();
+                that.onload = undefined;
+            }
+        }
+    }
+
+    function hideLoadingScreen() {
+      loadingScreen.style.display = "none";
+    }
+}
+
 
 },{"./View/Faction/Atreides":13,"./View/Faction/BeneGesserit":15,"./View/Faction/Emperor":16,"./View/Faction/Fremen":17,"./View/Faction/Guild":18,"./View/Faction/Harkonnen":19,"./View/FactionSelect":20,"./View/Map":21,"./View/StartMenu":22,"Dune/Game":10}],3:[function(require,module,exports){
 module.exports = Atreides;
@@ -1038,9 +1087,14 @@ function MapView(controller) {
 
   this.loadImages = function() {
     var stormImageUrl = "img/icons/storm-marker.png";
+    //stormImage = loader.loadImage(stormImageUrl);
+    var loader = controller.loader;
+
     stormImage = loader.loadImage(stormImageUrl);
 
-    stormImage.onload = drawStormSetup;
+    loader.onload = drawStormSetup;
+    //stormImage.onload = drawStormSetup;
+    
 
     stormImage.xPos = 0; 
     stormImage.yPos = 0; 
@@ -1195,46 +1249,6 @@ function MapView(controller) {
 
 }
 
-var loader = {
-    loaded:true,
-    loadedCount:0, // Assets that have been loaded so far
-    totalCount:0, // Total number of assets that need to be loaded
-    
-    loadImage:function(url){
-        this.totalCount++;
-        this.loaded = false;
-
-	var loadingScreen = document.getElementById('loadingscreen');
-	loadingScreen.style.display = "block";
-
-        var image = new Image();
-        image.src = url;
-        image.onload = loader.itemLoaded;
-        return image;
-    },
-    itemLoaded:function(){
-        loader.loadedCount++;
-
-	var loadingMessage = document.getElementById('loadingmessage');
-        loadingMessage.innerHTML = 
-	  'Loaded '+loader.loadedCount+' of '+loader.totalCount;
-
-        if (loader.loadedCount === loader.totalCount){
-            // Loader has loaded completely..
-            loader.loaded = true;
-
-            // Hide the loading screen 
-	    var loadingScreen = document.getElementById('loadingscreen');
-	    loadingScreen.style.display = "none";
-
-            //and call the loader.onload method if it exists
-            if(loader.onload){
-                loader.onload();
-                loader.onload = undefined;
-            }
-        }
-    }
-}
 
 
 },{"./Base":12}],22:[function(require,module,exports){
