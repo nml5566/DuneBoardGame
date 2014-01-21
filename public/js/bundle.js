@@ -27,7 +27,7 @@ function GameController() {
 
   this.game = new DuneGame();
   this.canvasContainer = new CanvasContainer();
-  this.loader = new Loader();
+  this.Loader = Loader;
 
   this.players = { };
   this.views = {
@@ -41,18 +41,18 @@ function GameController() {
 
   this.startGame = function() {
     this.views.select.hide();
-    initFactionViews();
-
     that.game.start();
-    
-    drawPlayerSeats();
+
+    initFactionViews();
     initMapView();
   }
 
   function initFactionViews() {
     for (var factionName in that.players) {
       var FactionView = getFactionViewConstructor(factionName);
-      that.views.factions[factionName] = new FactionView(that);
+      var factionView = new FactionView(that);
+      factionView.loadImages();
+      that.views.factions[factionName] = factionView;
     }
   }
 
@@ -81,13 +81,6 @@ function GameController() {
       var factionName = factionsArray[i];
       var player = this.game.selectPlayer(factionName);
       this.players[factionName] = player;
-    }
-  }
-
-  function drawPlayerSeats() {
-    for (var key in that.views.factions) {
-      var factionView = that.views.factions[key];
-      factionView.drawPlayerSeat();
     }
   }
 
@@ -156,35 +149,35 @@ function Loader() {
     var that = this;
     
     this.loadImage = function(url) {
-        assetsToLoad++;
-        this.isLoaded = false;
+      assetsToLoad++;
+      this.isLoaded = false;
 
-	var loadingScreen = document.getElementById('loadingscreen');
-	loadingScreen.style.display = "block";
+      var loadingScreen = document.getElementById('loadingscreen');
+      loadingScreen.style.display = "block";
 
-        var image = new Image();
-        image.src = url;
-        image.onload = this.itemLoaded;
-        return image;
+      var image = new Image();
+      image.src = url;
+      image.onload = this.itemLoaded;
+      return image;
     };
 
     this.itemLoaded = function () {
-        assetsLoaded++;
+      assetsLoaded++;
 
-        loadingMessage.innerHTML = 
-	  'isLoaded '+assetsLoaded+' of '+assetsToLoad;
+      loadingMessage.innerHTML = 
+	'isLoaded '+assetsLoaded+' of '+assetsToLoad;
 
-        if (assetsLoaded == assetsToLoad){
-            this.isLoaded = true;
+      if (assetsLoaded == assetsToLoad){
+	this.isLoaded = true;
 
-            hideLoadingScreen();
+	hideLoadingScreen();
 
-            //and call the object onload method if it exists
-            if(that.onload){
-                that.onload();
-                that.onload = undefined;
-            }
-        }
+	//and call the object onload method if it exists
+	if(that.onload){
+	    that.onload();
+	    that.onload = undefined;
+	}
+      }
     }
 
     function hideLoadingScreen() {
@@ -723,7 +716,22 @@ function BaseFactionView(obj, args) {
       faction = args.faction,
       icon = args.icon;
 
+  var factionIcon; 
+
   var self = this;
+
+  obj.loadImages = function() {
+
+    var loader = new controller.Loader();
+
+    var factionIconUrl = obj.iconPath + icon;
+    factionIcon = loader.loadImage(factionIconUrl)
+
+    loader.onload = function() {
+      obj.drawPlayerSeat();
+    };
+
+  }
 
   obj.promptUserStartTurn = function(onDismiss) {
     console.log('prompt user');
@@ -818,43 +826,23 @@ function BaseFactionView(obj, args) {
   obj.drawPlayerSeat = function() {
 
     var canvas = controller.canvasContainer.layer('playerseat');
-
     var context = canvas.getContext("2d");
 
-    var factionIcon = new Image();
-    
-    factionIcon.src = this.iconPath + icon;
+    var mapView = controller.views.map;
 
-    factionIcon.onload = function() {
-      var mapView = controller.views.map;
+    var circle = mapView.circle;
+    circle.angle = mapView.convertSectorNumberToMapAngle(faction.seat);
 
-      var circle = mapView.circle;
-      circle.angle = mapView.convertSectorNumberToMapAngle(faction.seat);
+    var iconOffset = factionIcon.width/2;
 
-      var iconOffset = factionIcon.width/2;
+    var coordinates = 
+      mapView.calculateSectorEdgeFromMapAngle([iconOffset, iconOffset]);
 
-      var coordinates = 
-      	mapView.calculateSectorEdgeFromMapAngle([iconOffset, iconOffset]);
+    var x = coordinates[0] - iconOffset;
+    var y = coordinates[1] - iconOffset;
 
-      var x = coordinates[0] - iconOffset;
-      var y = coordinates[1] - iconOffset;
-
-      context.drawImage(factionIcon, x, y);
-    }
+    context.drawImage(factionIcon, x, y);
   }
-
-  function makeCanvas() {
-    var canvas = document.createElement("canvas");
-    canvas.id = "playerseatcanvas";
-    canvas.className = "gamelayer";
-    canvas.style.display = "block";
-    canvas.style.zIndex = 100;
-    canvas.width = 768;
-    canvas.height = 1024;
-
-    return canvas;
-  }
-
 }
 
 },{"../Base":12}],15:[function(require,module,exports){
@@ -1086,15 +1074,13 @@ function MapView(controller) {
   var stormImage;
 
   this.loadImages = function() {
-    var stormImageUrl = "img/icons/storm-marker.png";
-    //stormImage = loader.loadImage(stormImageUrl);
-    var loader = controller.loader;
 
+    var loader = new controller.Loader();
+
+    var stormImageUrl = "img/icons/storm-marker.png";
     stormImage = loader.loadImage(stormImageUrl);
 
     loader.onload = drawStormSetup;
-    //stormImage.onload = drawStormSetup;
-    
 
     stormImage.xPos = 0; 
     stormImage.yPos = 0; 

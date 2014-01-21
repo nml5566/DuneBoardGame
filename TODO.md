@@ -1,7 +1,5 @@
 Extend loader function to FactionViews
 ======================================
-* Move loader from MapView to Controller
-
 * Tie image loading to player seat draw
 
 
