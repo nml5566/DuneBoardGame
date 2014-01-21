@@ -7,8 +7,8 @@ window.onload = function() {
   var gameController = new GameController();
 
   /* DEBUG MODE */
-  //gameController.setFactions(new Array("Atreides", "Harkonnen"));
-  //gameController.startGame();
+  gameController.setFactions(new Array("Atreides", "Harkonnen"));
+  gameController.startGame();
 
   promptUserSelectTraitor(gameController);
   //draw(gameController);
@@ -80,18 +80,22 @@ function drawCaption() {
   var captionDimensions = { 
     x: 0, y: 0,
     //x: 300, y: 20,
-    width: 120, height: 40
+    //width: 120, height: 40
+    width: 200, height: 80
   };
 
 
   context.beginPath();
 
   var buffer = 8;
+  var buffer2 = 3.6;
 
   var bezierCtrlPt1X = captionDimensions.width + captionDimensions.x;
-  var bezierCtrlPt1Y = 36.4 + captionDimensions.y;
+  //var bezierCtrlPt1Y = 36.4 + captionDimensions.y;
+  var bezierCtrlPt1Y = captionDimensions.height - buffer2 + captionDimensions.y;
 
-  var bezierCtrlPt2X = 116.4 + captionDimensions.x;
+  //var bezierCtrlPt2X = 116.4 + captionDimensions.x;
+  var bezierCtrlPt2X = captionDimensions.width - buffer2 + captionDimensions.x;
   //var bezierCtrlPt2Y = 40.0;
   var bezierCtrlPt2Y = captionDimensions.height + captionDimensions.y;
 
@@ -104,7 +108,6 @@ function drawCaption() {
     //captionDimensions.y + captionDimensions.height
     //bezierCtrlPt2Y
   //);
-  console.log(startX + ", " + startY);
 
 
   //var endingX = 112.0;
@@ -121,15 +124,10 @@ function drawCaption() {
       // 112.0, 40.0);
       endingX, endingY);
   
-  console.log(
-    bezierCtrlPt1X + ", " + bezierCtrlPt1Y + ", "
-    + bezierCtrlPt2X + ", " + bezierCtrlPt2Y + ", "
-    + endingX + ", " + endingY);
 
   //context.lineTo(8.0, 40.0);
   context.lineTo(buffer + captionDimensions.x, endingY);
 
-  var buffer2 = 3.6;
 
   //context.bezierCurveTo(3.6, 40.0, 0.0, 36.4, 0.0, 32.0);
   context.bezierCurveTo(
@@ -151,6 +149,7 @@ function drawCaption() {
   context.lineTo(endingX, captionDimensions.y);
 
   /* Top right corner */
+  // TODO fix width calc
   context.bezierCurveTo(
       //116.4, 0.0, 
       bezierCtrlPt2X, captionDimensions.y,
