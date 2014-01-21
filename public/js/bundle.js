@@ -41,6 +41,7 @@ function GameController() {
 
   this.startGame = function() {
     this.views.select.hide();
+
     that.game.start();
 
     initFactionViews();
