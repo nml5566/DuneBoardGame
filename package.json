@@ -1,6 +1,6 @@
 {
   "name": "DuneBoardGame",
-  "version": "0.0.5",
+  "version": "0.0.51",
   "description": "HTML5 implementation of Dune board game",
   "main": "server.js",
   "directories": {
