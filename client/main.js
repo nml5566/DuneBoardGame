@@ -6,113 +6,195 @@ window.onload = function() {
   var gameController = new GameController();
 
   /* DEBUG MODE */
-  gameController.setFactions(new Array("Atreides", "Harkonnen"));
-  gameController.startGame();
+  //gameController.setFactions(new Array("Atreides", "Harkonnen"));
+  //gameController.startGame();
 
-  //userPromptStartTurn(gameController);
+  promptUserSelectTraitor(gameController);
+  //draw(gameController);
 }
 
-var canvasContainer; 
-var canvas;
-var context;
-var factionShieldImage;
+var canvas, context;
+function promptUserSelectTraitor(controller) {
 
-function userPromptStartTurn(controller) {
+  var canvasContainer = controller.canvasContainer;
 
-  canvasContainer = controller.canvasContainer;
-  canvas = canvasContainer.layer('notification');
-  context = canvas.getContext("2d");
+  // debug to hide userPromptStart
+  var debugCanvas = canvasContainer.layer('notification');
+  debugCanvas.style.display = "none";
 
-
+  canvas = canvasContainer.layer('debug');
   canvasContainer.moveLayerToTop(canvas);
 
-  canvas.addEventListener("mousedown", function(e) {
-    dismissUserPromptNotification();
-  });
-
-
+  context = canvas.getContext("2d");
 
   var loader = new controller.Loader();
-  var factionShieldUrl = "/img/atreides-shield.png";
+  var imageUrl = "/img/traitors/atreides/dr-yueh348x506.png";
 
-  factionShieldImage = loader.loadImage(factionShieldUrl);
-  factionShieldImage.speed = 0.01;
+  var image1 = loader.loadImage(imageUrl);
 
-  loader.onload = drawUserPromptNotification;
+  var image2 = loader.loadImage(imageUrl);
 
-}
+  var image3 = loader.loadImage(imageUrl);
+  var image4 = loader.loadImage(imageUrl);
 
-function dismissUserPromptNotification() {
-  context.clearRect(0, 0, canvas.width, canvas.height);
-}
+  var scaleWidth = 275;
+  var scaleHeight = 400;
 
-function drawUserPromptNotification() {
+  loader.onload = function() {
+    console.log('traitor loaded');
 
-  factionShieldImage.xPos = 0;
-  factionShieldImage.yPos = 0;
+    image1.xPos = 75;
+    image1.yPos = 75;
 
-  factionShieldImage.yPos = -factionShieldImage.height;
+    image2.xPos = canvas.width - scaleWidth - image1.xPos;
+    image2.yPos = image1.yPos;
 
-  context.fillStyle = "rgba(20, 20, 20, 0.6)";
-  context.fillRect (0,0,canvas.width,canvas.height);
+    image3.xPos = image1.xPos;
+    image3.yPos = image2.yPos + image2.xPos - scaleWidth - image1.xPos + scaleHeight ;
 
-  context.drawImage(
-      factionShieldImage, factionShieldImage.xPos, factionShieldImage.yPos);
+    image4.xPos = image2.xPos;
+    image4.yPos = image3.yPos;
 
-  moveImageToPoint(factionShieldImage, [0,250]);
-}
 
-function moveImageToPoint(image, point) {
-  var finalX = point[0],
-      finalY = point[1];
+    drawCaption();
 
-  image.xStep = (finalX - image.xPos) * image.speed;
-  image.yStep = (finalY - image.yPos) * image.speed;
+    context.drawImage(
+    	image1, image1.xPos, image1.yPos, scaleWidth, scaleHeight);
 
-  image.movement = setInterval(function () {
-    animateImageMovement(image, [finalX, finalY]);
-  }, 10);
+    context.drawImage(
+    	image2, image2.xPos, image2.yPos, scaleWidth, scaleHeight);
 
-}
+    context.drawImage(
+    	image3, image3.xPos, image3.yPos, scaleWidth, scaleHeight);
 
-function animateImageMovement(image, point) {
-  dimScreen(image);
-
-  var x = point[0];
-  var y = point[1];
-
-  image.xPos += image.xStep;
-  image.yPos += image.yStep;
-
-  context.drawImage(image, image.xPos, image.yPos);
-
-  if (image.yPos + image.yStep >= y) {
-    clearInterval(image.movement);
-    delete image.movement;
-    delete image.xStep;
-    delete image.yStep;
-
-    dimScreen(image);
-
-    image.xPos = x
-    image.yPos = y
-
-    context.drawImage(image, image.xPos, image.yPos);
-
-    if (image.onhalt) {
-	image.onhalt();
-	image.onhalt = undefined;
-    }
+    context.drawImage(
+    	image4, image4.xPos, image4.yPos, scaleWidth, scaleHeight);
 
   }
+
 }
 
-function dimScreen(image) {
+function drawCaption() {
 
-  context.clearRect(0, 0, canvas.width, canvas.height);
+  var captionDimensions = { 
+    x: 0, y: 0,
+    //x: 300, y: 20,
+    width: 120, height: 40
+  };
+
+
+  context.beginPath();
+
+  var buffer = 8;
+
+  var bezierCtrlPt1X = captionDimensions.width + captionDimensions.x;
+  var bezierCtrlPt1Y = 36.4 + captionDimensions.y;
+
+  var bezierCtrlPt2X = 116.4 + captionDimensions.x;
+  //var bezierCtrlPt2Y = 40.0;
+  var bezierCtrlPt2Y = captionDimensions.height + captionDimensions.y;
+
+  //context.moveTo(120.0, 32.0);
+  var startX = captionDimensions.x + captionDimensions.width; 
+  var startY = captionDimensions.y + captionDimensions.height - buffer;
+  context.moveTo(startX, startY);
+    //captionDimensions.x + captionDimensions.width, 
+    //bezierCtrlPt1X,
+    //captionDimensions.y + captionDimensions.height
+    //bezierCtrlPt2Y
+  //);
+  console.log(startX + ", " + startY);
+
+
+  //var endingX = 112.0;
+  var endingX = bezierCtrlPt1X - buffer;
+  var endingY = bezierCtrlPt2Y;
+
+  //context.bezierCurveTo(120.0, 36.4, 116.4, 40.0, 112.0, 40.0);
+
+  context.bezierCurveTo(
+      //120.0, 36.4,
+      bezierCtrlPt1X, bezierCtrlPt1Y, 
+      // 116.4, 40.0,
+      bezierCtrlPt2X, bezierCtrlPt2Y, 
+      // 112.0, 40.0);
+      endingX, endingY);
+  
+  console.log(
+    bezierCtrlPt1X + ", " + bezierCtrlPt1Y + ", "
+    + bezierCtrlPt2X + ", " + bezierCtrlPt2Y + ", "
+    + endingX + ", " + endingY);
+
+  //context.lineTo(8.0, 40.0);
+  context.lineTo(buffer + captionDimensions.x, endingY);
+
+  var buffer2 = 3.6;
+
+  //context.bezierCurveTo(3.6, 40.0, 0.0, 36.4, 0.0, 32.0);
+  context.bezierCurveTo(
+      buffer2 + captionDimensions.x , endingY, 
+      captionDimensions.x, bezierCtrlPt1Y, 
+      captionDimensions.x, bezierCtrlPt2Y - buffer);
+  //context.lineTo(0.0, 8.0);
+  context.lineTo(captionDimensions.x, captionDimensions.y + buffer);
+
+  context.bezierCurveTo(
+      //0.0, 3.6, 
+      captionDimensions.x, captionDimensions.y + buffer2,
+      //3.6, 0.0, 
+      captionDimensions.x + buffer2, captionDimensions.y,
+      //8.0, 0.0);
+      buffer + captionDimensions.x, captionDimensions.y);
+
+  //context.lineTo(112.0, 0.0);
+  context.lineTo(endingX, captionDimensions.y);
+
+  /* Top right corner */
+  context.bezierCurveTo(
+      //116.4, 0.0, 
+      bezierCtrlPt2X, captionDimensions.y,
+      //120.0, 3.6, 
+      bezierCtrlPt1X, buffer2 + captionDimensions.y,
+      //120.0, 8.0);
+      bezierCtrlPt1X, buffer + captionDimensions.y);
+
+  //context.lineTo(120.0, 32.0);
+  context.lineTo(startX, startY);
+
+  context.closePath();
+
   context.fillStyle = "rgba(20, 20, 20, 0.6)";
-  context.fillRect (0,0,canvas.width,canvas.height);
-  //context.clearRect(image.xPos, image.yPos,
-    //image.width, image.height);
-  //}
+  context.fill();
+  context.lineWidth = 2.0;
+  context.strokeStyle = "rgb(255, 255, 255)";
+  context.stroke();
+
+  //context.strokeStyle = "green";
+  //context.strokeRect(captionDimensions.x, captionDimensions.y,
+      //captionDimensions.width, captionDimensions.height);
+
+}
+
+function draw(controller) { 
+  var canvasContainer = controller.canvasContainer;
+  canvas = canvasContainer.layer('debug');
+  canvasContainer.moveLayerToTop(canvas);
+
+  var ctx = canvas.getContext("2d");
+
+  ctx.beginPath(); 
+  ctx.moveTo(120.0, 32.0); 
+  ctx.bezierCurveTo(120.0, 36.4, 116.4, 40.0, 112.0, 40.0); 
+  ctx.lineTo(8.0, 40.0); 
+  ctx.bezierCurveTo(3.6, 40.0, 0.0, 36.4, 0.0, 32.0); 
+  ctx.lineTo(0.0, 8.0); 
+  ctx.bezierCurveTo(0.0, 3.6, 3.6, 0.0, 8.0, 0.0); 
+  ctx.lineTo(112.0, 0.0); 
+  ctx.bezierCurveTo(116.4, 0.0, 120.0, 3.6, 120.0, 8.0); 
+  ctx.lineTo(120.0, 32.0); 
+  ctx.closePath(); 
+  ctx.fill(); 
+  ctx.lineWidth = 2.0; 
+  ctx.strokeStyle = "rgb(255, 255, 255)"; 
+  ctx.stroke(); 
 }
