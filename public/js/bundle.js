@@ -10,194 +10,11 @@ window.onload = function() {
   gameController.setFactions(new Array("Atreides", "Harkonnen"));
   gameController.startGame();
 
-  promptUserSelectTraitor(gameController);
+  //promptUserSelectTraitor(gameController);
   //draw(gameController);
 }
 
-var canvas, context;
-function promptUserSelectTraitor(controller) {
 
-  var canvasContainer = controller.canvasContainer;
-
-  // debug to hide userPromptStart
-  var debugCanvas = canvasContainer.layer('notification');
-  debugCanvas.style.display = "none";
-
-  canvas = canvasContainer.layer('debug');
-  canvasContainer.moveLayerToTop(canvas);
-
-  context = canvas.getContext("2d");
-
-  var loader = new controller.Loader();
-  var imageUrl = "/img/traitors/atreides/dr-yueh348x506.png";
-
-  var image1 = loader.loadImage(imageUrl);
-
-  var image2 = loader.loadImage(imageUrl);
-
-  var image3 = loader.loadImage(imageUrl);
-  var image4 = loader.loadImage(imageUrl);
-
-  var scaleWidth = 275;
-  var scaleHeight = 400;
-
-  loader.onload = function() {
-    console.log('traitor loaded');
-
-    image1.xPos = 75;
-    image1.yPos = 75;
-
-    image2.xPos = canvas.width - scaleWidth - image1.xPos;
-    image2.yPos = image1.yPos;
-
-    image3.xPos = image1.xPos;
-    image3.yPos = image2.yPos + image2.xPos - scaleWidth - image1.xPos + scaleHeight ;
-
-    image4.xPos = image2.xPos;
-    image4.yPos = image3.yPos;
-
-
-    drawCaption();
-
-    context.drawImage(
-    	image1, image1.xPos, image1.yPos, scaleWidth, scaleHeight);
-
-    context.drawImage(
-    	image2, image2.xPos, image2.yPos, scaleWidth, scaleHeight);
-
-    context.drawImage(
-    	image3, image3.xPos, image3.yPos, scaleWidth, scaleHeight);
-
-    context.drawImage(
-    	image4, image4.xPos, image4.yPos, scaleWidth, scaleHeight);
-
-  }
-
-}
-
-function drawCaption() {
-
-  var captionDimensions = { 
-    x: 0, y: 0,
-    //x: 300, y: 20,
-    //width: 120, height: 40
-    width: 200, height: 80
-  };
-
-
-  context.beginPath();
-
-  var buffer = 8;
-  var buffer2 = 3.6;
-
-  var bezierCtrlPt1X = captionDimensions.width + captionDimensions.x;
-  //var bezierCtrlPt1Y = 36.4 + captionDimensions.y;
-  var bezierCtrlPt1Y = captionDimensions.height - buffer2 + captionDimensions.y;
-
-  //var bezierCtrlPt2X = 116.4 + captionDimensions.x;
-  var bezierCtrlPt2X = captionDimensions.width - buffer2 + captionDimensions.x;
-  //var bezierCtrlPt2Y = 40.0;
-  var bezierCtrlPt2Y = captionDimensions.height + captionDimensions.y;
-
-  //context.moveTo(120.0, 32.0);
-  var startX = captionDimensions.x + captionDimensions.width; 
-  var startY = captionDimensions.y + captionDimensions.height - buffer;
-  context.moveTo(startX, startY);
-    //captionDimensions.x + captionDimensions.width, 
-    //bezierCtrlPt1X,
-    //captionDimensions.y + captionDimensions.height
-    //bezierCtrlPt2Y
-  //);
-
-
-  //var endingX = 112.0;
-  var endingX = bezierCtrlPt1X - buffer;
-  var endingY = bezierCtrlPt2Y;
-
-  //context.bezierCurveTo(120.0, 36.4, 116.4, 40.0, 112.0, 40.0);
-
-  context.bezierCurveTo(
-      //120.0, 36.4,
-      bezierCtrlPt1X, bezierCtrlPt1Y, 
-      // 116.4, 40.0,
-      bezierCtrlPt2X, bezierCtrlPt2Y, 
-      // 112.0, 40.0);
-      endingX, endingY);
-  
-
-  //context.lineTo(8.0, 40.0);
-  context.lineTo(buffer + captionDimensions.x, endingY);
-
-
-  //context.bezierCurveTo(3.6, 40.0, 0.0, 36.4, 0.0, 32.0);
-  context.bezierCurveTo(
-      buffer2 + captionDimensions.x , endingY, 
-      captionDimensions.x, bezierCtrlPt1Y, 
-      captionDimensions.x, bezierCtrlPt2Y - buffer);
-  //context.lineTo(0.0, 8.0);
-  context.lineTo(captionDimensions.x, captionDimensions.y + buffer);
-
-  context.bezierCurveTo(
-      //0.0, 3.6, 
-      captionDimensions.x, captionDimensions.y + buffer2,
-      //3.6, 0.0, 
-      captionDimensions.x + buffer2, captionDimensions.y,
-      //8.0, 0.0);
-      buffer + captionDimensions.x, captionDimensions.y);
-
-  //context.lineTo(112.0, 0.0);
-  context.lineTo(endingX, captionDimensions.y);
-
-  /* Top right corner */
-  // TODO fix width calc
-  context.bezierCurveTo(
-      //116.4, 0.0, 
-      bezierCtrlPt2X, captionDimensions.y,
-      //120.0, 3.6, 
-      bezierCtrlPt1X, buffer2 + captionDimensions.y,
-      //120.0, 8.0);
-      bezierCtrlPt1X, buffer + captionDimensions.y);
-
-  //context.lineTo(120.0, 32.0);
-  context.lineTo(startX, startY);
-
-  context.closePath();
-
-  context.fillStyle = "rgba(20, 20, 20, 0.6)";
-  context.fill();
-  context.lineWidth = 2.0;
-  context.strokeStyle = "rgb(255, 255, 255)";
-  context.stroke();
-
-  //context.strokeStyle = "green";
-  //context.strokeRect(captionDimensions.x, captionDimensions.y,
-      //captionDimensions.width, captionDimensions.height);
-
-}
-
-function draw(controller) { 
-  var canvasContainer = controller.canvasContainer;
-  canvas = canvasContainer.layer('debug');
-  canvasContainer.moveLayerToTop(canvas);
-
-  var ctx = canvas.getContext("2d");
-
-  ctx.beginPath(); 
-  ctx.moveTo(120.0, 32.0); 
-  ctx.bezierCurveTo(120.0, 36.4, 116.4, 40.0, 112.0, 40.0); 
-  ctx.lineTo(8.0, 40.0); 
-  ctx.bezierCurveTo(3.6, 40.0, 0.0, 36.4, 0.0, 32.0); 
-  ctx.lineTo(0.0, 8.0); 
-  ctx.bezierCurveTo(0.0, 3.6, 3.6, 0.0, 8.0, 0.0); 
-  ctx.lineTo(112.0, 0.0); 
-  ctx.bezierCurveTo(116.4, 0.0, 120.0, 3.6, 120.0, 8.0); 
-  ctx.lineTo(120.0, 32.0); 
-  ctx.closePath(); 
-  ctx.fill(); 
-  ctx.lineWidth = 2.0; 
-  ctx.strokeStyle = "rgb(255, 255, 255)"; 
-  ctx.stroke(); 
-}
 
 },{"Dune/Controller":2}],2:[function(require,module,exports){
 module.exports = GameController;
@@ -289,6 +106,7 @@ function GameController() {
 
     var factionView = this.views.factions[faction.constructor.name];
 
+    factionView.onPromptDismiss =  factionView.promptUserSelectTraitor;
     factionView.promptUserStartTurn();
   }  
 
@@ -355,6 +173,15 @@ function CanvasContainer() {
 
     throw new Error("Canvas element " + canvas.id + " not in layers");
   }
+
+  this.deleteLayer = function(canvas) 
+  {
+    var canvasIndex = getLayerIndex(canvas);
+    layerOrder.splice(canvasIndex, 1);
+    delete layerMap[canvas.id];
+
+    container.removeChild(canvas);
+  }
 }
 
 function Loader() {
@@ -405,7 +232,7 @@ function Loader() {
 }
 
 
-},{"./View/Faction/Atreides":13,"./View/Faction/BeneGesserit":15,"./View/Faction/Emperor":16,"./View/Faction/Fremen":17,"./View/Faction/Guild":18,"./View/Faction/Harkonnen":19,"./View/FactionSelect":20,"./View/Map":21,"./View/StartMenu":22,"Dune/Game":10}],3:[function(require,module,exports){
+},{"./View/Faction/Atreides":13,"./View/Faction/BeneGesserit":15,"./View/Faction/Emperor":16,"./View/Faction/Fremen":17,"./View/Faction/Guild":18,"./View/Faction/Harkonnen":19,"./View/FactionSelect":20,"./View/Map":21,"./View/StartMenu":23,"Dune/Game":10}],3:[function(require,module,exports){
 module.exports = Atreides;
 
 var internalDecorator = require("./Base.js");
@@ -442,6 +269,16 @@ function BaseFaction(obj, props) {
   var handLimit = props.handLimit || 4;
   var treacheryHand = [];
 
+  setEachLeaderFaction();
+
+  function setEachLeaderFaction() 
+  {
+    for (var i = 0; i < leaders.length; i++) {
+      var leader = leaders[i];
+      leader.faction = obj.constructor.name;
+    }
+  }
+
   function getTroopSize() {
     return troops.length;
   }
@@ -462,8 +299,8 @@ function BaseFaction(obj, props) {
     return traitorHand = game.dealTraitorHand();
   }
 
-  obj.pickTraitorFromHand = function(position) {
-    return traitor = traitorHand[position];
+  obj.pickTraitor = function(newTraitor) {
+    return traitor = newTraitor
   }
 
   obj.drawTreacheryCard = function() {
@@ -772,7 +609,7 @@ function TreacheryDeck() {
 }
 
 
-},{"./Faction/Atreides":3,"./Faction/BeneGesserit":5,"./Faction/Emperor":6,"./Faction/Fremen":7,"./Faction/Guild":8,"./Faction/Harkonnen":9,"./Map":11,"./shuffle":23}],11:[function(require,module,exports){
+},{"./Faction/Atreides":3,"./Faction/BeneGesserit":5,"./Faction/Emperor":6,"./Faction/Fremen":7,"./Faction/Guild":8,"./Faction/Harkonnen":9,"./Map":11,"./shuffle":24}],11:[function(require,module,exports){
 module.exports = ArrakisMap;
 
 var shuffleArray = require("./shuffle");
@@ -869,7 +706,7 @@ function SpiceDeck() {
   return new Array();
 }
 
-},{"./shuffle":23}],12:[function(require,module,exports){
+},{"./shuffle":24}],12:[function(require,module,exports){
 module.exports = BaseView;
 
 function BaseView(obj, props) {
@@ -926,6 +763,7 @@ function AtreidesView(controller) {
 module.exports = BaseFactionView;
 
 var ViewDecorator = require("../Base");
+var promptUserSelectTraitor = require("../Scene/TraitorSelect.js");
 
 function BaseFactionView(obj, args) {
 
@@ -935,10 +773,12 @@ function BaseFactionView(obj, args) {
       faction = args.faction,
       icon = args.icon;
 
+  //TODO clear out duplicate private variable code in favor of public
+  obj.controller = controller;
+  obj.faction = faction;
+
   var factionIcon; 
   var factionShieldImage;
-
-  var self = this;
 
   obj.loadImages = function() {
 
@@ -959,27 +799,30 @@ function BaseFactionView(obj, args) {
     canvas = canvasContainer.layer('notification');
     context = canvas.getContext("2d");
 
-
     canvasContainer.moveLayerToTop(canvas);
 
     canvas.addEventListener("mousedown", function(e) {
       dismissUserPromptNotification();
     });
 
-
-
     var loader = new controller.Loader();
-    var factionShieldUrl = "/img/atreides-shield.png";
 
+    //var factionShieldUrl = "/img/atreides-shield.png";
+    console.log(obj.faction.constructor.name);
+
+    var factionShieldName = faction.constructor.name.toLowerCase() 
+      + "-shield.png"
+    var factionShieldUrl = obj.imagePath + factionShieldName;
     factionShieldImage = loader.loadImage(factionShieldUrl);
     factionShieldImage.speed = 0.01;
 
     loader.onload = drawUserPromptNotification;
-
   }
 
   function dismissUserPromptNotification() {
     context.clearRect(0, 0, canvas.width, canvas.height);
+    if (obj.onPromptDismiss)
+      obj.onPromptDismiss()
   }
 
   function drawUserPromptNotification() {
@@ -988,12 +831,6 @@ function BaseFactionView(obj, args) {
     factionShieldImage.yPos = 0;
 
     factionShieldImage.yPos = -factionShieldImage.height;
-
-    context.fillStyle = "rgba(20, 20, 20, 0.6)";
-    context.fillRect (0,0,canvas.width,canvas.height);
-
-    context.drawImage(
-	factionShieldImage, factionShieldImage.xPos, factionShieldImage.yPos);
 
     moveImageToPoint(factionShieldImage, [0,250]);
   }
@@ -1020,7 +857,13 @@ function BaseFactionView(obj, args) {
     image.xPos += image.xStep;
     image.yPos += image.yStep;
 
-    context.drawImage(image, image.xPos, image.yPos);
+    var shieldScaleWidth = 768;
+    var shieldScaleHeight = 352;
+
+    context.drawImage(image, 
+      image.xPos, image.yPos,
+      shieldScaleWidth, shieldScaleHeight
+    );
 
     if (image.yPos + image.yStep >= y) {
       clearInterval(image.movement);
@@ -1033,7 +876,10 @@ function BaseFactionView(obj, args) {
       image.xPos = x
       image.yPos = y
 
-      context.drawImage(image, image.xPos, image.yPos);
+      context.drawImage(image, 
+	image.xPos, image.yPos,
+	shieldScaleWidth, shieldScaleHeight
+      );
 
       if (image.onhalt) {
 	  image.onhalt();
@@ -1055,63 +901,7 @@ function BaseFactionView(obj, args) {
     return faction.getLeaders();
   }
 
-  obj.promptUserSelectTraitor = function() {
-    var controller = this.getController();
-    var traitorHand = controller.dealTraitorHand();
-    displayTraitorCards(traitorHand);
-
-  }
-
-  function displayTraitorCards(traitorHand) {
-    var mapViewElement = getMapViewElement();
-
-    var traitorSelectionContainer = document.createElement("div");
-    var title = document.createElement("p");
-
-    var titleText = document.createTextNode("Choose a traitor");
-    title.style.color = "black";
-    title.style.backgroundColor = "white";
-    title.style.fontSize = "50px";
-
-    title.appendChild(titleText);
-    traitorSelectionContainer.appendChild(title);
-    mapViewElement.appendChild(traitorSelectionContainer);
-
-    makeTraitorCardImages(traitorHand, traitorSelectionContainer);
-
-
-  }
-
-  function makeTraitorCardImages(traitorHand, traitorSelectionContainer) {
-    var mapViewElement = getMapViewElement();
-
-    var traitorCardImages = new Array();
-
-    for (var i = 0; i < traitorHand.length; i++) {
-      var traitorCard = traitorHand[i];
-
-      var traitorCardImage = new Image();
-      traitorCardImage.alt = traitorCard.name;
-      traitorCardImage.style.cursor = "pointer";
-      traitorCardImage.style.color = "black";
-      traitorCardImage.style.backgroundColor = "white";
-      traitorCardImage.style.fontSize = "100px";
-
-      traitorCardImage.onclick = function() {
-      	self.selectTraitor(traitorCardImage.alt);
-	mapViewElement.removeChild(traitorSelectionContainer);
-      }
-
-      traitorCardImages.push(traitorCardImage);
-
-      traitorSelectionContainer.appendChild(traitorCardImage);
-    }
-
-  }
-
-  obj.selectTraitor = function(traitorName) {
-    faction.setTraitor(traitorName);
-  }
+  obj.promptUserSelectTraitor = promptUserSelectTraitor;
 
   obj.drawPlayerSeat = function() {
 
@@ -1135,7 +925,7 @@ function BaseFactionView(obj, args) {
   }
 }
 
-},{"../Base":12}],15:[function(require,module,exports){
+},{"../Base":12,"../Scene/TraitorSelect.js":22}],15:[function(require,module,exports){
 
 },{}],16:[function(require,module,exports){
 module.exports=require(15)
@@ -1528,6 +1318,285 @@ function MapView(controller) {
 
 
 },{"./Base":12}],22:[function(require,module,exports){
+module.exports = promptUserSelectTraitor;
+
+var canvas, context;
+var traitorScaleWidth = 275;
+var traitorScaleHeight = 400;
+var canvasContainer;
+
+function promptUserSelectTraitor() 
+{
+  var controller = this.controller;
+  canvasContainer = controller.canvasContainer;
+
+  // debug to hide userPromptStart
+  var debugCanvas = canvasContainer.layer('notification');
+  debugCanvas.style.display = "none";
+  canvas = canvasContainer.layer('debug');
+
+  var debugCanvas = canvasContainer.layer('notification');
+
+  canvasContainer.moveLayerToTop(canvas);
+
+
+  context = canvas.getContext("2d");
+
+  var loader = new controller.Loader();
+
+  faction = this.faction;
+  var traitorHand = faction.drawTraitorHand();
+
+  canvas.elements = new Array();
+
+  for (var i = 0; i < traitorHand.length; i++) {
+    var traitor = traitorHand[i];
+    var factionName = traitor.faction.toLowerCase().split(' ').join('');
+
+    var imageUrl = "/img/traitors/" + factionName + "/" 
+      + traitor.name.toLowerCase().split(' ').join('_') + ".png";
+
+    var image = loader.loadImage(imageUrl);
+    image.traitor = traitor;
+    canvas.elements[i] = image;
+  }
+
+
+  canvas.addEventListener('click', function(e) {
+    var coord = getMousePosition(this,e);
+
+    for (var i = 0; i < this.elements.length; i++) {
+      var image = this.elements[i];
+
+      if (coord.x >= image.xPos && coord.x <= image.xPos + traitorScaleWidth
+	  && coord.y >= image.yPos && coord.y <= image.yPos + traitorScaleHeight
+      ) {
+      	pickTraitorImage(image);
+      }
+    }
+
+  });
+
+  loader.onload = drawTraitorSelectScreen;
+}
+
+function getMousePosition(canvasElement,e)
+{
+  var rect = canvasElement.getBoundingClientRect();
+  var mousex = e.clientX - rect.left; 
+  var mousey = e.clientY - rect.top;
+
+  return {x: mousex, y: mousey};
+}
+
+function pickTraitorImage(image)
+{
+  var traitor = image.traitor;
+  var faction = this.faction;
+  faction.pickTraitor(traitor);
+
+  canvasContainer.deleteLayer(canvas);
+}
+
+
+function drawTraitorSelectScreen() 
+{
+  var captionText = "Choose your traitor";
+  drawCaption(captionText);
+  drawTraitors();
+}
+
+function drawCaption(captionText) 
+{
+  var captionTextAttr = getCaptionTextAttr(captionText);
+  var captionBorderDimensions = getCaptionBorderDimensions(captionTextAttr);
+
+  drawCaptionBorder(captionBorderDimensions);
+  drawCaptionText(captionTextAttr, captionBorderDimensions);
+}
+
+function getCaptionTextAttr(text) 
+{
+  var fontSize = 30;
+  context.font = fontSize+"pt Arial";
+
+  return {
+    "text": text,
+    "padding": 20,
+    "fontSize": fontSize,
+    "font": fontSize+"pt Arial",
+    "width": context.measureText(text).width,
+    "height": fontSize
+  };
+
+}
+
+function getCaptionBorderDimensions(captionTextAttr) {
+  return { 
+    "buffer1": 8,
+    "buffer2": 3.6,
+    "width": captionTextAttr.width + captionTextAttr.padding,
+    "height": captionTextAttr.fontSize * 2,
+    "x": canvas.width/2 - captionTextAttr.width/2 - captionTextAttr.padding/2,
+    "y": 20
+  };
+}
+
+function drawCaptionBorder(border) {
+  context.beginPath();
+
+  drawCaptionBorderBottomRight(border);
+  drawCaptionBorderBottomLeft(border);
+  drawCaptionBorderTopLeft(border);
+  drawCaptionBorderTopRight(border);
+
+  context.closePath();
+
+  var transparentBlackStyle = "rgba(20, 20, 20, 0.6)";
+  context.fillStyle = transparentBlackStyle;
+  context.fill();
+  context.lineWidth = 2.0;
+  context.strokeStyle = "rgb(255, 255, 255)";
+  context.stroke();
+
+}
+
+function drawCaptionBorderBottomRight(border) 
+{
+  var borderWidth = border.x + border.width;
+  var borderHeight = border.y + border.height;
+
+  var startX = borderWidth;
+  var startY = borderHeight - border.buffer1;
+
+  var xMidpoint1 = startX;
+  var yMidpoint1 = borderHeight - border.buffer2;
+
+  var xMidpoint2 = borderWidth - border.buffer2; 
+  var yMidpoint2 = borderHeight;
+
+  var endX = borderWidth - border.buffer1;
+  var endY = yMidpoint2;
+
+  context.moveTo(startX, startY);
+  context.lineTo(startX, startY);
+  context.bezierCurveTo(
+      xMidpoint1, yMidpoint1, 
+      xMidpoint2, yMidpoint2, 
+      endX, endY);
+}
+
+function drawCaptionBorderBottomLeft(border)
+{
+  var startX = border.x + border.buffer1;
+  var startY = border.y + border.height;
+
+  var xMidpoint1 = border.x + border.buffer2;
+  var yMidpoint1 = startY;
+
+  var xMidpoint2 = border.x;
+  var yMidpoint2 = yMidpoint1;
+
+  var endX = border.x;
+  var endY = yMidpoint2 - border.buffer1;
+
+  context.lineTo(startX, startY);
+  context.bezierCurveTo(
+    xMidpoint1, yMidpoint1,
+    xMidpoint2, yMidpoint2,
+    endX, endY);
+}
+
+function drawCaptionBorderTopLeft(border) 
+{
+  var startX = border.x;
+  var startY = border.y + border.buffer1;
+
+  var xMidpoint1 = startX;
+  var yMidpoint1 = border.y + border.buffer2;
+
+  var xMidpoint2 = border.x + border.buffer2;
+  var yMidpoint2 = border.y;
+
+  var endX = border.x + border.buffer1;
+  var endY = border.y;
+
+  context.lineTo(startX, startY);
+  context.bezierCurveTo(
+    xMidpoint1, yMidpoint1,
+    xMidpoint2, yMidpoint2,
+    endX, endY);
+}
+
+function drawCaptionBorderTopRight(border) 
+{
+  var startX = border.x + border.width - border.buffer1;
+  var startY = border.y;
+
+  var xMidpoint1 = border.x + border.width - border.buffer2;
+  var yMidpoint1 = border.y;
+
+  var xMidpoint2 = border.x + border.width;
+  var yMidpoint2 = border.y + border.buffer2;
+
+  var endX = xMidpoint2;
+  var endY = border.y + border.buffer1;
+
+  context.lineTo(startX, startY);
+  context.bezierCurveTo(
+    xMidpoint1, yMidpoint1,
+    xMidpoint2, yMidpoint2,
+    endX, endY);
+}
+
+function drawCaptionText(captionTextAttr, captionBorderDimensions) {
+
+  var horizontalCenter = canvas.width/2;
+
+  var xPos = horizontalCenter - captionTextAttr.width/2;
+  var yPos = captionBorderDimensions.height + captionBorderDimensions.y/4;
+
+  context.fillStyle = "white";
+  context.fillText(captionTextAttr.text, xPos, yPos);
+}
+
+function drawTraitors()
+{
+
+  var image1 = canvas.elements[0];
+
+  image1.xPos = 75;
+  image1.yPos = 100;
+
+  var image2 = canvas.elements[1];
+
+  image2.xPos = canvas.width - traitorScaleWidth - image1.xPos;
+  image2.yPos = image1.yPos;
+
+  var image3 = canvas.elements[2];
+
+  image3.xPos = image1.xPos;
+  image3.yPos = image2.yPos + image2.xPos - traitorScaleWidth - image1.xPos + traitorScaleHeight ;
+
+  var image4 = canvas.elements[3];
+
+  image4.xPos = image2.xPos;
+  image4.yPos = image3.yPos;
+
+  context.drawImage(
+      image1, image1.xPos, image1.yPos, traitorScaleWidth, traitorScaleHeight);
+
+  context.drawImage(
+      image2, image2.xPos, image2.yPos, traitorScaleWidth, traitorScaleHeight);
+
+  context.drawImage(
+      image3, image3.xPos, image3.yPos, traitorScaleWidth, traitorScaleHeight);
+
+  context.drawImage(
+      image4, image4.xPos, image4.yPos, traitorScaleWidth, traitorScaleHeight);
+}
+
+},{}],23:[function(require,module,exports){
 module.exports = StartMenuView;
 
 var ViewDecorator = require('./Base');
@@ -1554,7 +1623,7 @@ function StartMenuView(controller) {
 }
 
 
-},{"./Base":12}],23:[function(require,module,exports){
+},{"./Base":12}],24:[function(require,module,exports){
 module.exports = shuffleArray;
 
 function shuffleArray(array) {

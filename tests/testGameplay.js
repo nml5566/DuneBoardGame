@@ -24,11 +24,18 @@ harkonnenTroops.occupy(Carthag);
 var atreidesTraitorHand =  atreides.drawTraitorHand();
 assert(atreidesTraitorHand.length == 4);
 
+var cardFaction = atreidesTraitorHand[0].faction
+assert(cardFaction == "Harkonnen" || cardFaction == "Atreides", 
+    "Didn't get expected traitor card faction");
+
 var harkonnenTraitorHand = harkonnen.drawTraitorHand();
 assert(harkonnenTraitorHand.length == 4);
 
-atreides.pickTraitorFromHand(0);
-harkonnen.pickTraitorFromHand(0);
+var atreidesTraitor = atreidesTraitorHand[0];
+atreides.pickTraitor(atreidesTraitor);
+
+var harkonnenTraitor = harkonnenTraitorHand[0];
+harkonnen.pickTraitor(harkonnenTraitor);
 
 atreides.drawTreacheryCard();
 harkonnen.drawTreacheryCard();
