@@ -40,9 +40,14 @@ harkonnen.pickTraitor(harkonnenTraitor);
 atreides.drawTreacheryCard();
 harkonnen.drawTreacheryCard();
 
-var initialStormPosition = map.initStormPosition();
+//var initialStormPosition = map.initStormPosition();
+map.initStormPosition();
+var initialStormPosition = map.stormSector;
+
 assert(initialStormPosition >= 0);
 assert(initialStormPosition <= 17);
+
+testTurnOrder();
 
 // Start Game
 while (! game.isOver()) {
@@ -55,8 +60,6 @@ while (! game.isOver()) {
   var territory = game.spiceBlowRound();
 
   var turnOrder = game.getTurnOrder();
-
-  testTurnOrder(newStormPosition, turnOrder);
 
   // Bid round
   for (var i = 0; i < turnOrder.length; i++) {
@@ -83,29 +86,71 @@ function testStormMovement(initialStormPosition, newStormPosition) {
     ), "Storm moved more than 6 quadrants" );
 }
 
-function testTurnOrder(stormPosition, turnOrder) {
-  var testOrder = [{"seat": stormPosition + 0.5 }].concat(turnOrder);
-  testTurnOrderMovesCounterClockwise(testOrder);
-}
-
-function testTurnOrderMovesCounterClockwise(testOrder) {
-  for (var i = 0; i < testOrder.length - 1; i++) {
-
-    lastI = ( i - 1 < 0 ) ? ( turnOrder.length - 1 ) : i - 1;
-    nextI = ( i + 1 >= testOrder.length ) ? 0 : (i + 1);
-
-    var lastPosition = testOrder[lastI].seat;
-    var currentPosition = testOrder[i].seat;
-    var nextPosition = testOrder[nextI].seat;
-
-    assert(
-      (currentPosition < nextPosition && currentPosition > lastPosition)
-      || (currentPosition < nextPosition + 18 && currentPosition > lastPosition)
-      || (currentPosition < nextPosition && currentPosition + 18 > lastPosition)
-      ,"Turn order not moving in counterclockwise fashion ahead of storm"
-    );
-
-  }
-}
 
 console.log('game over');
+
+function testTurnOrder() 
+{
+
+  testHarkonnenFirstPlayer();
+  testAtreidesFirstPlayer();
+  testDuplicateSeatsThrowError();
+
+}
+
+function testHarkonnenFirstPlayer() 
+{
+  var game = new DuneGame();
+
+  var atreides = game.selectPlayer("Atreides");
+  var harkonnen = game.selectPlayer("Harkonnen");
+
+  atreides.seat = 13;
+  harkonnen.seat = 1;
+  game.map.stormSector = 4;
+
+  var turnOrder = game.getTurnOrder();
+
+  assert(turnOrder[0].constructor.name == "Harkonnen", "Harkonnen isn't first in turn order");
+
+}
+
+function testAtreidesFirstPlayer() 
+{
+  var game = new DuneGame();
+
+  var atreides = game.selectPlayer("Atreides");
+  var harkonnen = game.selectPlayer("Harkonnen");
+
+  atreides.seat = 15;
+  harkonnen.seat = 1;
+  game.map.stormSector = 17;
+
+  turnOrder = game.getTurnOrder();
+
+  assert(turnOrder[0].constructor.name == "Atreides", "Atreides isn't first in turn order");
+
+}
+
+function testDuplicateSeatsThrowError() 
+{
+  var game = new DuneGame();
+
+  var atreides = game.selectPlayer("Atreides");
+  var harkonnen = game.selectPlayer("Harkonnen");
+
+  atreides.seat = 10;
+  harkonnen.seat = 10;
+
+  assert.throws(
+    function() 
+    { 
+      game.getTurnOrder() 
+    },
+    function(err) 
+    {
+      if (err instanceof Error) { return true }
+    },
+    "Factions with duplicate seats didn't throw turn order error");
+
+}
