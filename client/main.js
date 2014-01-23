@@ -1,9 +1,9 @@
-var GameController = require("Dune/Controller");
+var gameController = require("Dune/Controller");
 
 window.onload = function() {
   
 
-  var gameController = new GameController();
+  //var gameController = new GameController();
 
   /* DEBUG MODE */
   gameController.setFactions(new Array("Atreides", "Harkonnen"));
