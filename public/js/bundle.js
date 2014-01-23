@@ -266,8 +266,6 @@ Image.prototype.animateMovement = function(point) {
   var canvas = image.canvas;
   var context = canvas.getContext("2d");;
 
-  //clearImage(image, context);
-
   var x = point[0];
   var y = point[1];
 
@@ -293,8 +291,6 @@ Image.prototype.animateMovement = function(point) {
     delete image.xStep;
     delete image.yStep;
 
-    //clearImage(image, context);
-
     image.xPos = x
     image.yPos = y
 
@@ -304,21 +300,16 @@ Image.prototype.animateMovement = function(point) {
       image.width, image.height
     );
 
-    if (image.onHalt) {
-	image.onHalt();
-	image.onHalt = undefined;
+    if (this.onHalt) {
+      var onHalt = this.onHalt;
+      delete this.onHalt;
+      onHalt();
     }
 
   }
 }
 
-/*function clearImage(image, context) {*/
-  //context.clearRect(image.xPos, image.yPos,
-    //image.width, image.height);
-/*}*/
-
-
-},{"./View/Faction/Atreides":13,"./View/Faction/BeneGesserit":15,"./View/Faction/Emperor":16,"./View/Faction/Fremen":17,"./View/Faction/Guild":18,"./View/Faction/Harkonnen":19,"./View/FactionSelect":20,"./View/Map":21,"./View/StartMenu":23,"Dune/Game":10}],3:[function(require,module,exports){
+},{"./View/Faction/Atreides":14,"./View/Faction/BeneGesserit":16,"./View/Faction/Emperor":17,"./View/Faction/Fremen":18,"./View/Faction/Guild":19,"./View/Faction/Harkonnen":20,"./View/FactionSelect":21,"./View/Map":22,"./View/StartMenu":24,"Dune/Game":10}],3:[function(require,module,exports){
 module.exports = Atreides;
 
 var internalDecorator = require("./Base.js");
@@ -725,7 +716,7 @@ function TreacheryDeck() {
 }
 
 
-},{"./Faction/Atreides":3,"./Faction/BeneGesserit":5,"./Faction/Emperor":6,"./Faction/Fremen":7,"./Faction/Guild":8,"./Faction/Harkonnen":9,"./Map":11,"./shuffle":25}],11:[function(require,module,exports){
+},{"./Faction/Atreides":3,"./Faction/BeneGesserit":5,"./Faction/Emperor":6,"./Faction/Fremen":7,"./Faction/Guild":8,"./Faction/Harkonnen":9,"./Map":11,"./shuffle":26}],11:[function(require,module,exports){
 module.exports = ArrakisMap;
 
 var shuffleArray = require("./shuffle");
@@ -822,7 +813,7 @@ function SpiceDeck() {
   return new Array();
 }
 
-},{"./shuffle":25}],12:[function(require,module,exports){
+},{"./shuffle":26}],12:[function(require,module,exports){
 module.exports = BaseView;
 
 function BaseView(obj, props) {
@@ -837,6 +828,81 @@ function BaseView(obj, props) {
 }
 
 },{}],13:[function(require,module,exports){
+module.exports = TreacheryDeckView;
+
+function TreacheryDeckView(controller) 
+{
+  var canvasContainer = controller.canvasContainer;
+  var canvas;
+  var context;
+
+  var loader = new controller.Loader();
+
+  var cardScaleWidth = 333,
+      cardScaleHeight = 483;
+
+  var treacheryImgUrl = "/img/treachery/chrysknife.png";
+  var treacheryImg = loader.loadImage(treacheryImgUrl);
+
+  var that = this;
+
+  this.dealCard = function() 
+  {
+    console.log('dealing card');
+    canvas = canvasContainer.layer("notification");
+    context = canvas.getContext("2d");
+    canvasContainer.moveLayerToTop(canvas);
+
+
+    var mapDimensions = controller.views.map.circle;
+
+    var xPos = mapDimensions.centerX - cardScaleWidth/2;
+    var yPos = mapDimensions.centerY - cardScaleHeight/2;
+
+    canvas.redraw = function() { 
+      context.clearRect(0, 0, canvas.width, canvas.height)
+    }
+
+    treacheryImg.canvas = canvas;
+    treacheryImg.xPos = canvas.width;
+    treacheryImg.yPos = yPos;
+    treacheryImg.speed = 0.02;
+    treacheryImg.width = cardScaleWidth;
+    treacheryImg.height = cardScaleHeight;
+
+    var xCenterScreen = mapDimensions.centerX - cardScaleWidth/2;
+    var yCenterScreen = mapDimensions.centerY - cardScaleHeight/2;
+
+    treacheryImg.moveToCoord([xCenterScreen, yCenterScreen]);
+
+    treacheryImg.onHalt = function() {
+      setTimeout(function() { 
+
+	var xPos = 0 - cardScaleWidth;
+	var yPos = yCenterScreen;
+
+	console.log('setting ofscreen onHalt');
+	treacheryImg.moveToCoord([xPos, yPos]);
+
+	treacheryImg.onHalt = function() {
+	  console.log('dealt card moved off screen');
+
+	  if (that.onDealCard) {
+	    that.onDealCard(this);
+	    delete that.onDealCard;
+	  }
+	}
+
+
+      }, 1000);
+
+    }
+
+    return treacheryImg;
+  }
+}
+
+},{}],14:[function(require,module,exports){
 module.exports = AtreidesView;
 
 var FactionDecorator = require("./Base");
@@ -885,11 +951,13 @@ function AtreidesView(controller) {
 
 }
 
-},{"./Base":14}],14:[function(require,module,exports){
+},{"./Base":15}],15:[function(require,module,exports){
 module.exports = BaseFactionView;
 
 var ViewDecorator = require("../Base");
+var TreacheryDeckView = require("../Deck/Treachery.js");
 var PlayerScreen = require("../PlayerScreen");
+
 var promptUserSelectTraitor = require("../TraitorSelect.js");
 
 function BaseFactionView(obj, args) {
@@ -905,16 +973,17 @@ function BaseFactionView(obj, args) {
   obj.faction = faction;
 
   var playerScreen = new PlayerScreen(obj.controller, images);
+  var treacheryDeckView = new TreacheryDeckView(obj.controller);
 
-  var factionEmblem; 
-  var factionShieldImage;
+  var factionEmblemImg, 
+      factionShieldImg;
 
   obj.loadImages = function() {
 
     var loader = new controller.Loader();
 
-    var factionEmblemUrl = obj.imagePath + "emblems/" + images.emblem;
-    factionEmblem = loader.loadImage(factionEmblemUrl)
+    var factionEmblemImgUrl = obj.imagePath + "emblems/" + images.emblem;
+    factionEmblemImg = loader.loadImage(factionEmblemImgUrl)
 
     var troopIconImgUrl = "/img/icons/troops/" + images.troop;
     images.troop = loader.loadImage(troopIconImgUrl);
@@ -932,16 +1001,16 @@ function BaseFactionView(obj, args) {
 
   }
 
-  obj.promptUserStartTurn = function(onDismiss) {
+  obj.promptUserStartTurn = function() {
 
     canvasContainer = controller.canvasContainer;
-    canvas = canvasContainer.layer('notification');
+    canvas = canvasContainer.layer("notification");
     context = canvas.getContext("2d");
 
     canvasContainer.moveLayerToTop(canvas);
 
     canvas.addEventListener("mousedown", function(e) {
-      dismissUserPromptNotification(onDismiss);
+      dismissUserPromptNotification();
     });
 
     var loader = new controller.Loader();
@@ -949,26 +1018,29 @@ function BaseFactionView(obj, args) {
     var factionShieldName = faction.constructor.name.toLowerCase() 
       + "-shield.png"
     var factionShieldUrl = obj.imagePath + factionShieldName;
-    factionShieldImage = loader.loadImage(factionShieldUrl);
-    factionShieldImage.speed = 0.01;
+    factionShieldImg = loader.loadImage(factionShieldUrl);
+    factionShieldImg.speed = 0.01;
 
     loader.onload = drawUserPromptNotification;
   }
 
-  function dismissUserPromptNotification(onDismiss) {
-    context.clearRect(0, 0, canvas.width, canvas.height);
-    if (onDismiss)
-      onDismiss();
+  function dismissUserPromptNotification() {
+    canvasContainer.deleteLayer(canvas);
+
+    if (obj.onStartTurn) {
+      obj.onStartTurn();
+      delete obj.onStartTurn;
+    }
   }
 
   function drawUserPromptNotification() {
 
-    factionShieldImage.xPos = 0;
-    factionShieldImage.yPos = 0;
+    factionShieldImg.xPos = 0;
+    factionShieldImg.yPos = 0;
 
-    factionShieldImage.yPos = -factionShieldImage.height;
+    factionShieldImg.yPos = -factionShieldImg.height;
 
-    moveImageToPoint(factionShieldImage, [0,250]);
+    moveImageToPoint(factionShieldImg, [0,250]);
   }
 
   function moveImageToPoint(image, point) {
@@ -1049,7 +1121,7 @@ function BaseFactionView(obj, args) {
     var circle = mapView.circle;
     circle.angle = mapView.convertSectorNumberToMapAngle(faction.seat);
 
-    var iconOffset = factionEmblem.width/2;
+    var iconOffset = factionEmblemImg.width/2;
 
     var coordinates = 
       mapView.calculateSectorEdgeFromMapAngle([iconOffset, iconOffset]);
@@ -1057,34 +1129,53 @@ function BaseFactionView(obj, args) {
     var x = coordinates[0] - iconOffset;
     var y = coordinates[1] - iconOffset;
 
-    context.drawImage(factionEmblem, x, y);
+    context.drawImage(factionEmblemImg, x, y);
   }
 
   obj.startInitialTurn = function() 
   {
     // DEBUG skip all the prompting 
-   var onStartTurn = function() { 
+
+    this.promptUserStartTurn();
+    this.onStartTurn = function() { 
       playerScreen.draw();
 
-      var onSelectTraitor = function() 
+
+      obj.promptUserSelectTraitor();
+      obj.onSelectTraitor = function() 
       {
 	playerScreen.addTraitorCard(obj.traitorCardImage);
+	playerScreen.onHandUpdate = function() {
+	  obj.drawTreacheryCard();
+	}
       }
 
-      obj.promptUserSelectTraitor(onSelectTraitor) 
     };
-    this.promptUserStartTurn(onStartTurn);
 
     //playerScreen.draw();
+    //obj.drawTreacheryCard();
     //playerScreen.addTreacheryCard();
+  }
+
+  obj.drawTreacheryCard = function()
+  {
+    console.log('drawing treachery card');
+
+    var card = treacheryDeckView.dealCard();
+    treacheryDeckView.onDealCard = function(treacheryCardImg) {
+      console.log('adding treachery card to hand');
+      //playerScreen.addTreacheryCard(treacheryCardImg);
+      playerScreen.addTreacheryCard(card);
+    }
+
   }
 }
 
-},{"../Base":12,"../PlayerScreen":22,"../TraitorSelect.js":24}],15:[function(require,module,exports){
+},{"../Base":12,"../Deck/Treachery.js":13,"../PlayerScreen":23,"../TraitorSelect.js":25}],16:[function(require,module,exports){
 
-},{}],16:[function(require,module,exports){
-module.exports=require(15)
 },{}],17:[function(require,module,exports){
+module.exports=require(16)
+},{}],18:[function(require,module,exports){
 module.exports = FremenView;
 
 var BaseFactionView = require("./Base");
@@ -1107,9 +1198,9 @@ function FremenView(controller) {
 
 }
 
-},{"./Base":14,"Dune/Game":10}],18:[function(require,module,exports){
-module.exports=require(15)
-},{}],19:[function(require,module,exports){
+},{"./Base":15,"Dune/Game":10}],19:[function(require,module,exports){
+module.exports=require(16)
+},{}],20:[function(require,module,exports){
 module.exports = HarkonnenView;
 
 var FactionDecorator = require("./Base");
@@ -1148,7 +1239,7 @@ function HarkonnenView(controller) {
 
 }
 
-},{"./Base":14}],20:[function(require,module,exports){
+},{"./Base":15}],21:[function(require,module,exports){
 module.exports = FactionSelectView;
 
 var ViewDecorator = require("./Base");
@@ -1294,7 +1385,7 @@ function FactionSelectView(controller) {
 }
 
 
-},{"./Base":12,"./Map":21}],21:[function(require,module,exports){
+},{"./Base":12,"./Map":22}],22:[function(require,module,exports){
 module.exports = MapView;
 
 var ViewDecorator = require("./Base");
@@ -1483,7 +1574,7 @@ function MapView(controller) {
 
 
 
-},{"./Base":12}],22:[function(require,module,exports){
+},{"./Base":12}],23:[function(require,module,exports){
 module.exports = PlayerScreen;
 
 function PlayerScreen(controller, images) 
@@ -1493,6 +1584,8 @@ function PlayerScreen(controller, images)
       canvas = canvasContainer.layer('playerscreen'),
       context = canvas.getContext("2d"),
       loader = new controller.Loader();
+
+  canvas.height = 172;
 
   var deckImgPath = "/img/deck/";
 
@@ -1514,9 +1607,10 @@ function PlayerScreen(controller, images)
   var transparent = 0.5;
   var solid = 1;
 
+  var that = this;
+
   this.draw = function() 
   {
-    canvas.height = 172;
     canvasContainer.moveLayerToTop(canvas);
 
     troopIconImg = images.troop;
@@ -1579,9 +1673,9 @@ function PlayerScreen(controller, images)
     context.globalAlpha = transparent;
   }
 
-  function drawTraitorHand()
-  {
-  }
+/*  function drawTraitorHand()*/
+  //{
+  /*}*/
 
   function loadPlayerHandImages()
   {
@@ -1597,6 +1691,8 @@ function PlayerScreen(controller, images)
     treacheryDeckImg = loader.loadImage(treacheryDeckImgUrl);
     treacheryDeckImg.xPos = spiceIconImg.xPos + iconScaleWidth + padding;
     treacheryDeckImg.yPos = 10;
+    console.log('loading treachery hand');
+    console.log(treacheryDeckImg);
   }
 
   function loadTraitorHand()
@@ -1672,15 +1768,9 @@ function PlayerScreen(controller, images)
     addCardToHand(traitorCardImg, traitorDeckImg);
   }
 
-  this.addTreacheryCard = function() 
+  this.addTreacheryCard = function(treacheryCardImg) 
   {
-    var treacheryImgUrl = "/img/treachery/chrysknife.png";
-    var treacheryImg = loader.loadImage(treacheryImgUrl);
-
-    loader.onload = function() 
-    {
-      addCardToHand(treacheryImg, treacheryDeckImg);
-    }
+    addCardToHand(treacheryCardImg, treacheryDeckImg);
   }
 
   function addCardToHand(cardImg, playerHandImg)
@@ -1692,14 +1782,16 @@ function PlayerScreen(controller, images)
     cardImg.width = deckScaleWidth;
     cardImg.height = deckScaleHeight;
 
+    //console.log('cardImg.onHalt');
+    //console.log(cardImg);
+    //console.log(cardImg.onHalt);
+    //console.log('adding card to hand');
+    console.log('setting updateHand onHalt');
+    cardImg.onHalt = function() { updateHandCount(playerHandImg) }
     cardImg.moveToCoord([playerHandImg.xPos, playerHandImg.yPos]);
-    cardImg.onHalt = function() 
-    {
-      updateHand(playerHandImg);
-    }
   }
 
-  function updateHand(playerHandImg)
+  function updateHandCount(playerHandImg)
   {
     console.log('updating hand');
     playerHandImg.isActive = true;
@@ -1719,11 +1811,16 @@ function PlayerScreen(controller, images)
     context.fillStyle = "white";
     context.fillText(handCount, xPos, yPos);
 
+    if (that.onHandUpdate) {
+      that.onHandUpdate();
+      delete that.onHandUpdate;
+    }
+
   }
 }
 
 
-},{}],23:[function(require,module,exports){
+},{}],24:[function(require,module,exports){
 module.exports = StartMenuView;
 
 var ViewDecorator = require('./Base');
@@ -1750,7 +1847,7 @@ function StartMenuView(controller) {
 }
 
 
-},{"./Base":12}],24:[function(require,module,exports){
+},{"./Base":12}],25:[function(require,module,exports){
 module.exports = promptUserSelectTraitor;
 
 var canvas, context, canvasContainer;
@@ -1760,7 +1857,7 @@ var traitorScaleWidth = 275,
 
 var factionView;
 
-function promptUserSelectTraitor(onSelectTraitor) 
+function promptUserSelectTraitor() 
 {
   factionView = this;
 
@@ -1768,11 +1865,12 @@ function promptUserSelectTraitor(onSelectTraitor)
   canvasContainer = controller.canvasContainer;
 
   // debug to hide userPromptStart
-  var debugCanvas = canvasContainer.layer('notification');
-  debugCanvas.style.display = "none";
-  canvas = canvasContainer.layer('debug');
+  //var debugCanvas = canvasContainer.layer('notification');
+  //debugCanvas.style.display = "none";
+  //canvas = canvasContainer.layer('debug');
 
-  var debugCanvas = canvasContainer.layer('notification');
+  //var debugCanvas = canvasContainer.layer('notification');
+  canvas = canvasContainer.layer('notification');
 
   canvasContainer.moveLayerToTop(canvas);
 
@@ -1808,7 +1906,7 @@ function promptUserSelectTraitor(onSelectTraitor)
       if (coord.x >= image.xPos && coord.x <= image.xPos + traitorScaleWidth
 	  && coord.y >= image.yPos && coord.y <= image.yPos + traitorScaleHeight
       ) {
-      	selectTraitorImage(image, onSelectTraitor);
+      	selectTraitorImage(image);
       }
     }
 
@@ -1826,7 +1924,7 @@ function getMousePosition(canvasElement,e)
   return {x: mousex, y: mousey};
 }
 
-function selectTraitorImage(image, onSelectTraitor)
+function selectTraitorImage(image)
 {
   factionView.traitorCardImage = image;
 
@@ -1836,8 +1934,10 @@ function selectTraitorImage(image, onSelectTraitor)
 
   canvasContainer.deleteLayer(canvas);
 
-  if (onSelectTraitor) 
-    onSelectTraitor();
+  if (factionView.onSelectTraitor) {
+    factionView.onSelectTraitor();
+    delete factionView.onSelectTraitor;
+  }
 }
 
 
@@ -2038,7 +2138,7 @@ function drawTraitors()
       image4, image4.xPos, image4.yPos, traitorScaleWidth, traitorScaleHeight);
 }
 
-},{}],25:[function(require,module,exports){
+},{}],26:[function(require,module,exports){
 module.exports = shuffleArray;
 
 function shuffleArray(array) {
