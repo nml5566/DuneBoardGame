@@ -35,20 +35,25 @@ function GameController() {
   this.views = {
     "map": new MapView(this),
     "start": new StartMenuView(this),
-    "select":new FactionSelectView(this),
+    "factionSelect":new FactionSelectView(this),
     "factions": {}
   };
 
   var that = this;
 
   this.startGame = function() {
-    this.views.select.hide();
+    this.game.start();
 
-    that.game.start();
-
+    hideFactionSelectView();
     initViews();
-
     this.startInitialPlayerTurn();
+  }
+
+  function hideFactionSelectView()
+  {
+    var views = that.views;
+    var factionSelectView = views.factionSelect;
+    factionSelectView.hide();
   }
 
   function initViews() {
@@ -100,7 +105,6 @@ function GameController() {
 
   this.startInitialPlayerTurn = function() {
     var turnOrder = this.game.getTurnOrder();
-    console.log(turnOrder);
     var faction = turnOrder[0];
 
     var factionView = this.views.factions[faction.constructor.name];
@@ -110,7 +114,8 @@ function GameController() {
 
 }
 
-function CanvasContainer() {
+function CanvasContainer() 
+{
 
   var container = document.getElementById("gamecontainer");
 
@@ -200,8 +205,13 @@ function Loader() {
       loadingScreen.style.display = "block";
 
       var image = new Image();
+
       image.src = url;
+      image.xPos = 0;
+      image.yPos = 0;
+      image.speed = 0.01;
       image.onload = this.itemLoaded;
+
       return image;
     };
 
@@ -229,8 +239,86 @@ function Loader() {
     }
 }
 
+Image.prototype.moveToCoord = function(point) {
+  var image = this;
 
-},{"./View/Faction/Atreides":13,"./View/Faction/BeneGesserit":15,"./View/Faction/Emperor":16,"./View/Faction/Fremen":17,"./View/Faction/Guild":18,"./View/Faction/Harkonnen":19,"./View/FactionSelect":20,"./View/Map":21,"./View/StartMenu":24,"Dune/Game":10}],3:[function(require,module,exports){
+  if (!image.canvas) {
+    throw new Error("Image has no canvas property");
+    return;
+  }
+
+
+  var finalX = point[0],
+      finalY = point[1];
+
+  image.xStep = (finalX - image.xPos) * image.speed;
+  image.yStep = (finalY - image.yPos) * image.speed;
+
+  image.movement = setInterval(function () {
+    image.animateMovement([finalX, finalY]);
+  }, 10);
+
+}
+
+Image.prototype.animateMovement = function(point) {
+  var image = this;
+
+  var canvas = image.canvas;
+  var context = canvas.getContext("2d");;
+
+  //clearImage(image, context);
+
+  var x = point[0];
+  var y = point[1];
+
+  image.xPos += image.xStep;
+  image.yPos += image.yStep;
+
+  canvas.redraw();
+  context.drawImage(image, 
+    image.xPos, image.yPos,
+    image.width, image.height
+  );
+
+
+  if (
+    image.yStep > 0 && image.yPos + image.yStep >= y ||
+    image.yStep < 0 && image.yPos + image.yStep <= y || 
+    image.xStep > 0 && image.xPos + image.xStep >= x ||
+    image.xStep < 0 && image.xPos + image.xStep <= x
+  )
+  {
+    clearInterval(image.movement);
+    delete image.movement;
+    delete image.xStep;
+    delete image.yStep;
+
+    //clearImage(image, context);
+
+    image.xPos = x
+    image.yPos = y
+
+    canvas.redraw();
+    context.drawImage(image, 
+      image.xPos, image.yPos,
+      image.width, image.height
+    );
+
+    if (image.onHalt) {
+	image.onHalt();
+	image.onHalt = undefined;
+    }
+
+  }
+}
+
+/*function clearImage(image, context) {*/
+  //context.clearRect(image.xPos, image.yPos,
+    //image.width, image.height);
+/*}*/
+
+
+},{"./View/Faction/Atreides":13,"./View/Faction/BeneGesserit":15,"./View/Faction/Emperor":16,"./View/Faction/Fremen":17,"./View/Faction/Guild":18,"./View/Faction/Harkonnen":19,"./View/FactionSelect":20,"./View/Map":21,"./View/StartMenu":23,"Dune/Game":10}],3:[function(require,module,exports){
 module.exports = Atreides;
 
 var internalDecorator = require("./Base.js");
@@ -512,6 +600,9 @@ function Game() {
 
 
   this.selectPlayer = function(factionName) {
+    if (isStarted) 
+      throw new Error("Unable to add more players. Game has already started");
+
     if (! factions[factionName]) {
       var FactionModule = getFactionModule(factionName);
       factions[factionName] = new FactionModule(this);
@@ -799,7 +890,7 @@ module.exports = BaseFactionView;
 
 var ViewDecorator = require("../Base");
 var PlayerScreen = require("../PlayerScreen");
-var promptUserSelectTraitor = require("../Scene/TraitorSelect.js");
+var promptUserSelectTraitor = require("../TraitorSelect.js");
 
 function BaseFactionView(obj, args) {
 
@@ -972,15 +1063,24 @@ function BaseFactionView(obj, args) {
   obj.startInitialTurn = function() 
   {
     // DEBUG skip all the prompting 
-    //onDismiss = function() { 
-      //playerScreen.draw();
-      //obj.promptUserSelectTraitor() 
-    //};
-    //this.promptUserStartTurn(onDismiss);
+   var onStartTurn = function() { 
+      playerScreen.draw();
+
+      var onSelectTraitor = function() 
+      {
+	playerScreen.addTraitorCard(obj.traitorCardImage);
+      }
+
+      obj.promptUserSelectTraitor(onSelectTraitor) 
+    };
+    this.promptUserStartTurn(onStartTurn);
+
+    //playerScreen.draw();
+    //playerScreen.addTreacheryCard();
   }
 }
 
-},{"../Base":12,"../PlayerScreen":22,"../Scene/TraitorSelect.js":23}],15:[function(require,module,exports){
+},{"../Base":12,"../PlayerScreen":22,"../TraitorSelect.js":24}],15:[function(require,module,exports){
 
 },{}],16:[function(require,module,exports){
 module.exports=require(15)
@@ -1214,7 +1314,6 @@ function MapView(controller) {
   var circle = {centerX:385, centerY:425, radius:338, angle: 0}
   this.circle = circle;
 
-  console.log('init storm position');
   this.stormSector = controller.game.map.initStormPosition();
 
   var that = this;
@@ -1237,7 +1336,6 @@ function MapView(controller) {
   }
 
   function drawStormSetup() {
-    console.log('draw storm setup');
 
     var img = stormImage;
 
@@ -1391,167 +1489,282 @@ module.exports = PlayerScreen;
 function PlayerScreen(controller, images) 
 {
 
+  var canvasContainer = controller.canvasContainer,
+      canvas = canvasContainer.layer('playerscreen'),
+      context = canvas.getContext("2d"),
+      loader = new controller.Loader();
+
+  var deckImgPath = "/img/deck/";
+
+  var spiceIconImg,
+      troopIconImg,
+      treacheryDeckImg,
+      traitorDeckImg,
+      bonusDeckImg,
+      allianceDeckImg;
+
+  var iconScaleWidth = 67.5;
+  var iconScaleHeight = 67.5;
+
+  var deckScaleWidth = 100;
+  var deckScaleHeight = 145;
+
+  var padding = 10;
+
+  var transparent = 0.5;
+  var solid = 1;
+
   this.draw = function() 
   {
-    var canvasContainer = controller.canvasContainer;
-    var canvas = canvasContainer.layer('playerscreen');
+    canvas.height = 172;
     canvasContainer.moveLayerToTop(canvas);
 
-    canvas.height = 172;
-
-    var context = canvas.getContext("2d");
-
-    context.fillStyle = "grey";
-    context.fillRect(0, 0, canvas.width, canvas.height);
-
-    var loader = new controller.Loader();
-
-    var iconScaleWidth = 67.5;
-    var iconScaleHeight = 67.5;
-
-    var deckScaleWidth = 100;
-    var deckScaleHeight = 145;
-
-    var padding = 10;
-
-    var troopIconImg = images.troop;
+    troopIconImg = images.troop;
     troopIconImg.xPos = padding;
     troopIconImg.yPos = padding;
 
     var spiceIconImgUrl = "/img/icons/" + "spice-alt.png";
-    var spiceIconImg = loader.loadImage(spiceIconImgUrl);
+    spiceIconImg = loader.loadImage(spiceIconImgUrl);
     spiceIconImg.xPos = padding;
     spiceIconImg.yPos = troopIconImg.yPos + iconScaleHeight + padding;
 
-    var deckImgPath = "/img/deck/";
+    loadPlayerHandImages();
 
+    context.fillStyle = "grey";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+
+    canvas.redraw = drawPlayerScreen;
+
+    loader.onload = function() { canvas.redraw() }
+  }
+
+  function drawPlayerScreen()
+  {
+    context.clearRect(0, 0, canvas.width, canvas.height);
+
+    context.fillStyle = "grey";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+
+    context.drawImage(troopIconImg, 
+	troopIconImg.xPos, troopIconImg.yPos, 
+	iconScaleWidth, iconScaleHeight);
+
+    context.drawImage(spiceIconImg, 
+	spiceIconImg.xPos, spiceIconImg.yPos, 
+	iconScaleWidth, iconScaleHeight);
+
+    context.globalAlpha = transparent;
+
+    drawPlayerHandImage(treacheryDeckImg);
+    drawPlayerHandImage(traitorDeckImg);
+    drawPlayerHandImage(bonusDeckImg);
+    drawPlayerHandImage(allianceDeckImg);
+
+    context.globalAlpha = 1;
+
+
+    var leaderDiscs = images.leaders;
+    drawLeaderDiscs(leaderDiscs);
+  }
+
+  function drawPlayerHandImage(image) 
+  {
+    if (image.isActive)
+      context.globalAlpha = solid;
+
+    context.drawImage(image, 
+      image.xPos, image.yPos, 
+      deckScaleWidth, deckScaleHeight);
+
+    context.globalAlpha = transparent;
+  }
+
+  function drawTraitorHand()
+  {
+  }
+
+  function loadPlayerHandImages()
+  {
+    loadTreacheryHand();
+    loadTraitorHand();
+    loadBonusHand();
+    loadAllianceHand();
+  }
+
+  function loadTreacheryHand() 
+  {
     var treacheryDeckImgUrl = deckImgPath + "treachery.png";
-    var treacheryDeckImg = loader.loadImage(treacheryDeckImgUrl);
+    treacheryDeckImg = loader.loadImage(treacheryDeckImgUrl);
     treacheryDeckImg.xPos = spiceIconImg.xPos + iconScaleWidth + padding;
     treacheryDeckImg.yPos = 10;
+  }
 
+  function loadTraitorHand()
+  {
     var traitorDeckImgUrl = deckImgPath + "traitor.png";
-    var traitorDeckImg = loader.loadImage(traitorDeckImgUrl);
+    traitorDeckImg = loader.loadImage(traitorDeckImgUrl);
     traitorDeckImg.xPos = treacheryDeckImg.xPos + deckScaleWidth + padding;
     traitorDeckImg.yPos = padding;
+  }
 
+  function loadBonusHand()
+  {
     var bonusDeckImgUrl = deckImgPath + "bonus.png";
-    var bonusDeckImg = loader.loadImage(bonusDeckImgUrl);
+    bonusDeckImg = loader.loadImage(bonusDeckImgUrl);
     bonusDeckImg.xPos = traitorDeckImg.xPos + deckScaleWidth + padding;
     bonusDeckImg.yPos = padding;
+  }
 
+  function loadAllianceHand()
+  {
     var allianceDeckImgUrl = deckImgPath + "alliance.png";
-    var allianceDeckImg = loader.loadImage(allianceDeckImgUrl);
+    allianceDeckImg = loader.loadImage(allianceDeckImgUrl);
     allianceDeckImg.xPos = bonusDeckImg.xPos + deckScaleWidth + padding;
     allianceDeckImg.yPos = padding
+  }
 
+  function drawLeaderDiscs(leaderDiscs) 
+  {
     var discScaleWidth = 50;
     var discScaleHeight = 50;
 
-    var leaderDiscs = images.leaders;
+    var leaderCircle = {
+      "centerX": 600,
+      "centerY": canvas.height/2,
+      "radius": 75,
+      "angle": 0
+    };
 
-    loader.onload = function() {
+    var TO_RADIANS = Math.PI/180;
+    var numberOfDiscs = 5;
+    var angle = 180/numberOfDiscs * TO_RADIANS;
 
-      context.drawImage(troopIconImg, 
-	  troopIconImg.xPos, troopIconImg.yPos, 
-	  iconScaleWidth, iconScaleHeight);
+    /* Calculate largest radius for 5 smaller circles that can fit in larger 
+    * circle using steiner chain formula */
+    var leaderDiscRadius = 
+      leaderCircle.radius / ( (1 - Math.sin(angle)) / Math.sin(angle) + 2 );
 
-      context.drawImage(spiceIconImg, 
-	  spiceIconImg.xPos, spiceIconImg.yPos, 
-	  iconScaleWidth, iconScaleHeight);
+    for (var i = 0; i < 5; i++) {
 
-      context.globalAlpha = 0.5;
+      var degrees = 360 / numberOfDiscs;
+      /* Angle arranges discs in star formation */
+      leaderCircle.angle = (i * degrees * TO_RADIANS) - angle/2;
 
-      context.drawImage(treacheryDeckImg, 
-	  treacheryDeckImg.xPos, treacheryDeckImg.yPos, 
-	  deckScaleWidth, deckScaleHeight);
+      var x = leaderCircle.centerX + Math.cos(leaderCircle.angle) 
+	* (2 * leaderCircle.radius / 3);
+      var y = leaderCircle.centerY + Math.sin(leaderCircle.angle) 
+	* (2 * leaderCircle.radius / 3);
+      
+      var leaderDiscImg = leaderDiscs[i];
+      leaderDiscImg.xPos = x - leaderDiscRadius;
+      leaderDiscImg.yPos = y - leaderDiscRadius;
 
-      context.drawImage(traitorDeckImg, 
-	  traitorDeckImg.xPos, traitorDeckImg.yPos, 
-	  deckScaleWidth, deckScaleHeight);
+      discScaleWidth = discScaleHeight = 2 * leaderDiscRadius;
+      context.drawImage(leaderDiscImg, 
+	leaderDiscImg.xPos, leaderDiscImg.yPos, 
+	discScaleWidth, discScaleHeight);
 
-      context.drawImage(bonusDeckImg, 
-	  bonusDeckImg.xPos, bonusDeckImg.yPos, 
-	  deckScaleWidth, deckScaleHeight);
-
-      context.drawImage(allianceDeckImg, 
-	    allianceDeckImg.xPos, allianceDeckImg.yPos, 
-	    deckScaleWidth, deckScaleHeight);
-
-      context.globalAlpha = 1;
-
-      var leaderCircle = {
-	"centerX": 600,
-	"centerY": canvas.height/2,
-	"radius": 75,
-	"angle": 0
-      };
-
-  /*   context.fillStyle = "black";*/
-      //context.beginPath();
-      //context.arc(
-	//leaderCircle.centerX, leaderCircle.centerY,
-	//leaderCircle.radius,
-	//0, Math.PI*2
-      //);
-      /*context.fill();*/
-
-      //context.strokeStyle = "white";
-
-      var TO_RADIANS = Math.PI/180;
-      var numberOfDiscs = 5;
-      var angle = 180/numberOfDiscs * TO_RADIANS;
-
-      /* Calculate largest radius for 5 smaller circles that can fit in larger 
-      * circle using steiner chain formula */
-      var leaderDiscRadius = 
-	leaderCircle.radius / ( (1 - Math.sin(angle)) / Math.sin(angle) + 2 );
-
-      for (var i = 0; i < 5; i++) {
-
-	var degrees = 360 / numberOfDiscs;
-	/* Angle arranges discs in star formation */
-	leaderCircle.angle = (i * degrees * TO_RADIANS) - angle/2;
-
-	var x = leaderCircle.centerX + Math.cos(leaderCircle.angle) 
-	  * (2 * leaderCircle.radius / 3);
-	var y = leaderCircle.centerY + Math.sin(leaderCircle.angle) 
-	  * (2 * leaderCircle.radius / 3);
-	
-	// DEBUG to make sure leader discs properly aligned
-	//context.beginPath();
-	//context.arc(
-		  //x, y,
-	    //leaderDiscRadius,
-		  //0, 2*Math.PI);
-	//context.stroke();
-
-	var leaderDiscImg = leaderDiscs[i];
-	leaderDiscImg.xPos = x - leaderDiscRadius;
-	leaderDiscImg.yPos = y - leaderDiscRadius;
-
-	discScaleWidth = discScaleHeight = 2 * leaderDiscRadius;
-	context.drawImage(leaderDiscImg, 
-	  leaderDiscImg.xPos, leaderDiscImg.yPos, 
-	  discScaleWidth, discScaleHeight);
-
-      }
     }
+  }
+
+  this.addTraitorCard = function(traitorCardImg) 
+  {
+    addCardToHand(traitorCardImg, traitorDeckImg);
+  }
+
+  this.addTreacheryCard = function() 
+  {
+    var treacheryImgUrl = "/img/treachery/chrysknife.png";
+    var treacheryImg = loader.loadImage(treacheryImgUrl);
+
+    loader.onload = function() 
+    {
+      addCardToHand(treacheryImg, treacheryDeckImg);
+    }
+  }
+
+  function addCardToHand(cardImg, playerHandImg)
+  {
+    cardImg.canvas = canvas;
+    cardImg.xPos = canvas.width;
+    cardImg.yPos = playerHandImg.yPos;
+    cardImg.speed = 0.02;
+    cardImg.width = deckScaleWidth;
+    cardImg.height = deckScaleHeight;
+
+    cardImg.moveToCoord([playerHandImg.xPos, playerHandImg.yPos]);
+    cardImg.onHalt = function() 
+    {
+      updateHand(playerHandImg);
+    }
+  }
+
+  function updateHand(playerHandImg)
+  {
+    console.log('updating hand');
+    playerHandImg.isActive = true;
+
+    canvas.redraw();
+
+    var handCount = "1";
+    var fontSize = 25;
+    context.font = fontSize + "pt Arial";
+
+    var textWidth = context.measureText(handCount).width;
+    var textPadding = 1.3
+
+    var xPos = playerHandImg.xPos + deckScaleWidth - textWidth * textPadding;
+    var yPos = playerHandImg.yPos + fontSize * textPadding;
+
+    context.fillStyle = "white";
+    context.fillText(handCount, xPos, yPos);
+
   }
 }
 
 
 },{}],23:[function(require,module,exports){
+module.exports = StartMenuView;
+
+var ViewDecorator = require('./Base');
+
+function StartMenuView(controller) {
+
+  ViewDecorator(this, { 
+    "view": document.getElementById("gamestartscreen")
+  });
+
+
+  addPlayClickEvent();
+
+  function addPlayClickEvent() {
+    var playButton = document.getElementById("playbutton");
+    playButton.onclick = showFactionSelectView;
+  }
+
+  function showFactionSelectView() {
+    controller.hideStartMenuView();
+    controller.showFactionSelectView();
+  }
+
+}
+
+
+},{"./Base":12}],24:[function(require,module,exports){
 module.exports = promptUserSelectTraitor;
 
-var canvas, context;
-var traitorScaleWidth = 275;
-var traitorScaleHeight = 400;
-var canvasContainer;
+var canvas, context, canvasContainer;
 
-function promptUserSelectTraitor() 
+var traitorScaleWidth = 275,
+    traitorScaleHeight = 400;
+
+var factionView;
+
+function promptUserSelectTraitor(onSelectTraitor) 
 {
-  var controller = this.controller;
+  factionView = this;
+
+  var controller = factionView.controller;
   canvasContainer = controller.canvasContainer;
 
   // debug to hide userPromptStart
@@ -1568,7 +1781,7 @@ function promptUserSelectTraitor()
 
   var loader = new controller.Loader();
 
-  faction = this.faction;
+  faction = factionView.faction;
   var traitorHand = faction.drawTraitorHand();
 
   canvas.elements = new Array();
@@ -1595,7 +1808,7 @@ function promptUserSelectTraitor()
       if (coord.x >= image.xPos && coord.x <= image.xPos + traitorScaleWidth
 	  && coord.y >= image.yPos && coord.y <= image.yPos + traitorScaleHeight
       ) {
-      	pickTraitorImage(image);
+      	selectTraitorImage(image, onSelectTraitor);
       }
     }
 
@@ -1613,13 +1826,18 @@ function getMousePosition(canvasElement,e)
   return {x: mousex, y: mousey};
 }
 
-function pickTraitorImage(image)
+function selectTraitorImage(image, onSelectTraitor)
 {
-  var traitor = image.traitor;
-  var faction = this.faction;
-  faction.pickTraitor(traitor);
+  factionView.traitorCardImage = image;
+
+  var traitorObj = image.traitor;
+  var faction = factionView.faction;
+  faction.pickTraitor(traitorObj);
 
   canvasContainer.deleteLayer(canvas);
+
+  if (onSelectTraitor) 
+    onSelectTraitor();
 }
 
 
@@ -1820,34 +2038,7 @@ function drawTraitors()
       image4, image4.xPos, image4.yPos, traitorScaleWidth, traitorScaleHeight);
 }
 
-},{}],24:[function(require,module,exports){
-module.exports = StartMenuView;
-
-var ViewDecorator = require('./Base');
-
-function StartMenuView(controller) {
-
-  ViewDecorator(this, { 
-    "view": document.getElementById("gamestartscreen")
-  });
-
-
-  addPlayClickEvent();
-
-  function addPlayClickEvent() {
-    var playButton = document.getElementById("playbutton");
-    playButton.onclick = showFactionSelectView;
-  }
-
-  function showFactionSelectView() {
-    controller.hideStartMenuView();
-    controller.showFactionSelectView();
-  }
-
-}
-
-
-},{"./Base":12}],25:[function(require,module,exports){
+},{}],25:[function(require,module,exports){
 module.exports = shuffleArray;
 
 function shuffleArray(array) {
