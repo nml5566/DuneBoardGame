@@ -848,7 +848,6 @@ function TreacheryDeckView(controller)
 
   this.dealCard = function() 
   {
-    console.log('dealing card');
     canvas = canvasContainer.layer("notification");
     context = canvas.getContext("2d");
     canvasContainer.moveLayerToTop(canvas);
@@ -881,11 +880,9 @@ function TreacheryDeckView(controller)
 	var xPos = 0 - cardScaleWidth;
 	var yPos = yCenterScreen;
 
-	console.log('setting ofscreen onHalt');
 	treacheryImg.moveToCoord([xPos, yPos]);
 
 	treacheryImg.onHalt = function() {
-	  console.log('dealt card moved off screen');
 
 	  if (that.onDealCard) {
 	    that.onDealCard(this);
@@ -1159,12 +1156,8 @@ function BaseFactionView(obj, args) {
 
   obj.drawTreacheryCard = function()
   {
-    console.log('drawing treachery card');
-
     var card = treacheryDeckView.dealCard();
     treacheryDeckView.onDealCard = function(treacheryCardImg) {
-      console.log('adding treachery card to hand');
-      //playerScreen.addTreacheryCard(treacheryCardImg);
       playerScreen.addTreacheryCard(card);
     }
 
@@ -1596,6 +1589,12 @@ function PlayerScreen(controller, images)
       bonusDeckImg,
       allianceDeckImg;
 
+  var traitorHand = [],
+      treacheryHand = [],
+      bonusHand = [],
+      allianceHand = [];
+
+
   var iconScaleWidth = 67.5;
   var iconScaleHeight = 67.5;
 
@@ -1649,33 +1648,31 @@ function PlayerScreen(controller, images)
 
     context.globalAlpha = transparent;
 
-    drawPlayerHandImage(treacheryDeckImg);
-    drawPlayerHandImage(traitorDeckImg);
-    drawPlayerHandImage(bonusDeckImg);
-    drawPlayerHandImage(allianceDeckImg);
+    drawPlayerHandImage(treacheryDeckImg, treacheryHand);
+    drawPlayerHandImage(traitorDeckImg, traitorHand);
+    drawPlayerHandImage(bonusDeckImg, bonusHand);
+    drawPlayerHandImage(allianceDeckImg, allianceHand);
 
-    context.globalAlpha = 1;
+    context.globalAlpha = solid;
 
 
     var leaderDiscs = images.leaders;
     drawLeaderDiscs(leaderDiscs);
   }
 
-  function drawPlayerHandImage(image) 
+  function drawPlayerHandImage(image, playerHand) 
   {
-    if (image.isActive)
+
+    if (playerHand.length)
       context.globalAlpha = solid;
 
     context.drawImage(image, 
       image.xPos, image.yPos, 
       deckScaleWidth, deckScaleHeight);
 
-    context.globalAlpha = transparent;
-  }
+    updateHandCount(image, playerHand);
 
-/*  function drawTraitorHand()*/
-  //{
-  /*}*/
+  }
 
   function loadPlayerHandImages()
   {
@@ -1691,8 +1688,6 @@ function PlayerScreen(controller, images)
     treacheryDeckImg = loader.loadImage(treacheryDeckImgUrl);
     treacheryDeckImg.xPos = spiceIconImg.xPos + iconScaleWidth + padding;
     treacheryDeckImg.yPos = 10;
-    console.log('loading treachery hand');
-    console.log(treacheryDeckImg);
   }
 
   function loadTraitorHand()
@@ -1766,11 +1761,19 @@ function PlayerScreen(controller, images)
   this.addTraitorCard = function(traitorCardImg) 
   {
     addCardToHand(traitorCardImg, traitorDeckImg);
+    traitorCardImg.onHalt = function() { 
+      traitorHand.push(traitorCardImg);
+      canvas.redraw() 
+    }
   }
 
   this.addTreacheryCard = function(treacheryCardImg) 
   {
     addCardToHand(treacheryCardImg, treacheryDeckImg);
+    treacheryCardImg.onHalt = function() { 
+      treacheryHand.push(treacheryCardImg);
+      canvas.redraw() 
+    }
   }
 
   function addCardToHand(cardImg, playerHandImg)
@@ -1782,23 +1785,16 @@ function PlayerScreen(controller, images)
     cardImg.width = deckScaleWidth;
     cardImg.height = deckScaleHeight;
 
-    //console.log('cardImg.onHalt');
-    //console.log(cardImg);
-    //console.log(cardImg.onHalt);
-    //console.log('adding card to hand');
-    console.log('setting updateHand onHalt');
-    cardImg.onHalt = function() { updateHandCount(playerHandImg) }
     cardImg.moveToCoord([playerHandImg.xPos, playerHandImg.yPos]);
+    //cardImg.onHalt = function() { updateHandCount(playerHandImg) }
   }
 
-  function updateHandCount(playerHandImg)
+  function updateHandCount(playerHandImg, playerHand)
   {
-    console.log('updating hand');
-    playerHandImg.isActive = true;
+    if (! playerHand.length)
+      return context.globalAlpha = transparent;
 
-    canvas.redraw();
-
-    var handCount = "1";
+    var handCount = playerHand.length;
     var fontSize = 25;
     context.font = fontSize + "pt Arial";
 
