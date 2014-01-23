@@ -1,6 +1,13 @@
-Redraw promptTraitorSelect using canvas
-=======================================
-Move code into Animation/TraitorSelect.js
+Add a player HUD to Faction/Base.js
+===================================
+HUD should draw in bottom fifth of screen not covered by map.
+
+HUD should contain:
+* Spice icon/count 
+* Troop icon/count 
+* End turn button
+* Traitor card
+* Remaining leaders
 
 Draw troop movement
 ===================

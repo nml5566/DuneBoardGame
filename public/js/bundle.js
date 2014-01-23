@@ -10,8 +10,6 @@ window.onload = function() {
   gameController.setFactions(new Array("Atreides", "Harkonnen"));
   gameController.startGame();
 
-  //promptUserSelectTraitor(gameController);
-  //draw(gameController);
 }
 
 
@@ -50,7 +48,7 @@ function GameController() {
 
     initViews();
 
-    this.startPlayerTurn();
+    this.startInitialPlayerTurn();
   }
 
   function initViews() {
@@ -100,14 +98,14 @@ function GameController() {
     that.views.map.loadImages();
   }
 
-  this.startPlayerTurn = function() {
+  this.startInitialPlayerTurn = function() {
     var turnOrder = this.game.getTurnOrder();
+    console.log(turnOrder);
     var faction = turnOrder[0];
 
     var factionView = this.views.factions[faction.constructor.name];
 
-    factionView.onPromptDismiss =  factionView.promptUserSelectTraitor;
-    factionView.promptUserStartTurn();
+    factionView.startInitialTurn();
   }  
 
 }
@@ -232,7 +230,7 @@ function Loader() {
 }
 
 
-},{"./View/Faction/Atreides":13,"./View/Faction/BeneGesserit":15,"./View/Faction/Emperor":16,"./View/Faction/Fremen":17,"./View/Faction/Guild":18,"./View/Faction/Harkonnen":19,"./View/FactionSelect":20,"./View/Map":21,"./View/StartMenu":23,"Dune/Game":10}],3:[function(require,module,exports){
+},{"./View/Faction/Atreides":13,"./View/Faction/BeneGesserit":15,"./View/Faction/Emperor":16,"./View/Faction/Fremen":17,"./View/Faction/Guild":18,"./View/Faction/Harkonnen":19,"./View/FactionSelect":20,"./View/Map":21,"./View/StartMenu":24,"Dune/Game":10}],3:[function(require,module,exports){
 module.exports = Atreides;
 
 var internalDecorator = require("./Base.js");
@@ -486,7 +484,7 @@ function Game() {
   var isStarted = false,
       factions = { },
       playerSeat = { },
-      stormQuadrant,
+      //stormSector,
       traitorPool;
 
   var treacheryDeck = TreacheryDeck();
@@ -560,7 +558,8 @@ function Game() {
   }
 
   this.stormRound = function () {
-    return stormQuadrant = this.map.moveStorm();
+    //return stormSector = this.map.moveStorm();
+    return this.map.moveStorm();
   }
 
   this.spiceBlowRound = function() {
@@ -576,17 +575,43 @@ function Game() {
 
     /* Storms on the same quadrant as player are considered ahead of it 
     /* so round up to illustrate this and prevent equal sorting problems */
-    var tempQuadrant = stormQuadrant + 0.5
+    var tempSector = this.map.stormSector - 0.5
+
+    var aSortFirst = -1;
+    var bSortFirst = 1;
     return turnOrder.sort(function sortCounterClockwiseAheadOfStorm(a,b) { 
 
-      if (tempQuadrant > a.seat && tempQuadrant < b.seat) {
-      	return true;
-      } else if (tempQuadrant < a.seat && tempQuadrant > b.seat) {
-      	return false;
-      } else {
-      	return a.seat - b.seat
-      }
+      var tempAngle = convertSectorNumberToMapAngle(tempSector);
+      var angleA = convertSectorNumberToMapAngle(a.seat);
+      var angleB = convertSectorNumberToMapAngle(b.seat);
+
+      if (tempAngle > angleA && tempAngle < angleB)
+      	return aSortFirst;
+
+      if (tempAngle < angleA && tempAngle > angleB)
+      	return bSortFirst;
+
+      var distanceToA = tempAngle - angleA;
+      var distanceToB = tempAngle - angleB;
+
+      if (distanceToA < distanceToB) 
+      	return aSortFirst;
+
+      if (distanceToA > distanceToB)
+      	return bSortFirst;
+
+      throw new Error("Player seats are equal. This shouldn't happen")
+
     });
+  }
+
+  convertSectorNumberToMapAngle = function(sectorNumber) {
+    var degreesPerSector = 20;
+    
+    /* Dividing by 2 puts the angle in the center of the sector */
+    var degrees = (sectorNumber * degreesPerSector) + degreesPerSector/2; 
+    var radians = degrees * (Math.PI/180);
+    return degrees;
   }
 
   this.battleRound = function() {
@@ -609,7 +634,7 @@ function TreacheryDeck() {
 }
 
 
-},{"./Faction/Atreides":3,"./Faction/BeneGesserit":5,"./Faction/Emperor":6,"./Faction/Fremen":7,"./Faction/Guild":8,"./Faction/Harkonnen":9,"./Map":11,"./shuffle":24}],11:[function(require,module,exports){
+},{"./Faction/Atreides":3,"./Faction/BeneGesserit":5,"./Faction/Emperor":6,"./Faction/Fremen":7,"./Faction/Guild":8,"./Faction/Harkonnen":9,"./Map":11,"./shuffle":25}],11:[function(require,module,exports){
 module.exports = ArrakisMap;
 
 var shuffleArray = require("./shuffle");
@@ -620,12 +645,12 @@ function ArrakisMap() {
   var stormDeck = [];
 
   /* Quadrants start at top of map and number 0 to 17 counterclockwise */
-  var stormQuadrant;
+  var stormSector;
   var quadrants = 17;
 
 
   this.initStormPosition = function() {
-    return stormQuadrant = Math.floor((Math.random()*quadrants)+0);
+    return stormSector = this.stormSector = Math.floor((Math.random()*quadrants)+0);
   }
 
   this.getTerritory = function(territoryName) {
@@ -682,13 +707,13 @@ function ArrakisMap() {
     var stormMovement = stormDeck.shift();
 
     /* Storm moves counterclockwise */
-    stormQuadrant += stormMovement;
+    stormSector += stormMovement;
 
     /* Reset storm quandrant position when it goes below 0 */
-    if (stormQuadrant > 17)
-      stormQuadrant -= quadrants;
+    if (stormSector > 17)
+      stormSector -= quadrants;
 
-    return stormQuadrant;
+    return stormSector;
   }
 
   this.spiceBlow = function() {
@@ -706,7 +731,7 @@ function SpiceDeck() {
   return new Array();
 }
 
-},{"./shuffle":24}],12:[function(require,module,exports){
+},{"./shuffle":25}],12:[function(require,module,exports){
 module.exports = BaseView;
 
 function BaseView(obj, props) {
@@ -729,23 +754,33 @@ var FactionDecorator = require("./Base");
 //AtreidesView.prototype.constructor = AtreidesView;
 
 function AtreidesView(controller) {
+
+  var images = {
+    "troop": "atreides.png",
+    "leaderPath": "/img/leaders/atreides/",
+    "leaders": [ "dr._yueh.png", "duncan_idaho.png", "gurney_halleck.png", 
+      "lady_jessica.png", "thufir_hawat.png" ],
+    //"emblem": "atreides-emblem53x53.png"
+    "emblem": "atreides-53x53.png"
+  }
+
   FactionDecorator(this, {
     "faction": controller.players['Atreides'],
     "controller": controller,
-    "icon": "atreides-emblem53x53.png"
+    "images": images
   });
 
   var that = this;
 
-  this.startInitialTurn = function() {
-    this.promptUserStartTurn();
-  }
+/*  this.startInitialTurn = function() {*/
+    //this.promptUserStartTurn();
+  //}
 
-  this._startInitialTurn = function() {
-    this.promptUserSelectTraitor();
-    // TODO
-    //this.deployInitialTroops()
-  }
+  //this._startInitialTurn = function() {
+    //this.promptUserSelectTraitor();
+    //// TODO
+    ////this.deployInitialTroops()
+  /*}*/
 
 
   // TODO change variable require in Dune/Map
@@ -763,6 +798,7 @@ function AtreidesView(controller) {
 module.exports = BaseFactionView;
 
 var ViewDecorator = require("../Base");
+var PlayerScreen = require("../PlayerScreen");
 var promptUserSelectTraitor = require("../Scene/TraitorSelect.js");
 
 function BaseFactionView(obj, args) {
@@ -771,29 +807,41 @@ function BaseFactionView(obj, args) {
 
   var controller = args.controller,
       faction = args.faction,
-      icon = args.icon;
+      images = args.images;
 
   //TODO clear out duplicate private variable code in favor of public
   obj.controller = controller;
   obj.faction = faction;
 
-  var factionIcon; 
+  var playerScreen = new PlayerScreen(obj.controller, images);
+
+  var factionEmblem; 
   var factionShieldImage;
 
   obj.loadImages = function() {
 
     var loader = new controller.Loader();
 
-    var factionIconUrl = obj.iconPath + icon;
-    factionIcon = loader.loadImage(factionIconUrl)
+    var factionEmblemUrl = obj.imagePath + "emblems/" + images.emblem;
+    factionEmblem = loader.loadImage(factionEmblemUrl)
+
+    var troopIconImgUrl = "/img/icons/troops/" + images.troop;
+    images.troop = loader.loadImage(troopIconImgUrl);
+
+    for (var i = 0; i < images.leaders.length; i++) {
+      var leaderImgUrl = images.leaderPath + images.leaders[i];
+      images.leaders[i] = loader.loadImage(leaderImgUrl);
+    }
+
 
     loader.onload = function() {
+      playerScreen = new PlayerScreen(obj.controller, images);
       obj.drawPlayerSeat();
     };
 
   }
 
-  obj.promptUserStartTurn = function() {
+  obj.promptUserStartTurn = function(onDismiss) {
 
     canvasContainer = controller.canvasContainer;
     canvas = canvasContainer.layer('notification');
@@ -802,13 +850,10 @@ function BaseFactionView(obj, args) {
     canvasContainer.moveLayerToTop(canvas);
 
     canvas.addEventListener("mousedown", function(e) {
-      dismissUserPromptNotification();
+      dismissUserPromptNotification(onDismiss);
     });
 
     var loader = new controller.Loader();
-
-    //var factionShieldUrl = "/img/atreides-shield.png";
-    console.log(obj.faction.constructor.name);
 
     var factionShieldName = faction.constructor.name.toLowerCase() 
       + "-shield.png"
@@ -819,10 +864,10 @@ function BaseFactionView(obj, args) {
     loader.onload = drawUserPromptNotification;
   }
 
-  function dismissUserPromptNotification() {
+  function dismissUserPromptNotification(onDismiss) {
     context.clearRect(0, 0, canvas.width, canvas.height);
-    if (obj.onPromptDismiss)
-      obj.onPromptDismiss()
+    if (onDismiss)
+      onDismiss();
   }
 
   function drawUserPromptNotification() {
@@ -913,7 +958,7 @@ function BaseFactionView(obj, args) {
     var circle = mapView.circle;
     circle.angle = mapView.convertSectorNumberToMapAngle(faction.seat);
 
-    var iconOffset = factionIcon.width/2;
+    var iconOffset = factionEmblem.width/2;
 
     var coordinates = 
       mapView.calculateSectorEdgeFromMapAngle([iconOffset, iconOffset]);
@@ -921,11 +966,21 @@ function BaseFactionView(obj, args) {
     var x = coordinates[0] - iconOffset;
     var y = coordinates[1] - iconOffset;
 
-    context.drawImage(factionIcon, x, y);
+    context.drawImage(factionEmblem, x, y);
+  }
+
+  obj.startInitialTurn = function() 
+  {
+    // DEBUG skip all the prompting 
+    //onDismiss = function() { 
+      //playerScreen.draw();
+      //obj.promptUserSelectTraitor() 
+    //};
+    //this.promptUserStartTurn(onDismiss);
   }
 }
 
-},{"../Base":12,"../Scene/TraitorSelect.js":22}],15:[function(require,module,exports){
+},{"../Base":12,"../PlayerScreen":22,"../Scene/TraitorSelect.js":23}],15:[function(require,module,exports){
 
 },{}],16:[function(require,module,exports){
 module.exports=require(15)
@@ -964,21 +1019,31 @@ var FactionDecorator = require("./Base");
 
 function HarkonnenView(controller) {
 
+  var images = {
+    "troop": "harkonnen.png",
+    "leaderPath": "/img/leaders/harkonnen/",
+    "leaders": [ "beast_rabban.png", "captain_iakin_nefud.png", "feyd_rautha.png", 
+      "piter_de_vries.png", "umman_kudu.png" ],
+    //"emblem": "harkonnen-emblem53x53.png"
+    "emblem": "harkonnen-53x53.png"
+  }
+
   FactionDecorator(this, {
     "faction": controller.players['Harkonnen'],
     "controller": controller,
-    "icon": "harkonnen-emblem53x53.png"
+    "images": images
+    //"icon": "harkonnen-emblem53x53.png"
   });
 
   var that = this;
 
-  this.startInitialTurn = function() {
-    this.promptUserStartTurn();
-  }
+/*  this.startInitialTurn = function() {*/
+    //this.promptUserStartTurn();
+  //}
 
-  this._startInitialTurn = function() {
-    this.promptUserSelectTraitor();
-  }
+  //this._startInitialTurn = function() {
+    //this.promptUserSelectTraitor();
+  /*}*/
 
 
 }
@@ -1149,6 +1214,9 @@ function MapView(controller) {
   var circle = {centerX:385, centerY:425, radius:338, angle: 0}
   this.circle = circle;
 
+  console.log('init storm position');
+  this.stormSector = controller.game.map.initStormPosition();
+
   var that = this;
 
   var stormImage;
@@ -1169,7 +1237,7 @@ function MapView(controller) {
   }
 
   function drawStormSetup() {
-    var stormSector = controller.game.map.initStormPosition();
+    console.log('draw storm setup');
 
     var img = stormImage;
 
@@ -1179,7 +1247,7 @@ function MapView(controller) {
     var x = -w/2;
     var y = -h/2;
 
-    circle.angle = that.convertSectorNumberToMapAngle(stormSector);
+    circle.angle = that.convertSectorNumberToMapAngle(that.stormSector);
 
     var coordinates = that.calculateSectorEdgeFromMapAngle();
     coordinates[0] += x, coordinates[1] += y;
@@ -1190,7 +1258,7 @@ function MapView(controller) {
 
     var TO_RADIANS = Math.PI/180;
     var degreesPerSector = 20;
-    var degrees = (stormSector - 3) * degreesPerSector;
+    var degrees = (that.stormSector - 3) * degreesPerSector;
 
     context.rotate(degrees * TO_RADIANS);
     context.drawImage(img, -img.width/2, -img.height/2);
@@ -1318,6 +1386,162 @@ function MapView(controller) {
 
 
 },{"./Base":12}],22:[function(require,module,exports){
+module.exports = PlayerScreen;
+
+function PlayerScreen(controller, images) 
+{
+
+  this.draw = function() 
+  {
+    var canvasContainer = controller.canvasContainer;
+    var canvas = canvasContainer.layer('playerscreen');
+    canvasContainer.moveLayerToTop(canvas);
+
+    canvas.height = 172;
+
+    var context = canvas.getContext("2d");
+
+    context.fillStyle = "grey";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+
+    var loader = new controller.Loader();
+
+    var iconScaleWidth = 67.5;
+    var iconScaleHeight = 67.5;
+
+    var deckScaleWidth = 100;
+    var deckScaleHeight = 145;
+
+    var padding = 10;
+
+    var troopIconImg = images.troop;
+    troopIconImg.xPos = padding;
+    troopIconImg.yPos = padding;
+
+    var spiceIconImgUrl = "/img/icons/" + "spice-alt.png";
+    var spiceIconImg = loader.loadImage(spiceIconImgUrl);
+    spiceIconImg.xPos = padding;
+    spiceIconImg.yPos = troopIconImg.yPos + iconScaleHeight + padding;
+
+    var deckImgPath = "/img/deck/";
+
+    var treacheryDeckImgUrl = deckImgPath + "treachery.png";
+    var treacheryDeckImg = loader.loadImage(treacheryDeckImgUrl);
+    treacheryDeckImg.xPos = spiceIconImg.xPos + iconScaleWidth + padding;
+    treacheryDeckImg.yPos = 10;
+
+    var traitorDeckImgUrl = deckImgPath + "traitor.png";
+    var traitorDeckImg = loader.loadImage(traitorDeckImgUrl);
+    traitorDeckImg.xPos = treacheryDeckImg.xPos + deckScaleWidth + padding;
+    traitorDeckImg.yPos = padding;
+
+    var bonusDeckImgUrl = deckImgPath + "bonus.png";
+    var bonusDeckImg = loader.loadImage(bonusDeckImgUrl);
+    bonusDeckImg.xPos = traitorDeckImg.xPos + deckScaleWidth + padding;
+    bonusDeckImg.yPos = padding;
+
+    var allianceDeckImgUrl = deckImgPath + "alliance.png";
+    var allianceDeckImg = loader.loadImage(allianceDeckImgUrl);
+    allianceDeckImg.xPos = bonusDeckImg.xPos + deckScaleWidth + padding;
+    allianceDeckImg.yPos = padding
+
+    var discScaleWidth = 50;
+    var discScaleHeight = 50;
+
+    var leaderDiscs = images.leaders;
+
+    loader.onload = function() {
+
+      context.drawImage(troopIconImg, 
+	  troopIconImg.xPos, troopIconImg.yPos, 
+	  iconScaleWidth, iconScaleHeight);
+
+      context.drawImage(spiceIconImg, 
+	  spiceIconImg.xPos, spiceIconImg.yPos, 
+	  iconScaleWidth, iconScaleHeight);
+
+      context.globalAlpha = 0.5;
+
+      context.drawImage(treacheryDeckImg, 
+	  treacheryDeckImg.xPos, treacheryDeckImg.yPos, 
+	  deckScaleWidth, deckScaleHeight);
+
+      context.drawImage(traitorDeckImg, 
+	  traitorDeckImg.xPos, traitorDeckImg.yPos, 
+	  deckScaleWidth, deckScaleHeight);
+
+      context.drawImage(bonusDeckImg, 
+	  bonusDeckImg.xPos, bonusDeckImg.yPos, 
+	  deckScaleWidth, deckScaleHeight);
+
+      context.drawImage(allianceDeckImg, 
+	    allianceDeckImg.xPos, allianceDeckImg.yPos, 
+	    deckScaleWidth, deckScaleHeight);
+
+      context.globalAlpha = 1;
+
+      var leaderCircle = {
+	"centerX": 600,
+	"centerY": canvas.height/2,
+	"radius": 75,
+	"angle": 0
+      };
+
+  /*   context.fillStyle = "black";*/
+      //context.beginPath();
+      //context.arc(
+	//leaderCircle.centerX, leaderCircle.centerY,
+	//leaderCircle.radius,
+	//0, Math.PI*2
+      //);
+      /*context.fill();*/
+
+      //context.strokeStyle = "white";
+
+      var TO_RADIANS = Math.PI/180;
+      var numberOfDiscs = 5;
+      var angle = 180/numberOfDiscs * TO_RADIANS;
+
+      /* Calculate largest radius for 5 smaller circles that can fit in larger 
+      * circle using steiner chain formula */
+      var leaderDiscRadius = 
+	leaderCircle.radius / ( (1 - Math.sin(angle)) / Math.sin(angle) + 2 );
+
+      for (var i = 0; i < 5; i++) {
+
+	var degrees = 360 / numberOfDiscs;
+	/* Angle arranges discs in star formation */
+	leaderCircle.angle = (i * degrees * TO_RADIANS) - angle/2;
+
+	var x = leaderCircle.centerX + Math.cos(leaderCircle.angle) 
+	  * (2 * leaderCircle.radius / 3);
+	var y = leaderCircle.centerY + Math.sin(leaderCircle.angle) 
+	  * (2 * leaderCircle.radius / 3);
+	
+	// DEBUG to make sure leader discs properly aligned
+	//context.beginPath();
+	//context.arc(
+		  //x, y,
+	    //leaderDiscRadius,
+		  //0, 2*Math.PI);
+	//context.stroke();
+
+	var leaderDiscImg = leaderDiscs[i];
+	leaderDiscImg.xPos = x - leaderDiscRadius;
+	leaderDiscImg.yPos = y - leaderDiscRadius;
+
+	discScaleWidth = discScaleHeight = 2 * leaderDiscRadius;
+	context.drawImage(leaderDiscImg, 
+	  leaderDiscImg.xPos, leaderDiscImg.yPos, 
+	  discScaleWidth, discScaleHeight);
+
+      }
+    }
+  }
+}
+
+
+},{}],23:[function(require,module,exports){
 module.exports = promptUserSelectTraitor;
 
 var canvas, context;
@@ -1596,7 +1820,7 @@ function drawTraitors()
       image4, image4.xPos, image4.yPos, traitorScaleWidth, traitorScaleHeight);
 }
 
-},{}],23:[function(require,module,exports){
+},{}],24:[function(require,module,exports){
 module.exports = StartMenuView;
 
 var ViewDecorator = require('./Base');
@@ -1623,7 +1847,7 @@ function StartMenuView(controller) {
 }
 
 
-},{"./Base":12}],24:[function(require,module,exports){
+},{"./Base":12}],25:[function(require,module,exports){
 module.exports = shuffleArray;
 
 function shuffleArray(array) {

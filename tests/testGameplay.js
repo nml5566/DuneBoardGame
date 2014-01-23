@@ -25,7 +25,7 @@ var atreidesTraitorHand =  atreides.drawTraitorHand();
 assert(atreidesTraitorHand.length == 4);
 
 var cardFaction = atreidesTraitorHand[0].faction
-assert(cardFaction == "Harkonnen" || cardFaction == "Atreides", 
+assert(cardFaction == "Harkonnen" || cardFaction == "Atreides" || cardFaction == "GuildFaction", 
     "Didn't get expected traitor card faction");
 
 var harkonnenTraitorHand = harkonnen.drawTraitorHand();
