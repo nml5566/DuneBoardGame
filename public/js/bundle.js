@@ -42,7 +42,6 @@ function testTerritoryClick()
       enlargeTerritory(territoryImages[this.target]);
     });
   }
-  console.log(areaTags);
 
   var territoryScreen = document.getElementById("territoryscreen");
   territoryScreen.style.display = "block";
@@ -55,6 +54,10 @@ function enlargeTerritory(territoryImage) {
   var context = canvas.getContext("2d");
 
   var circle = mapView.circle;
+
+  var imageScaleWidth = circle.radius * 2;
+  var imageScaleHeight = circle.radius * 2;
+
   context.drawImage(territoryImage, 
       circle.centerX - territoryImage.width/2, 
       circle.centerY - territoryImage.height/2);
@@ -83,7 +86,7 @@ function getMousePosition(canvasElement,e)
 
 
 
-},{"Dune/CanvasContainer":2,"Dune/Controller":3,"Dune/Loader":12,"Dune/View/Map":25}],2:[function(require,module,exports){
+},{"Dune/CanvasContainer":2,"Dune/Controller":3,"Dune/Loader":13,"Dune/View/Map":26}],2:[function(require,module,exports){
 module.exports = new CanvasContainer;
 
 function CanvasContainer() 
@@ -118,7 +121,8 @@ function CanvasContainer()
   }
 
   function setCanvasAttributes(canvas, layerName) {
-    var zIndex = zIndexMin - layerOrder.length;
+    //var zIndex = zIndexMin - layerOrder.length;
+    var zIndex = zIndexLookup(layerName);
 
     canvas.id = layerName;
     canvas.className = "gamelayer";
@@ -129,14 +133,34 @@ function CanvasContainer()
 
   }
 
-  this.moveLayerToTop = function(canvas) {
-    var newIndex = 0;
-    var oldIndex = getLayerIndex(canvas);
-
-    layerOrder.splice(newIndex, 0, layerOrder.splice(oldIndex, 1)[0]);
-    canvas.style.zIndex = zIndexMin + layerOrder.length;
-
+  function zIndexLookup(layerName) 
+  {
+    switch (layerName) {
+      case "notification":
+      	return 200;
+  /*    case "territoryscreen":*/
+      	/*return 99;*/
+      case "playerscreen":
+      	return 99;
+      case "troopscreen":
+      	return 98;
+      case "playerseat":
+      	return 97;
+      case "storm":
+      	return 96;
+      default:
+      	throw new Error("No zIndex case defined for " + layerName);
+    }
   }
+
+/*  this.moveLayerToTop = function(canvas) {*/
+    //var newIndex = 0;
+    //var oldIndex = getLayerIndex(canvas);
+
+    //layerOrder.splice(newIndex, 0, layerOrder.splice(oldIndex, 1)[0]);
+    //canvas.style.zIndex = zIndexMin + layerOrder.length;
+
+  /*}*/
 
   function getLayerIndex(canvas) {
     for (var i = 0; i < layerOrder.length; i++) {
@@ -187,7 +211,7 @@ function GameController() {
     hideFactionSelectView();
     initViews();
     // DEBUG skip intro
-    //this.startInitialPlayerTurn();
+    this.startInitialPlayerTurn();
   }
 
   function hideFactionSelectView()
@@ -331,7 +355,41 @@ Image.prototype.animateMovement = function(point) {
 }
 
 
-},{"./CanvasContainer":2,"./Loader":12,"./View/Faction/Atreides":16,"./View/Faction/BeneGesserit":18,"./View/Faction/Emperor":19,"./View/Faction/Fremen":20,"./View/Faction/Guild":21,"./View/Faction/Harkonnen":22,"./View/FactionSelect":23,"./View/Game":24,"./View/Map":25,"./View/StartMenu":27}],4:[function(require,module,exports){
+},{"./CanvasContainer":2,"./Loader":13,"./View/Faction/Atreides":17,"./View/Faction/BeneGesserit":19,"./View/Faction/Emperor":20,"./View/Faction/Fremen":21,"./View/Faction/Guild":22,"./View/Faction/Harkonnen":23,"./View/FactionSelect":24,"./View/Game":25,"./View/Map":26,"./View/StartMenu":28}],4:[function(require,module,exports){
+module.exports = new EventChain();
+
+function EventChain() 
+{
+  var stack = new Array();
+
+  this.add = function(list) 
+  {
+    if (list instanceof Array)
+    {
+      stack = stack.concat(list);
+    } 
+    else 
+    {
+      stack.push(list);
+    }
+  }
+
+  this.next = function() 
+  {
+    if (! stack.length) return;
+
+    var nextEvent = stack.shift();
+    nextEvent();
+  }
+
+  this.removeLast = function() 
+  {
+    var lastEvent = stack.pop();
+    return lastEvent;
+  }
+}
+
+},{}],5:[function(require,module,exports){
 module.exports = Atreides;
 
 var internalDecorator = require("./Base.js");
@@ -353,7 +411,7 @@ function Atreides(game) {
 }
 
 
-},{"./Base.js":5}],5:[function(require,module,exports){
+},{"./Base.js":6}],6:[function(require,module,exports){
 module.exports = BaseFaction;
 
 function BaseFaction(obj, props) {
@@ -467,7 +525,7 @@ function BaseFactionTroop() {
   return this;
 }
 
-},{}],6:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 module.exports = BeneGesseritFaction;
 
 var BaseFaction = require("./Base.js");
@@ -488,7 +546,7 @@ function BeneGesseritFaction() {
   this.setSpice(5);
 }
 
-},{"./Base.js":5}],7:[function(require,module,exports){
+},{"./Base.js":6}],8:[function(require,module,exports){
 module.exports = EmperorFaction;
 
 var BaseFaction = require("./Base.js");
@@ -509,7 +567,7 @@ function EmperorFaction() {
   this.setSpice(10);
 }
 
-},{"./Base.js":5}],8:[function(require,module,exports){
+},{"./Base.js":6}],9:[function(require,module,exports){
 module.exports = FremenFaction;
 
 var BaseFaction = require("./Base.js");
@@ -531,7 +589,7 @@ function FremenFaction() {
 }
 
 
-},{"./Base.js":5}],9:[function(require,module,exports){
+},{"./Base.js":6}],10:[function(require,module,exports){
 module.exports = GuildFaction;
 
 var FactionDecorator = require("./Base.js");
@@ -550,7 +608,7 @@ function GuildFaction(game) {
       {"spice": 5, "leaders": leaders, "name": "Spacing Guild", "game": game});
 }
 
-},{"./Base.js":5}],10:[function(require,module,exports){
+},{"./Base.js":6}],11:[function(require,module,exports){
 module.exports = Harkonnen;
 
 var internalDecorator = require("./Base.js");
@@ -572,7 +630,7 @@ function Harkonnen(game) {
 
 }
 
-},{"./Base.js":5}],11:[function(require,module,exports){
+},{"./Base.js":6}],12:[function(require,module,exports){
 module.exports = Game;
 
 var ArrakisMap = require("./Map");
@@ -738,7 +796,7 @@ function TreacheryDeck() {
 }
 
 
-},{"./Faction/Atreides":4,"./Faction/BeneGesserit":6,"./Faction/Emperor":7,"./Faction/Fremen":8,"./Faction/Guild":9,"./Faction/Harkonnen":10,"./Map":13,"./shuffle":29}],12:[function(require,module,exports){
+},{"./Faction/Atreides":5,"./Faction/BeneGesserit":7,"./Faction/Emperor":8,"./Faction/Fremen":9,"./Faction/Guild":10,"./Faction/Harkonnen":11,"./Map":14,"./shuffle":30}],13:[function(require,module,exports){
 module.exports = Loader;
 
 function Loader() {
@@ -794,7 +852,7 @@ function Loader() {
 }
 
 
-},{}],13:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 module.exports = ArrakisMap;
 
 var shuffleArray = require("./shuffle");
@@ -891,7 +949,7 @@ function SpiceDeck() {
   return new Array();
 }
 
-},{"./shuffle":29}],14:[function(require,module,exports){
+},{"./shuffle":30}],15:[function(require,module,exports){
 module.exports = BaseView;
 
 function BaseView(obj, props) {
@@ -905,7 +963,7 @@ function BaseView(obj, props) {
 
 }
 
-},{}],15:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 module.exports = TreacheryDeckView;
 //var controller = require("../../Controller");
 var mapView = require("Dune/View/Map");
@@ -933,7 +991,7 @@ function TreacheryDeckView()
   {
     canvas = canvasContainer.layer("notification");
     context = canvas.getContext("2d");
-    canvasContainer.moveLayerToTop(canvas);
+    //canvasContainer.moveLayerToTop(canvas);
 
 
     //var mapDimensions = controller.views.map.circle;
@@ -985,7 +1043,7 @@ function TreacheryDeckView()
   }
 }
 
-},{"Dune/CanvasContainer":2,"Dune/Loader":12,"Dune/View/Map":25}],16:[function(require,module,exports){
+},{"Dune/CanvasContainer":2,"Dune/Loader":13,"Dune/View/Map":26}],17:[function(require,module,exports){
 module.exports = AtreidesView;
 
 var FactionDecorator = require("./Base");
@@ -1007,9 +1065,14 @@ function AtreidesView() {
     "images": images
   });
 
+  this.shipInitialTroops = function() 
+  {
+    console.log('atreides ship troops');
+  }
+
 }
 
-},{"../../Controller":3,"./Base":17,"Dune/View/Game":24}],17:[function(require,module,exports){
+},{"../../Controller":3,"./Base":18,"Dune/View/Game":25}],18:[function(require,module,exports){
 module.exports = BaseFactionView;
 
 var ViewDecorator = require("../Base");
@@ -1018,6 +1081,7 @@ var PlayerScreen = require("../PlayerScreen");
 var canvasContainer = require("Dune/CanvasContainer");
 var Loader = require("Dune/Loader");
 var mapView = require("Dune/View/Map");
+var eventChain = require("Dune/EventChain");
 
 var promptUserSelectTraitor = require("../TraitorSelect.js");
 
@@ -1026,8 +1090,10 @@ function BaseFactionView(obj, args) {
   ViewDecorator(obj, { "view": undefined });
 
   var faction = args.faction,
+      //initialTreacheryHand = args.initialTreacheryHand || 1,
       images = args.images;
 
+  //TODO figure out an elegant way to squash this public var
   obj.faction = faction;
 
   var playerScreen = new PlayerScreen(images);
@@ -1035,6 +1101,7 @@ function BaseFactionView(obj, args) {
 
   var factionEmblemImg, 
       factionShieldImg;
+
 
   obj.loadImages = function() {
 
@@ -1063,7 +1130,7 @@ function BaseFactionView(obj, args) {
     canvas = canvasContainer.layer("notification");
     context = canvas.getContext("2d");
 
-    canvasContainer.moveLayerToTop(canvas);
+    //canvasContainer.moveLayerToTop(canvas);
 
     canvas.addEventListener("mousedown", function(e) {
       dismissUserPromptNotification();
@@ -1083,10 +1150,11 @@ function BaseFactionView(obj, args) {
   function dismissUserPromptNotification() {
     canvasContainer.deleteLayer(canvas);
 
-    if (obj.onStartTurn) {
-      obj.onStartTurn();
-      delete obj.onStartTurn;
-    }
+    eventChain.next();
+/*    if (obj.onStartTurn) {*/
+      //obj.onStartTurn();
+      //delete obj.onStartTurn;
+    /*}*/
   }
 
   function drawUserPromptNotification() {
@@ -1188,44 +1256,51 @@ function BaseFactionView(obj, args) {
 
   obj.startInitialTurn = function() 
   {
-    // DEBUG skip all the prompting 
-
-    this.promptUserStartTurn();
-    this.onStartTurn = function() { 
-      playerScreen.draw();
-
-
-      obj.promptUserSelectTraitor();
-      obj.onSelectTraitor = function() 
+    eventChain.add([
+      function() 
+      { 
+	playerScreen.draw();
+	obj.promptUserSelectTraitor();
+      },
+      function() 
       {
 	playerScreen.addTraitorCard(obj.traitorCardImage);
-	playerScreen.onHandUpdate = function() {
-	  obj.drawTreacheryCard();
-	}
+      },
+      function()
+      {
+	obj.drawTreacheryCard();
+      },
+      function() 
+      {
+      	obj.shipInitialTroops();
       }
+    ]);
 
-    };
-
-    //playerScreen.draw();
-    //obj.drawTreacheryCard();
-    //playerScreen.addTreacheryCard();
+    obj.promptUserStartTurn();
   }
 
   obj.drawTreacheryCard = function()
   {
     var card = treacheryDeckView.dealCard();
+
     treacheryDeckView.onDealCard = function(treacheryCardImg) {
       playerScreen.addTreacheryCard(card);
     }
-
   }
+
+  obj.shipInitialTroops = function() 
+  { 
+    throw new Error(
+      "shipInitialTroops() must be implemented by child object");
+  }
+
 }
 
-},{"../Base":14,"../Deck/Treachery.js":15,"../PlayerScreen":26,"../TraitorSelect.js":28,"Dune/CanvasContainer":2,"Dune/Loader":12,"Dune/View/Map":25}],18:[function(require,module,exports){
+},{"../Base":15,"../Deck/Treachery.js":16,"../PlayerScreen":27,"../TraitorSelect.js":29,"Dune/CanvasContainer":2,"Dune/EventChain":4,"Dune/Loader":13,"Dune/View/Map":26}],19:[function(require,module,exports){
 
-},{}],19:[function(require,module,exports){
-module.exports=require(18)
 },{}],20:[function(require,module,exports){
+module.exports=require(19)
+},{}],21:[function(require,module,exports){
 module.exports = FremenView;
 
 var BaseFactionView = require("./Base");
@@ -1248,14 +1323,15 @@ function FremenView(controller) {
 
 }
 
-},{"./Base":17,"Dune/Game":11}],21:[function(require,module,exports){
-module.exports=require(18)
-},{}],22:[function(require,module,exports){
+},{"./Base":18,"Dune/Game":12}],22:[function(require,module,exports){
+module.exports=require(19)
+},{}],23:[function(require,module,exports){
 module.exports = HarkonnenView;
 
 var FactionDecorator = require("./Base");
 var gameView = require("Dune/View/Game");
-var controller = require("../../Controller");
+//var controller = require("../../Controller");
+var eventChain = require("Dune/EventChain");
 
 function HarkonnenView() {
 
@@ -1269,14 +1345,31 @@ function HarkonnenView() {
 
   FactionDecorator(this, {
     "faction": gameView.players['Harkonnen'],
+    //"initialTreacheryHand": 2,
     "images": images
   });
 
   var that = this;
 
+  var parentStartInitialTurn = this.startInitialTurn;
+
+  this.startInitialTurn = function() {
+    parentStartInitialTurn()
+
+    var lastEvent = eventChain.removeLast();
+    eventChain.add([function()
+    {
+      that.drawTreacheryCard();
+    }, lastEvent]);
+
+  }
+
+  this.shipInitialTroops = function() {
+    console.log('harkonnen ship troops');
+  }
 }
 
-},{"../../Controller":3,"./Base":17,"Dune/View/Game":24}],23:[function(require,module,exports){
+},{"./Base":18,"Dune/EventChain":4,"Dune/View/Game":25}],24:[function(require,module,exports){
 module.exports = FactionSelectView;
 
 var ViewDecorator = require("./Base");
@@ -1423,7 +1516,7 @@ function FactionSelectView() {
 }
 
 
-},{"./Base":14,"Dune/Controller":3}],24:[function(require,module,exports){
+},{"./Base":15,"Dune/Controller":3}],25:[function(require,module,exports){
 var DuneGame = require("Dune/Game");
 
 module.exports = new GameView();
@@ -1434,7 +1527,7 @@ function GameView()
   this.players = {};
 }
 
-},{"Dune/Game":11}],25:[function(require,module,exports){
+},{"Dune/Game":12}],26:[function(require,module,exports){
 
 var ViewDecorator = require("./Base");
 var gameView = require("Dune/View/Game");
@@ -1449,8 +1542,6 @@ function MapView() {
     "view": document.getElementById("mapscreen") 
   });
 
-  //var controller = require("Dune/Controller");
-  //var canvas = controller.canvasContainer.layer("storm");
   var canvas = canvasContainer.layer("storm");
 
   this.element = document.getElementById("mapscreen");
@@ -1629,11 +1720,12 @@ function MapView() {
 
 
 
-},{"./Base":14,"Dune/CanvasContainer":2,"Dune/Loader":12,"Dune/View/Game":24}],26:[function(require,module,exports){
+},{"./Base":15,"Dune/CanvasContainer":2,"Dune/Loader":13,"Dune/View/Game":25}],27:[function(require,module,exports){
 module.exports = PlayerScreen;
 //var controller = require("Dune/Controller");
 var canvasContainer = require("Dune/CanvasContainer");
 var Loader = require("Dune/Loader");
+var eventChain = require("Dune/EventChain");
 
 function PlayerScreen(images) 
 {
@@ -1675,7 +1767,7 @@ function PlayerScreen(images)
 
   this.draw = function() 
   {
-    canvasContainer.moveLayerToTop(canvas);
+    //canvasContainer.moveLayerToTop(canvas);
 
     troopIconImg = images.troop;
     troopIconImg.xPos = padding;
@@ -1834,6 +1926,13 @@ function PlayerScreen(images)
     traitorCardImg.onHalt = function() { 
       traitorHand.push(traitorCardImg);
       canvas.redraw() 
+
+      eventChain.next();
+/*      if (that.onAddTraitorCard) {*/
+	//var onAddTraitorCard = that.onAddTraitorCard;
+	//delete that.onAddTraitorCard;
+	//onAddTraitorCard();
+      /*}*/
     }
   }
 
@@ -1843,6 +1942,13 @@ function PlayerScreen(images)
     treacheryCardImg.onHalt = function() { 
       treacheryHand.push(treacheryCardImg);
       canvas.redraw() 
+
+      eventChain.next();
+/*      if (that.onAddTreacheryCard) {*/
+	//var onAddTreacheryCard = that.onAddTreacheryCard;
+	//delete that.onAddTreacheryCard;
+	//onAddTreacheryCard();
+      /*}*/
     }
   }
 
@@ -1856,13 +1962,10 @@ function PlayerScreen(images)
     cardImg.height = deckScaleHeight;
 
     cardImg.moveToCoord([playerHandImg.xPos, playerHandImg.yPos]);
-    //cardImg.onHalt = function() { updateHandCount(playerHandImg) }
   }
 
   function updateHandCount(playerHandImg, playerHand)
   {
-    //if (! playerHand.length)
-      //return context.globalAlpha = transparent;
 
     var handCount = playerHand.length;
     var fontSize = 25;
@@ -1886,7 +1989,7 @@ function PlayerScreen(images)
 }
 
 
-},{"Dune/CanvasContainer":2,"Dune/Loader":12}],27:[function(require,module,exports){
+},{"Dune/CanvasContainer":2,"Dune/EventChain":4,"Dune/Loader":13}],28:[function(require,module,exports){
 module.exports = StartMenuView;
 
 var ViewDecorator = require('./Base');
@@ -1914,11 +2017,12 @@ function StartMenuView() {
 }
 
 
-},{"./Base":14,"Dune/Controller":3}],28:[function(require,module,exports){
+},{"./Base":15,"Dune/Controller":3}],29:[function(require,module,exports){
 module.exports = promptUserSelectTraitor;
 
 var canvasContainer = require("Dune/CanvasContainer");
 var Loader = require("Dune/Loader");
+var eventChain = require("Dune/EventChain");
 
 var canvas, context, canvasContainer;
 
@@ -1932,7 +2036,7 @@ function promptUserSelectTraitor()
   factionView = this;
 
   canvas = canvasContainer.layer('notification');
-  canvasContainer.moveLayerToTop(canvas);
+  //canvasContainer.moveLayerToTop(canvas);
 
 
   context = canvas.getContext("2d");
@@ -1994,10 +2098,11 @@ function selectTraitorImage(image)
 
   canvasContainer.deleteLayer(canvas);
 
-  if (factionView.onSelectTraitor) {
-    factionView.onSelectTraitor();
-    delete factionView.onSelectTraitor;
-  }
+  eventChain.next();
+/*  if (factionView.onSelectTraitor) {*/
+    //factionView.onSelectTraitor();
+    //delete factionView.onSelectTraitor;
+  /*}*/
 }
 
 
@@ -2198,7 +2303,7 @@ function drawTraitors()
       image4, image4.xPos, image4.yPos, traitorScaleWidth, traitorScaleHeight);
 }
 
-},{"Dune/CanvasContainer":2,"Dune/Loader":12}],29:[function(require,module,exports){
+},{"Dune/CanvasContainer":2,"Dune/EventChain":4,"Dune/Loader":13}],30:[function(require,module,exports){
 module.exports = shuffleArray;
 
 function shuffleArray(array) {

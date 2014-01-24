@@ -41,7 +41,6 @@ function testTerritoryClick()
       enlargeTerritory(territoryImages[this.target]);
     });
   }
-  console.log(areaTags);
 
   var territoryScreen = document.getElementById("territoryscreen");
   territoryScreen.style.display = "block";
