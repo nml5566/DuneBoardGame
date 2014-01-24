@@ -10,83 +10,123 @@ window.onload = function() {
   gameController.setFactions(new Array("Atreides", "Harkonnen"));
   gameController.startGame();
 
-  testTerritoryClick();
+  drawSquaresOfTerritory();
 }
 
-var Loader = require("Dune/Loader");
-var canvasContainer = require("Dune/CanvasContainer");
-var mapView = require("Dune/View/Map");
-
-function testTerritoryClick()
+function drawSquaresOfTerritory() 
 {
+/*  var canvasContainer = require("Dune/CanvasContainer");*/
+  //var canvas = canvasContainer.layer("notification");
+  /*var ctx = canvas.getContext("2d");*/
+  var territoryView = require("Dune/View/Territory");
 
-  var loader = new Loader();
+  //var territoryImage = territoryView.enlargeTerritory('carthag');
+  //console.log(territoryImage);
+  return;
 
-  var territoryImages = {
-    "carthag": "/img/territories/carthag.png",
-    "arrakeen": "/img/territories/arrakeen.png"
-  };
+  // polar sink
+  //var coords=[374,484,368,476,361,466,350,466,341,462,332,454,327,454,321,446,324,425,333,408,348,397,366,395,379,391,384,387,391,387,397,394,409,394,413,392,425,392,436,405,434,425,424,439,418,452,411,461,410,473,395,484];
 
-  for (territoryName in territoryImages) {
-    var territoryUrl = territoryImages[territoryName];
-    territoryImages[territoryName] = loader.loadImage(territoryUrl);
+  //false wall east
+  //var coords=[455,460,436,469,418,453,425,439,435,425,437,405,426,391,414,391,414,384,427,372,433,360,449,371,467,396,467,426,465,429,465,437];
+  
+  //rim wall west
+  var coords=[484,269,483,267,485,264,484,253,522,187,527,187,532,182,536,183,536,197,530,204,527,219,516,237,516,243,510,243,510,248,500,254,500,259,487,268];
+
+  var s = 8.5;
+
+  var smallestX = undefined,
+      largestX = undefined, 
+      smallestY = undefined,
+      largestY = undefined; 
+
+  for( i=2 ; i < coords.length-1 ; i+=2 )
+  {
+    var x= coords[i], y = coords[i+1];
+
+    if (smallestX == undefined) { smallestX = x }
+    else if (x < smallestX) { smallestX = x }
+
+    if (smallestY == undefined) { smallestY = y }
+    else if (y < smallestY) { smallestY = y }
+
+    if (largestX == undefined) { largestX = x }
+    else if (x > largestX) { largestX = x }
+
+    if (largestY == undefined) { largestY = y }
+    else if (y > largestY) { largestY = y }
   }
 
-  var areaTags = document.getElementsByTagName("area");
-  for (var i = 0; i < areaTags.length; i++) {
-    var areaTag = areaTags[i];
-    areaTag.addEventListener('click', function(e) {
-      console.log(this.target);
-      console.log(territoryImages[this.target]);
-      if (! territoryImages[this.target]) return;
-      enlargeTerritory(territoryImages[this.target]);
-    });
+  
+
+  var width = largestX - smallestX;
+  var height = largestY - smallestY;
+
+  ctx.strokeRect(smallestX, smallestY,
+      width, height);
+
+
+  var squarePoints = [];
+  var x = smallestX;
+  var y = smallestY;
+  while (x < largestX && y < largestY) {
+
+    squarePoints.push({x: x, y: y});
+
+    x += s;
+
+    if (x > largestX) {
+      x = smallestX;
+      y += s;
+    }
+
   }
 
-  var territoryScreen = document.getElementById("territoryscreen");
-  territoryScreen.style.display = "block";
-  territoryScreen.style.zIndex = 200;
+
+  drawTerritoryOutline(coords, ctx);
+
+  var territorySquares = [];
+  for (var i = 0; i < squarePoints.length; i++) {
+    var coords = squarePoints[i];
+
+    var topLeft = {"x": coords.x, "y": coords.y};
+    var topRight = {"x": coords.x + s, "y": coords.y};
+
+    var bottomLeft = {"x": coords.x, "y": coords.y + s};
+    var bottomRight = {"x": coords.x + s, "y": coords.y + s};
+
+    if (
+      ctx.isPointInPath(topLeft.x, topLeft.y) 
+      && ctx.isPointInPath(topRight.x, topRight.y)
+      && ctx.isPointInPath(bottomLeft.x, bottomLeft.y) 
+      && ctx.isPointInPath(bottomRight.x, bottomRight.y)
+    ) {
+      territorySquares.push(topLeft);
+
+      ctx.strokeStyle = "red";
+      ctx.strokeRect(topLeft.x, topLeft.y,
+	s, s);
+    }
+
+  }
+
+  console.log('territorySquares');
+  console.log(territorySquares.length);
 }
 
-function enlargeTerritory(territoryImage) {
-  console.log('enlarging territory');
-  var canvas = canvasContainer.layer('notification');
-  var context = canvas.getContext("2d");
+function drawTerritoryOutline(coords, ctx) {
 
-  var circle = mapView.circle;
-
-  var imageScaleWidth = circle.radius * 2;
-  var imageScaleHeight = circle.radius * 2;
-
-  context.drawImage(territoryImage, 
-      circle.centerX - territoryImage.width/2, 
-      circle.centerY - territoryImage.height/2);
-}
-
-function drawTerritoryOutline(coords, ctx) 
-{
   ctx.beginPath();
   ctx.moveTo(coords[0], coords[1]);
-  for( item=2 ; item < coords.length-1 ; item+=2 )
-  {
+  for( item=2 ; item < coords.length-1 ; item+=2 ) {
     ctx.lineTo( coords[item] , coords[item+1] )
   }
   ctx.closePath();
 
 }
 
-function getMousePosition(canvasElement,e)
-{
-  var rect = canvasElement.getBoundingClientRect();
-  var mousex = e.clientX - rect.left; 
-  var mousey = e.clientY - rect.top;
 
-  return {x: mousex, y: mousey};
-}
-
-
-
-},{"Dune/CanvasContainer":2,"Dune/Controller":3,"Dune/Loader":13,"Dune/View/Map":26}],2:[function(require,module,exports){
+},{"Dune/Controller":3,"Dune/View/Territory":29}],2:[function(require,module,exports){
 module.exports = new CanvasContainer;
 
 function CanvasContainer() 
@@ -95,8 +135,6 @@ function CanvasContainer()
   var container = document.getElementById("gamecontainer");
 
   var layerMap = { };
-  var layerOrder = [];
-  var zIndexMin = 99;
   
   this.layer = function(layerName) {
     if (! layerMap[layerName]) 
@@ -108,20 +146,13 @@ function CanvasContainer()
   function newLayer(layerName) {
     var canvas = document.createElement("canvas");
 
-  
     layerMap[layerName] = canvas;
-
-    /* Start layers at bottom to prevent newLayer() race conditions*/
-    /* Code should manually call moveLayerToTop() */
-    layerOrder.push(canvas);
-
     setCanvasAttributes(canvas, layerName);
 
     container.appendChild(canvas);
   }
 
   function setCanvasAttributes(canvas, layerName) {
-    //var zIndex = zIndexMin - layerOrder.length;
     var zIndex = zIndexLookup(layerName);
 
     canvas.id = layerName;
@@ -131,6 +162,9 @@ function CanvasContainer()
     canvas.width = 768;
     canvas.height = 1024;
 
+    if (layerName == "test")
+      canvas.style.display = "none";
+
   }
 
   function zIndexLookup(layerName) 
@@ -138,8 +172,6 @@ function CanvasContainer()
     switch (layerName) {
       case "notification":
       	return 200;
-  /*    case "territoryscreen":*/
-      	/*return 99;*/
       case "playerscreen":
       	return 99;
       case "troopscreen":
@@ -148,42 +180,16 @@ function CanvasContainer()
       	return 97;
       case "storm":
       	return 96;
+      case "test":
+      	return 95;
       default:
       	throw new Error("No zIndex case defined for " + layerName);
     }
   }
 
-/*  this.moveLayerToTop = function(canvas) {*/
-    //var newIndex = 0;
-    //var oldIndex = getLayerIndex(canvas);
-
-    //layerOrder.splice(newIndex, 0, layerOrder.splice(oldIndex, 1)[0]);
-    //canvas.style.zIndex = zIndexMin + layerOrder.length;
-
-  /*}*/
-
-  function getLayerIndex(canvas) {
-    for (var i = 0; i < layerOrder.length; i++) {
-      var layer = layerOrder[i];
-      if (layer.id == canvas.id) {
-      	return i;
-      }
-    }
-
-    throw new Error("Canvas element " + canvas.id + " not in layers");
-  }
-
-  this.getTopLayer = function() 
-  {
-    return layerOrder[0];
-  }
-
   this.deleteLayer = function(canvas) 
   {
-    var canvasIndex = getLayerIndex(canvas);
-    layerOrder.splice(canvasIndex, 1);
     delete layerMap[canvas.id];
-
     container.removeChild(canvas);
   }
 }
@@ -281,79 +287,6 @@ function GameController() {
   }  
 
 }
-
-
-
-Image.prototype.moveToCoord = function(point) {
-  var image = this;
-
-  if (!image.canvas) {
-    throw new Error("Image has no canvas property");
-    return;
-  }
-
-
-  var finalX = point[0],
-      finalY = point[1];
-
-  image.xStep = (finalX - image.xPos) * image.speed;
-  image.yStep = (finalY - image.yPos) * image.speed;
-
-  image.movement = setInterval(function () {
-    image.animateMovement([finalX, finalY]);
-  }, 10);
-
-}
-
-Image.prototype.animateMovement = function(point) {
-  var image = this;
-
-  var canvas = image.canvas;
-  var context = canvas.getContext("2d");
-
-  var x = point[0];
-  var y = point[1];
-
-  image.xPos += image.xStep;
-  image.yPos += image.yStep;
-
-  canvas.redraw();
-  context.drawImage(image, 
-    image.xPos, image.yPos,
-    image.width, image.height
-  );
-
-
-  if (
-    image.yStep > 0 && image.yPos + image.yStep >= y ||
-    image.yStep < 0 && image.yPos + image.yStep <= y || 
-    image.xStep > 0 && image.xPos + image.xStep >= x ||
-    image.xStep < 0 && image.xPos + image.xStep <= x
-  )
-  {
-    clearInterval(image.movement);
-    delete image.movement;
-    delete image.xStep;
-    delete image.yStep;
-
-    image.xPos = x
-    image.yPos = y
-
-    canvas.redraw();
-    context.drawImage(image, 
-      image.xPos, image.yPos,
-      image.width, image.height
-    );
-
-    if (this.onHalt) {
-      var onHalt = this.onHalt;
-      delete this.onHalt;
-      onHalt();
-    }
-
-  }
-}
-
 
 },{"./CanvasContainer":2,"./Loader":13,"./View/Faction/Atreides":17,"./View/Faction/BeneGesserit":19,"./View/Faction/Emperor":20,"./View/Faction/Fremen":21,"./View/Faction/Guild":22,"./View/Faction/Harkonnen":23,"./View/FactionSelect":24,"./View/Game":25,"./View/Map":26,"./View/StartMenu":28}],4:[function(require,module,exports){
 module.exports = new EventChain();
@@ -796,8 +729,98 @@ function TreacheryDeck() {
 }
 
 
-},{"./Faction/Atreides":5,"./Faction/BeneGesserit":7,"./Faction/Emperor":8,"./Faction/Fremen":9,"./Faction/Guild":10,"./Faction/Harkonnen":11,"./Map":14,"./shuffle":30}],13:[function(require,module,exports){
+},{"./Faction/Atreides":5,"./Faction/BeneGesserit":7,"./Faction/Emperor":8,"./Faction/Fremen":9,"./Faction/Guild":10,"./Faction/Harkonnen":11,"./Map":14,"./shuffle":32}],13:[function(require,module,exports){
 module.exports = Loader;
+
+Image.prototype.moveToCoord = function(point) {
+  var image = this;
+
+  if (arguments.length > 1) {
+    throw new Error("Coordinate must be a single argument")
+    return;
+  }
+
+  if (!image.canvas) {
+    throw new Error("Image has no canvas property");
+    return;
+  }
+
+  if (!image.canvas.redraw) {
+    throw new Error("Image canvas has no redraw property");
+    return;
+  }
+
+  if (!image.speed) {
+    throw new Error("Image has no speed property");
+    return;
+  }
+
+  if (image.xPos === undefined || image.yPos === undefined) {
+    throw new Error("Image has no [x/y]Pos property");
+    return;
+  }
+
+
+  var finalX = point[0],
+      finalY = point[1];
+
+  image.xStep = (finalX - image.xPos) * image.speed;
+  image.yStep = (finalY - image.yPos) * image.speed;
+
+  image.movement = setInterval(function () {
+    image.animateMovement([finalX, finalY]);
+  }, 10);
+
+}
+
+Image.prototype.animateMovement = function(point) {
+  var image = this;
+
+  var canvas = image.canvas;
+  var context = canvas.getContext("2d");
+
+  var x = point[0];
+  var y = point[1];
+
+  image.xPos += image.xStep;
+  image.yPos += image.yStep;
+
+  canvas.redraw();
+  context.drawImage(image, 
+    image.xPos, image.yPos,
+    image.width, image.height
+  );
+
+
+  if (
+    image.yStep > 0 && image.yPos + image.yStep >= y ||
+    image.yStep < 0 && image.yPos + image.yStep <= y || 
+    image.xStep > 0 && image.xPos + image.xStep >= x ||
+    image.xStep < 0 && image.xPos + image.xStep <= x
+  )
+  {
+    clearInterval(image.movement);
+    delete image.movement;
+    delete image.xStep;
+    delete image.yStep;
+
+    image.xPos = x
+    image.yPos = y
+
+    canvas.redraw();
+    context.drawImage(image, 
+      image.xPos, image.yPos,
+      image.width, image.height
+    );
+
+    if (this.onHalt) {
+      var onHalt = this.onHalt;
+      delete this.onHalt;
+      onHalt();
+    }
+
+  }
+}
 
 function Loader() {
 
@@ -850,7 +873,6 @@ function Loader() {
       loadingScreen.style.display = "none";
     }
 }
-
 
 },{}],14:[function(require,module,exports){
 module.exports = ArrakisMap;
@@ -949,7 +971,7 @@ function SpiceDeck() {
   return new Array();
 }
 
-},{"./shuffle":30}],15:[function(require,module,exports){
+},{"./shuffle":32}],15:[function(require,module,exports){
 module.exports = BaseView;
 
 function BaseView(obj, props) {
@@ -1065,23 +1087,25 @@ function AtreidesView() {
     "images": images
   });
 
-  this.shipInitialTroops = function() 
-  {
-    console.log('atreides ship troops');
-  }
+/*  this.shipInitialTroops = function() */
+  //{
+    //console.log('atreides ship troops');
+  /*}*/
 
 }
 
 },{"../../Controller":3,"./Base":18,"Dune/View/Game":25}],18:[function(require,module,exports){
 module.exports = BaseFactionView;
 
+var Loader = require("Dune/Loader");
+var canvasContainer = require("Dune/CanvasContainer");
+var eventChain = require("Dune/EventChain");
+
 var ViewDecorator = require("../Base");
+
 var TreacheryDeckView = require("../Deck/Treachery.js");
 var PlayerScreen = require("../PlayerScreen");
-var canvasContainer = require("Dune/CanvasContainer");
-var Loader = require("Dune/Loader");
 var mapView = require("Dune/View/Map");
-var eventChain = require("Dune/EventChain");
 
 var promptUserSelectTraitor = require("../TraitorSelect.js");
 
@@ -1090,10 +1114,9 @@ function BaseFactionView(obj, args) {
   ViewDecorator(obj, { "view": undefined });
 
   var faction = args.faction,
-      //initialTreacheryHand = args.initialTreacheryHand || 1,
       images = args.images;
 
-  //TODO figure out an elegant way to squash this public var
+  //TODO figure out an elegant way to squash this public variable
   obj.faction = faction;
 
   var playerScreen = new PlayerScreen(images);
@@ -1256,20 +1279,20 @@ function BaseFactionView(obj, args) {
 
   obj.startInitialTurn = function() 
   {
+    playerScreen.draw();
     eventChain.add([
-      function() 
-      { 
-	playerScreen.draw();
-	obj.promptUserSelectTraitor();
-      },
-      function() 
-      {
-	playerScreen.addTraitorCard(obj.traitorCardImage);
-      },
-      function()
-      {
-	obj.drawTreacheryCard();
-      },
+    /*  function() */
+      //{ 
+	//obj.promptUserSelectTraitor();
+      //},
+      //function() 
+      //{
+	//playerScreen.addTraitorCard(obj.traitorCardImage);
+      //},
+      //function()
+      //{
+	//obj.drawTreacheryCard();
+      /*},*/
       function() 
       {
       	obj.shipInitialTroops();
@@ -1290,13 +1313,23 @@ function BaseFactionView(obj, args) {
 
   obj.shipInitialTroops = function() 
   { 
-    throw new Error(
-      "shipInitialTroops() must be implemented by child object");
+    console.log('ship initial troops');
+    //throw new Error(
+      //"shipInitialTroops() must be implemented by child object");
+
+    //DEBUG
+    for (var i = 0; i < 9; i++) {
+      eventChain.add(function () {
+	playerScreen.shipTroops("polarSink");
+      });
+    }
+
+    playerScreen.shipTroops("polarSink");
   }
 
 }
 
-},{"../Base":15,"../Deck/Treachery.js":16,"../PlayerScreen":27,"../TraitorSelect.js":29,"Dune/CanvasContainer":2,"Dune/EventChain":4,"Dune/Loader":13,"Dune/View/Map":26}],19:[function(require,module,exports){
+},{"../Base":15,"../Deck/Treachery.js":16,"../PlayerScreen":27,"../TraitorSelect.js":31,"Dune/CanvasContainer":2,"Dune/EventChain":4,"Dune/Loader":13,"Dune/View/Map":26}],19:[function(require,module,exports){
 
 },{}],20:[function(require,module,exports){
 module.exports=require(19)
@@ -1364,9 +1397,9 @@ function HarkonnenView() {
 
   }
 
-  this.shipInitialTroops = function() {
-    console.log('harkonnen ship troops');
-  }
+/*  this.shipInitialTroops = function() {*/
+    //console.log('harkonnen ship troops');
+  /*}*/
 }
 
 },{"./Base":18,"Dune/EventChain":4,"Dune/View/Game":25}],24:[function(require,module,exports){
@@ -1722,16 +1755,19 @@ function MapView() {
 
 },{"./Base":15,"Dune/CanvasContainer":2,"Dune/Loader":13,"Dune/View/Game":25}],27:[function(require,module,exports){
 module.exports = PlayerScreen;
-//var controller = require("Dune/Controller");
+
+var controller = require("Dune/Controller");
+
 var canvasContainer = require("Dune/CanvasContainer");
 var Loader = require("Dune/Loader");
 var eventChain = require("Dune/EventChain");
 
+var territoryView = require("Dune/View/Territory");
+
 function PlayerScreen(images) 
 {
 
-  //var canvasContainer = controller.canvasContainer,
-  var canvas = canvasContainer.layer('playerscreen'),
+  var canvas = canvasContainer.layer("playerscreen"),
       context = canvas.getContext("2d"),
       loader = new Loader();
 
@@ -1920,6 +1956,10 @@ function PlayerScreen(images)
     }
   }
 
+  function drawLeaderDiskStarFormation() 
+  {
+  }
+
   this.addTraitorCard = function(traitorCardImg) 
   {
     addCardToHand(traitorCardImg, traitorDeckImg);
@@ -1928,11 +1968,6 @@ function PlayerScreen(images)
       canvas.redraw() 
 
       eventChain.next();
-/*      if (that.onAddTraitorCard) {*/
-	//var onAddTraitorCard = that.onAddTraitorCard;
-	//delete that.onAddTraitorCard;
-	//onAddTraitorCard();
-      /*}*/
     }
   }
 
@@ -1944,11 +1979,6 @@ function PlayerScreen(images)
       canvas.redraw() 
 
       eventChain.next();
-/*      if (that.onAddTreacheryCard) {*/
-	//var onAddTreacheryCard = that.onAddTreacheryCard;
-	//delete that.onAddTreacheryCard;
-	//onAddTreacheryCard();
-      /*}*/
     }
   }
 
@@ -1986,10 +2016,55 @@ function PlayerScreen(images)
     }
 
   }
+
+  this.shipTroops = function(territoryName) 
+  {
+    var territoryObj = territoryView.getTerritory(territoryName);
+    //console.log(territoryObj);
+
+
+    var troopTokenImg = getTroopTokenImg(territoryObj);
+
+    var troopObj = territoryObj.addFaction('atreides', troopTokenImg);
+    var troopCoords = troopObj.coords;
+    var troopScale = troopObj.scale;
+
+    troopTokenImg.width = troopScale;
+    troopTokenImg.height = troopScale;
+
+    troopTokenImg.moveToCoord([troopCoords.x, troopCoords.y]);
+    troopTokenImg.onHalt = eventChain.next;
+
+  }
+
+  function getTroopTokenImg(territoryObj) 
+  {
+    var notificationCanvas = canvasContainer.layer("notification");
+    notificationCanvas.redraw = function() 
+    {
+      var context = this.getContext("2d");
+      context.clearRect(0, 0, this.width, this.height);
+      territoryObj.draw();
+      //canvasContainer.deleteLayer(notificationCanvas);
+      //territoryView.enlargeTerritory(territoryName)
+    }
+
+    var troopTokenImg = new Image();
+
+    troopTokenImg.src = troopIconImg.src;
+    troopTokenImg.yPos = troopIconImg.yPos + notificationCanvas.height - canvas.height;
+    troopTokenImg.xPos = troopIconImg.xPos;
+    troopTokenImg.height = iconScaleHeight;
+    troopTokenImg.width = iconScaleWidth;
+    troopTokenImg.canvas = notificationCanvas;
+    troopTokenImg.speed = 0.1;
+
+    return troopTokenImg;
+  }
 }
 
 
-},{"Dune/CanvasContainer":2,"Dune/EventChain":4,"Dune/Loader":13}],28:[function(require,module,exports){
+},{"Dune/CanvasContainer":2,"Dune/Controller":3,"Dune/EventChain":4,"Dune/Loader":13,"Dune/View/Territory":29}],28:[function(require,module,exports){
 module.exports = StartMenuView;
 
 var ViewDecorator = require('./Base');
@@ -2018,6 +2093,488 @@ function StartMenuView() {
 
 
 },{"./Base":15,"Dune/Controller":3}],29:[function(require,module,exports){
+var Loader = require("Dune/Loader");
+var canvasContainer = require("Dune/CanvasContainer");
+var mapView = require("Dune/View/Map");
+
+var polarSink = require("Dune/View/Territory/PolarSink");
+//var arrakeen = require("Dune/View/Territory/Arrakeen");
+//var carthag = require("Dune/View/Territory/Carthag");
+
+module.exports = new TerritoryView()
+
+function TerritoryView() 
+{
+  var loader = new Loader();
+
+  var territoryImages = {
+    "carthag": "/img/territories/carthag.png",
+    "arrakeen": "/img/territories/arrakeen.png",
+    "polarSink": polarSink
+  };
+
+  var that = this;
+
+  //loadTerritoryImages();
+  addClickEventToImageMap();
+
+/*  function loadTerritoryImages() */
+  //{  
+    //for (territoryName in territoryImages) {
+      //var territoryUrl = territoryImages[territoryName];
+      //territoryImages[territoryName] = loader.loadImage(territoryUrl);
+    //}
+  /*}*/
+
+  function addClickEventToImageMap() 
+  {
+    var areaTags = document.getElementsByTagName("area");
+
+    for (var i = 0; i < areaTags.length; i++) {
+      var areaTag = areaTags[i];
+      areaTag.addEventListener('click', function(e) {
+      	var territoryName = this.target;
+
+	console.log(territoryName);
+
+
+	that.enlargeTerritory(this);
+      });
+    }
+  }
+  
+  this.getTerritory = function(territoryName) {
+    var territoryObj = territoryImages[territoryName];
+
+    if (! territoryObj) 
+      throw new Error("No territory " + territoryName);
+
+
+    return territoryObj;
+
+  }
+
+  this.enlargeTerritory = function(areaTag) 
+  {
+    var territoryName = areaTag.target;
+    var territoryObj = territoryImages[territoryName];
+
+    if (! territoryObj) 
+      throw new Error("No territory " + territoryName);
+
+    territoryObj.enlarge(areaTag);
+
+    return territoryObj;
+  }
+
+  function drawSquaresOfTerritory(areaTag) 
+  {
+    // polar sink
+    //var coords=[374,484,368,476,361,466,350,466,341,462,332,454,327,454,321,446,324,425,333,408,348,397,366,395,379,391,384,387,391,387,397,394,409,394,413,392,425,392,436,405,434,425,424,439,418,452,411,461,410,473,395,484];
+
+    //false wall east
+    //var coords=[455,460,436,469,418,453,425,439,435,425,437,405,426,391,414,391,414,384,427,372,433,360,449,371,467,396,467,426,465,429,465,437];
+    
+    //rim wall west
+    //var coords=[484,269,483,267,485,264,484,253,522,187,527,187,532,182,536,183,536,197,530,204,527,219,516,237,516,243,510,243,510,248,500,254,500,259,487,268];
+    console.log('area tag');
+    console.log(areaTag.coords);
+
+    var coords = areaTag.coords.split(',');
+
+    var s = 8.5;
+
+    var smallestX = undefined,
+	largestX = undefined, 
+	smallestY = undefined,
+	largestY = undefined; 
+
+    for( i=2 ; i < coords.length-1 ; i+=2 )
+    {
+      var x= coords[i], y = coords[i+1];
+
+      if (smallestX == undefined) { smallestX = x }
+      else if (x < smallestX) { smallestX = x }
+
+      if (smallestY == undefined) { smallestY = y }
+      else if (y < smallestY) { smallestY = y }
+
+      if (largestX == undefined) { largestX = x }
+      else if (x > largestX) { largestX = x }
+
+      if (largestY == undefined) { largestY = y }
+      else if (y > largestY) { largestY = y }
+    }
+
+    
+
+    var width = largestX - smallestX;
+    var height = largestY - smallestY;
+
+    var canvas = canvasContainer.layer("notification");
+    var ctx = canvas.getContext("2d");
+
+    ctx.strokeRect(smallestX, smallestY,
+	width, height);
+
+    return;
+
+
+    var squarePoints = [];
+    var x = smallestX;
+    var y = smallestY;
+    while (x < largestX && y < largestY) {
+
+      squarePoints.push({x: x, y: y});
+
+      x += s;
+
+      if (x > largestX) {
+	x = smallestX;
+	y += s;
+      }
+
+    }
+
+
+    drawTerritoryOutline(coords, ctx);
+
+    var territorySquares = [];
+    for (var i = 0; i < squarePoints.length; i++) {
+      var coords = squarePoints[i];
+
+      var topLeft = {"x": coords.x, "y": coords.y};
+      var topRight = {"x": coords.x + s, "y": coords.y};
+
+      var bottomLeft = {"x": coords.x, "y": coords.y + s};
+      var bottomRight = {"x": coords.x + s, "y": coords.y + s};
+
+      if (
+	ctx.isPointInPath(topLeft.x, topLeft.y) 
+	&& ctx.isPointInPath(topRight.x, topRight.y)
+	&& ctx.isPointInPath(bottomLeft.x, bottomLeft.y) 
+	&& ctx.isPointInPath(bottomRight.x, bottomRight.y)
+      ) {
+	territorySquares.push(topLeft);
+
+	ctx.strokeStyle = "red";
+	ctx.strokeRect(topLeft.x, topLeft.y,
+	  s, s);
+      }
+
+    }
+
+    console.log('territorySquares');
+    console.log(territorySquares.length);
+  }
+
+}
+
+
+
+
+function drawTerritoryOutline(coords, ctx) 
+{
+  ctx.beginPath();
+  ctx.moveTo(coords[0], coords[1]);
+  for( item=2 ; item < coords.length-1 ; item+=2 )
+  {
+    ctx.lineTo( coords[item] , coords[item+1] )
+  }
+  ctx.closePath();
+
+}
+
+
+},{"Dune/CanvasContainer":2,"Dune/Loader":13,"Dune/View/Map":26,"Dune/View/Territory/PolarSink":30}],30:[function(require,module,exports){
+var Loader = require("Dune/Loader");
+var canvasContainer = require("Dune/CanvasContainer");
+var mapView = require("Dune/View/Map");
+var shuffleArray = require("Dune/shuffle");
+
+module.exports = new PolarSinkView();
+
+function PolarSinkView() {
+
+  //var canvas, context;
+  var loader = new Loader();
+
+  var occupyingFactions = {};
+  var troopQuadrants;
+
+  var circle = mapView.circle;
+
+  var troopIconSize = 8.5;
+  var imageScaleFactor, imageScaleWidth, imageScaleHeight;
+
+  var imageUrl = "/img/territories/polarSink.png";
+  var image = loader.loadImage(imageUrl);
+
+  var smallCoords = getMapOverviewTerritoryCoordinates();
+  var largeCoords = [];;
+
+  loader.onload = function() {
+
+    var largestSide = Math.max(image.width, image.height);
+    imageScaleFactor = 2 * circle.radius / largestSide;
+
+    imageScaleWidth = image.width * imageScaleFactor;
+    imageScaleHeight = image.height * imageScaleFactor;
+
+    setImageCoordinates();
+
+    troopQuadrants = calculateTroopQuadrants();
+  }
+
+  function getMapOverviewTerritoryCoordinates() {
+    var areaTags = document.getElementsByTagName("area");
+
+    for (var i = 0; i < areaTags.length; i++) {
+      var areaTag = areaTags[i];
+
+      if (areaTag.target == "polarSink") {
+	var coords = areaTag.coords.split(',');
+	return coords;
+      }
+    }
+  }
+
+  this.addFaction = function(faction, factionImage) {
+
+    if (occupyingFactions[faction]) {
+      occupyingFactions[faction].troops.push(factionImage);
+
+    } else {
+      shuffleArray(troopQuadrants);
+
+      occupyingFactions[faction] = {
+      	"coords": troopQuadrants.shift(),
+      	"scale": troopIconSize,
+	"troops": [factionImage]
+      };
+    }
+
+    return occupyingFactions[faction];
+  }
+
+  this.enlarge = function() {
+    addCanvasClickEvent();
+    drawTerritoryImage(largeCoords);
+  }
+
+  this.draw = function() {
+    drawTerritoryImage(largeCoords);
+
+  }
+
+  function addCanvasClickEvent() {
+    var canvas = canvasContainer.layer("notification");
+    canvas.addEventListener('click', function(e) {
+      canvasContainer.deleteLayer(canvas);
+    });
+  }
+
+  function drawTerritoryImage(largeCoords) {
+
+    var canvas = canvasContainer.layer("notification");
+    context = canvas.getContext("2d");
+
+
+    context.drawImage(image, 
+      image.xPos, image.yPos,
+      image.width, image.height
+    );
+
+    context.strokeStyle = "red";
+    context.lineWidth = 5;
+
+    //DEBUG draw territory quadrants outline
+    for(var i=0 ; i < troopQuadrants.length-1 ; i++ ) {
+      var troopQuadrant = troopQuadrants[i];
+      context.strokeRect(
+      	  troopQuadrant.x, troopQuadrant.y,
+      	  troopIconSize, troopIconSize
+      );
+    }
+
+    //DEBUG draw territory bounding box outline
+    context.strokeRect(image.xPos, image.yPos, image.width, image.height);
+
+
+    for (var factionName in occupyingFactions) {
+      var faction = occupyingFactions[factionName];
+      var troopIcon = faction.troops[0];
+      var troopCoords = faction.coords;
+
+      context.drawImage(troopIcon, 
+	troopCoords.x, troopCoords.y
+	,troopIconSize, troopIconSize
+      );
+
+
+    }
+
+  }
+
+  function setImageCoordinates() {
+    image.xPos = circle.centerX - imageScaleWidth/2; 
+    image.yPos = circle.centerY - imageScaleHeight/2;
+  }
+
+  function calculateTroopQuadrants() {
+
+    var rectangle = getTerritoryMinimumBoundingRectangle(smallCoords);
+
+    var smallestX = rectangle.x
+    var smallestY = rectangle.y
+
+    var width = rectangle.width;
+    var height = rectangle.height;
+
+    var canvas = canvasContainer.layer("test");
+    var context = canvas.getContext("2d");
+
+    var scale = scaleCoordinatesToEnlargedTerritory(smallCoords, rectangle);
+
+    drawTerritoryOutline(largeCoords, context);
+
+    var quadrants = divideBoundingRectangleIntoQuadrants(scale);
+
+    var troopQuadrants = getQuadrantsInsideTerritoryBoundary(quadrants, context);
+
+    return troopQuadrants;
+  }
+
+  function getTerritoryMinimumBoundingRectangle(coords) {
+
+    var smallestX = undefined,
+	largestX = undefined, 
+	smallestY = undefined,
+	largestY = undefined; 
+
+    for( i=2 ; i < coords.length-1 ; i+=2 )
+    {
+      var x= coords[i], y = coords[i+1];
+
+      if (smallestX == undefined) { smallestX = x }
+      else if (x < smallestX) { smallestX = x }
+
+      if (smallestY == undefined) { smallestY = y }
+      else if (y < smallestY) { smallestY = y }
+
+      if (largestX == undefined) { largestX = x }
+      else if (x > largestX) { largestX = x }
+
+      if (largestY == undefined) { largestY = y }
+      else if (y > largestY) { largestY = y }
+    }
+
+    var width = largestX - smallestX;
+    var height = largestY - smallestY;
+
+    var rectangle = {"x": smallestX, "y": smallestY, 
+      "width": width, "height": height};
+
+    return rectangle;
+  }
+
+  function scaleCoordinatesToEnlargedTerritory(coords, rectangle) {
+
+    var xShift = coords[0] - image.xPos; 
+    var yShift = coords[1] - image.yPos;
+
+    var scaleX = image.width / rectangle.width;
+    var scaleY = image.height/ rectangle.height;
+    var scale = Math.max(scaleX, scaleY);
+
+    for( i=0 ; i < coords.length-1 ; i+=2 )
+    {
+      var xShift = (rectangle.x * scale - image.xPos);
+      var yShift = (rectangle.y * scale - image.yPos);
+
+      largeCoords[i] = coords[i] * scale;
+      largeCoords[i+1] = coords[i+1] * scale;
+
+      largeCoords[i] -= xShift;
+      largeCoords[i+1] -= yShift;
+    }
+
+    return scale;
+  }
+
+  function divideBoundingRectangleIntoQuadrants(coordScale) {
+    var quadrants = [];
+
+    troopIconSize *= coordScale;
+
+    smallestX = image.xPos;
+    smallestY = image.yPos;
+    largestX = image.xPos + image.width;
+    largestY = image.yPos + image.height;
+
+    var x = smallestX;
+    var y = smallestY;
+    
+
+    while (x < largestX && y < largestY) {
+
+      quadrants.push({x: x, y: y});
+
+      x += troopIconSize;
+
+      if (x > largestX) {
+	x = smallestX;
+	y += troopIconSize;
+      }
+
+    }
+
+    return quadrants;
+  }
+
+  function getQuadrantsInsideTerritoryBoundary(squarePoints, context) {
+
+    var territorySquares = [];
+    for (var i = 0; i < squarePoints.length; i++) {
+      var coords = squarePoints[i];
+
+      var topLeft = {"x": coords.x, "y": coords.y};
+      var topRight = {"x": coords.x + troopIconSize, "y": coords.y};
+
+      var bottomLeft = {"x": coords.x, "y": coords.y + troopIconSize};
+      var bottomRight = 
+	{"x": coords.x + troopIconSize, "y": coords.y + troopIconSize};
+
+      if (
+	context.isPointInPath(topLeft.x, topLeft.y) 
+	&& context.isPointInPath(topRight.x, topRight.y)
+	&& context.isPointInPath(bottomLeft.x, bottomLeft.y) 
+	&& context.isPointInPath(bottomRight.x, bottomRight.y)
+      ) {
+	territorySquares.push(topLeft);
+
+      }
+
+    }
+
+    return territorySquares;
+  }
+
+}
+
+function drawTerritoryOutline(coords, ctx) {
+
+  ctx.beginPath();
+  ctx.moveTo(coords[0], coords[1]);
+  for( item=2 ; item < coords.length-1 ; item+=2 ) {
+    ctx.lineTo( coords[item] , coords[item+1] )
+  }
+  ctx.closePath();
+
+}
+
+
+},{"Dune/CanvasContainer":2,"Dune/Loader":13,"Dune/View/Map":26,"Dune/shuffle":32}],31:[function(require,module,exports){
 module.exports = promptUserSelectTraitor;
 
 var canvasContainer = require("Dune/CanvasContainer");
@@ -2303,7 +2860,7 @@ function drawTraitors()
       image4, image4.xPos, image4.yPos, traitorScaleWidth, traitorScaleHeight);
 }
 
-},{"Dune/CanvasContainer":2,"Dune/EventChain":4,"Dune/Loader":13}],30:[function(require,module,exports){
+},{"Dune/CanvasContainer":2,"Dune/EventChain":4,"Dune/Loader":13}],32:[function(require,module,exports){
 module.exports = shuffleArray;
 
 function shuffleArray(array) {

@@ -15,8 +15,8 @@
   display: none;
 }
 
-#gamecanvas {
-  z-index: 99;
+#territoryscreen {
+  z-index: 100;
   display: block;
 }
 
@@ -65,3 +65,5 @@
   height: 172px;
   bottom: 0;
   left: 0;
+
+}
