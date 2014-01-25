@@ -126,7 +126,7 @@ function drawTerritoryOutline(coords, ctx) {
 }
 
 
-},{"Dune/Controller":3,"Dune/View/Territory":29}],2:[function(require,module,exports){
+},{"Dune/Controller":3,"Dune/View/Territory":30}],2:[function(require,module,exports){
 module.exports = new CanvasContainer;
 
 function CanvasContainer() 
@@ -289,7 +289,7 @@ function GameController() {
 
 }
 
-},{"./CanvasContainer":2,"./Loader":13,"./View/Faction/Atreides":17,"./View/Faction/BeneGesserit":19,"./View/Faction/Emperor":20,"./View/Faction/Fremen":21,"./View/Faction/Guild":22,"./View/Faction/Harkonnen":23,"./View/FactionSelect":24,"./View/Game":25,"./View/Map":26,"./View/StartMenu":28}],4:[function(require,module,exports){
+},{"./CanvasContainer":2,"./Loader":13,"./View/Faction/Atreides":18,"./View/Faction/BeneGesserit":20,"./View/Faction/Emperor":21,"./View/Faction/Fremen":22,"./View/Faction/Guild":23,"./View/Faction/Harkonnen":24,"./View/FactionSelect":25,"./View/Game":26,"./View/Map":27,"./View/StartMenu":29}],4:[function(require,module,exports){
 module.exports = new EventChain();
 
 function EventChain() 
@@ -730,11 +730,14 @@ function TreacheryDeck() {
 }
 
 
-},{"./Faction/Atreides":5,"./Faction/BeneGesserit":7,"./Faction/Emperor":8,"./Faction/Fremen":9,"./Faction/Guild":10,"./Faction/Harkonnen":11,"./Map":14,"./shuffle":32}],13:[function(require,module,exports){
+},{"./Faction/Atreides":5,"./Faction/BeneGesserit":7,"./Faction/Emperor":8,"./Faction/Fremen":9,"./Faction/Guild":10,"./Faction/Harkonnen":11,"./Map":14,"./shuffle":33}],13:[function(require,module,exports){
 module.exports = Loader;
 
 Image.prototype.moveToCoord = function(point) {
   var image = this;
+
+  //DEBUG
+  //image.speed = 5;
 
   if (arguments.length > 1) {
     throw new Error("Coordinate must be a single argument")
@@ -972,7 +975,7 @@ function SpiceDeck() {
   return new Array();
 }
 
-},{"./shuffle":32}],15:[function(require,module,exports){
+},{"./shuffle":33}],15:[function(require,module,exports){
 module.exports = BaseView;
 
 function BaseView(obj, props) {
@@ -987,6 +990,103 @@ function BaseView(obj, props) {
 }
 
 },{}],16:[function(require,module,exports){
+var Loader = require("Dune/Loader");
+var canvasContainer = require("Dune/CanvasContainer");
+var mapView = require("Dune/View/Map");
+var eventChain = require("Dune/EventChain");
+
+module.exports = new BonusDeckView();
+
+function BonusDeckView() 
+{
+  var canvas;
+
+  var bonusDeckImages = new Array(
+    "carryalls", "harvesters", "ornithopters", "smugglers"
+  );
+
+  var loader = new Loader();
+
+  var cardScaleWidth = 333,
+      cardScaleHeight = 483;
+
+  var mapDimensions = mapView.circle;
+
+  var xCenterScreen = mapDimensions.centerX - cardScaleWidth/2;
+  var yCenterScreen = mapDimensions.centerY - cardScaleHeight/2;
+
+  for (var i = 0; i < bonusDeckImages.length; i++) {
+    var bonusDeckImage = bonusDeckImages[i];
+    var bonusImgUrl = "/img/bonus/" + bonusDeckImage + ".png";
+    bonusDeckImages[bonusDeckImage] = loader.loadImage(bonusImgUrl);
+  }
+
+  loader.onload = function() {
+    console.log('bonus images loaded');
+  }
+
+  this.dealCard = function(cardName) 
+  {
+    canvas = canvasContainer.layer("notification");
+    var bonusCard = getBonusCardImage(cardName);
+
+    moveDealtCardCardFromOffscreenRightToCenter(bonusCard);
+    pauseBrieflyThenMoveDealtCardLeftUntilOffscreen(bonusCard);
+
+    return bonusCard;
+
+  }
+
+
+  function moveDealtCardCardFromOffscreenRightToCenter(bonusCardImg) {
+    context = canvas.getContext("2d");
+
+    canvas.redraw = function() { 
+      context.clearRect(0, 0, canvas.width, canvas.height)
+    }
+    bonusCardImg.moveToCoord([xCenterScreen, yCenterScreen]);
+  }
+
+  function pauseBrieflyThenMoveDealtCardLeftUntilOffscreen(bonusCardImg) {
+    bonusCardImg.onHalt = function() {
+      setTimeout(function() { 
+
+	var xPos = 0 - cardScaleWidth;
+	var yPos = yCenterScreen;
+
+	bonusCardImg.moveToCoord([xPos, yPos]);
+
+	bonusCardImg.onHalt = function() {
+	  canvasContainer.deleteLayer(canvas);
+	  eventChain.next();
+	}
+      }, 1000);
+    }
+  }
+
+  function getBonusCardImage(cardName) {
+
+    if (!bonusDeckImages[cardName]) 
+      throw new Error("No bonus card named " + cardName);
+
+    var bonusCardImg = bonusDeckImages[cardName];
+
+    var xPos = mapDimensions.centerX - cardScaleWidth/2;
+    var yPos = mapDimensions.centerY - cardScaleHeight/2;
+
+    bonusCardImg.canvas = canvas;
+    bonusCardImg.xPos = canvas.width;
+    bonusCardImg.yPos = yPos;
+    bonusCardImg.speed = 0.02;
+    bonusCardImg.width = cardScaleWidth;
+    bonusCardImg.height = cardScaleHeight;
+
+    return bonusCardImg
+  }
+
+}
+
+},{"Dune/CanvasContainer":2,"Dune/EventChain":4,"Dune/Loader":13,"Dune/View/Map":27}],17:[function(require,module,exports){
 var mapView = require("Dune/View/Map");
 var Loader = require("Dune/Loader");
 var canvasContainer = require("Dune/CanvasContainer");
@@ -1097,14 +1197,19 @@ function TreacheryDeckView()
   }
 }
 
-},{"Dune/CanvasContainer":2,"Dune/EventChain":4,"Dune/Loader":13,"Dune/View/Map":26,"Dune/shuffle":32}],17:[function(require,module,exports){
+},{"Dune/CanvasContainer":2,"Dune/EventChain":4,"Dune/Loader":13,"Dune/View/Map":27,"Dune/shuffle":33}],18:[function(require,module,exports){
 module.exports = AtreidesView;
 
 var FactionDecorator = require("./Base");
 var controller = require("../../Controller");
 var gameView = require("Dune/View/Game");
+var eventChain = require("Dune/EventChain");
+var canvasContainer = require("Dune/CanvasContainer");
+var bonusDeckView = require("Dune/View/Deck/Bonus.js");
 
 function AtreidesView() {
+
+  var priv = {};
 
   var images = {
     "troop": "atreides.png",
@@ -1116,17 +1221,54 @@ function AtreidesView() {
 
   FactionDecorator(this, {
     "faction": gameView.players['Atreides'],
+    "private": priv,
     "images": images
   });
 
-/*  this.shipInitialTroops = function() */
-  //{
-    //console.log('atreides ship troops');
-  /*}*/
+  var playerScreen = priv.playerScreen;
+
+  var obj = this;
+
+  this.shipInitialTroops = function() 
+  { 
+    for (var i = 0; i < 9; i++) {
+      eventChain.add(function () {
+	playerScreen.shipTroops("polarSink");
+      });
+    }
+
+    playerScreen.shipTroops("polarSink");
+
+    eventChain.add(function() { 
+      var notificationCanvas = canvasContainer.layer("notification");
+      canvasContainer.deleteLayer(notificationCanvas);
+      eventChain.next();
+    });
+
+    eventChain.add([
+      function() { 
+      	var card = bonusDeckView.dealCard("ornithopters") 
+	obj.takeCard(card);
+      },
+      function() { playerScreen.addBonusCard(obj.dealtCard()) },
+      function() { 
+      	var card = bonusDeckView.dealCard("harvesters") 
+	obj.takeCard(card);
+      },
+      function() { playerScreen.addBonusCard(obj.dealtCard()) },
+      function() { 
+      	var card = bonusDeckView.dealCard("carryalls") 
+	obj.takeCard(card);
+      },
+      function() { playerScreen.addBonusCard(obj.dealtCard()) }
+
+    ]);
+
+  }
 
 }
 
-},{"../../Controller":3,"./Base":18,"Dune/View/Game":25}],18:[function(require,module,exports){
+},{"../../Controller":3,"./Base":19,"Dune/CanvasContainer":2,"Dune/EventChain":4,"Dune/View/Deck/Bonus.js":16,"Dune/View/Game":26}],19:[function(require,module,exports){
 module.exports = BaseFactionView;
 
 var Loader = require("Dune/Loader");
@@ -1136,11 +1278,11 @@ var eventChain = require("Dune/EventChain");
 var ViewDecorator = require("../Base");
 
 var treacheryDeckView = require("../Deck/Treachery.js");
+var bonusDeckView = require("../Deck/Bonus.js");
 var PlayerScreen = require("../PlayerScreen");
 var mapView = require("Dune/View/Map");
 
 var TraitorSelect = require("../TraitorSelect.js");
-//var traitorSelect = new TraitorSelect();
 
 function BaseFactionView(obj, args) {
 
@@ -1343,26 +1485,17 @@ function BaseFactionView(obj, args) {
 
   obj.shipInitialTroops = function() 
   { 
-    //throw new Error(
-      //"shipInitialTroops() must be implemented by child object");
-
-    //DEBUG
-    for (var i = 0; i < 9; i++) {
-      eventChain.add(function () {
-	playerScreen.shipTroops("polarSink");
-      });
-    }
-
-    playerScreen.shipTroops("polarSink");
+    throw new Error(
+      "shipInitialTroops() must be implemented by child object");
   }
 
 }
 
-},{"../Base":15,"../Deck/Treachery.js":16,"../PlayerScreen":27,"../TraitorSelect.js":31,"Dune/CanvasContainer":2,"Dune/EventChain":4,"Dune/Loader":13,"Dune/View/Map":26}],19:[function(require,module,exports){
+},{"../Base":15,"../Deck/Bonus.js":16,"../Deck/Treachery.js":17,"../PlayerScreen":28,"../TraitorSelect.js":32,"Dune/CanvasContainer":2,"Dune/EventChain":4,"Dune/Loader":13,"Dune/View/Map":27}],20:[function(require,module,exports){
 
-},{}],20:[function(require,module,exports){
-module.exports=require(19)
 },{}],21:[function(require,module,exports){
+module.exports=require(20)
+},{}],22:[function(require,module,exports){
 module.exports = FremenView;
 
 var BaseFactionView = require("./Base");
@@ -1385,15 +1518,17 @@ function FremenView(controller) {
 
 }
 
-},{"./Base":18,"Dune/Game":12}],22:[function(require,module,exports){
-module.exports=require(19)
-},{}],23:[function(require,module,exports){
+},{"./Base":19,"Dune/Game":12}],23:[function(require,module,exports){
+module.exports=require(20)
+},{}],24:[function(require,module,exports){
 module.exports = HarkonnenView;
 
 var FactionDecorator = require("./Base");
 var gameView = require("Dune/View/Game");
 var eventChain = require("Dune/EventChain");
 var TraitorSelect = require("../TraitorSelect.js");
+var canvasContainer = require("Dune/CanvasContainer");
+var bonusDeckView = require("Dune/View/Deck/Bonus.js");
 
 function HarkonnenView() {
 
@@ -1446,9 +1581,47 @@ function HarkonnenView() {
     ]);
   }
 
+  this.shipInitialTroops = function() 
+  { 
+    for (var i = 0; i < 9; i++) {
+      eventChain.add(function () {
+	playerScreen.shipTroops("polarSink");
+      });
+    }
+
+
+    playerScreen.shipTroops("polarSink");
+
+    eventChain.add(function() { 
+      var notificationCanvas = canvasContainer.layer("notification");
+      canvasContainer.deleteLayer(notificationCanvas);
+      eventChain.next();
+    });
+
+    eventChain.add([
+      function() { 
+      	var card = bonusDeckView.dealCard("ornithopters") 
+	obj.takeCard(card);
+      },
+      function() { playerScreen.addBonusCard(obj.dealtCard()) },
+      function() { 
+      	var card = bonusDeckView.dealCard("harvesters") 
+	obj.takeCard(card);
+      },
+      function() { playerScreen.addBonusCard(obj.dealtCard()) },
+      function() { 
+      	var card = bonusDeckView.dealCard("carryalls") 
+	obj.takeCard(card);
+      },
+      function() { playerScreen.addBonusCard(obj.dealtCard()) }
+
+    ]);
+
+  }
+
 }
 
-},{"../TraitorSelect.js":31,"./Base":18,"Dune/EventChain":4,"Dune/View/Game":25}],24:[function(require,module,exports){
+},{"../TraitorSelect.js":32,"./Base":19,"Dune/CanvasContainer":2,"Dune/EventChain":4,"Dune/View/Deck/Bonus.js":16,"Dune/View/Game":26}],25:[function(require,module,exports){
 module.exports = FactionSelectView;
 
 var ViewDecorator = require("./Base");
@@ -1595,7 +1768,7 @@ function FactionSelectView() {
 }
 
 
-},{"./Base":15,"Dune/Controller":3}],25:[function(require,module,exports){
+},{"./Base":15,"Dune/Controller":3}],26:[function(require,module,exports){
 var DuneGame = require("Dune/Game");
 
 module.exports = new GameView();
@@ -1606,7 +1779,7 @@ function GameView()
   this.players = {};
 }
 
-},{"Dune/Game":12}],26:[function(require,module,exports){
+},{"Dune/Game":12}],27:[function(require,module,exports){
 
 var ViewDecorator = require("./Base");
 var gameView = require("Dune/View/Game");
@@ -1799,7 +1972,7 @@ function MapView() {
 
 
 
-},{"./Base":15,"Dune/CanvasContainer":2,"Dune/Loader":13,"Dune/View/Game":25}],27:[function(require,module,exports){
+},{"./Base":15,"Dune/CanvasContainer":2,"Dune/Loader":13,"Dune/View/Game":26}],28:[function(require,module,exports){
 module.exports = PlayerScreen;
 
 var controller = require("Dune/Controller");
@@ -2068,6 +2241,17 @@ function PlayerScreen(images)
     }
   }
 
+  this.addBonusCard = function(bonusCardImg) 
+  {
+    addCardToHand(bonusCardImg, bonusDeckImg);
+    bonusCardImg.onHalt = function() { 
+      bonusHand.push(bonusCardImg);
+      canvas.redraw() 
+
+      eventChain.next();
+    }
+  }
+
   function addCardToHand(cardImg, playerHandImg)
   {
     cardImg.canvas = canvas;
@@ -2120,10 +2304,13 @@ function PlayerScreen(images)
     var troopCoords = troopObj.coords;
     troopTokenImg.moveToCoord([troopCoords.x, troopCoords.y]);
 
-    eventChain.add(function() { 
-      var notificationCanvas = canvasContainer.layer("notification");
-      canvasContainer.deleteLayer(notificationCanvas);
-    });
+    console.log('ship troops');
+
+ /*   eventChain.add(function() { */
+      //console.log('clear enlarged territory');
+      //var notificationCanvas = canvasContainer.layer("notification");
+      //canvasContainer.deleteLayer(notificationCanvas);
+    /*});*/
 
     troopTokenImg.onHalt = eventChain.next;
 
@@ -2154,7 +2341,7 @@ function PlayerScreen(images)
 }
 
 
-},{"Dune/CanvasContainer":2,"Dune/Controller":3,"Dune/EventChain":4,"Dune/Loader":13,"Dune/View/Territory":29}],28:[function(require,module,exports){
+},{"Dune/CanvasContainer":2,"Dune/Controller":3,"Dune/EventChain":4,"Dune/Loader":13,"Dune/View/Territory":30}],29:[function(require,module,exports){
 module.exports = StartMenuView;
 
 var ViewDecorator = require('./Base');
@@ -2182,7 +2369,7 @@ function StartMenuView() {
 }
 
 
-},{"./Base":15,"Dune/Controller":3}],29:[function(require,module,exports){
+},{"./Base":15,"Dune/Controller":3}],30:[function(require,module,exports){
 var Loader = require("Dune/Loader");
 var canvasContainer = require("Dune/CanvasContainer");
 var mapView = require("Dune/View/Map");
@@ -2371,7 +2558,7 @@ function drawTerritoryOutline(coords, ctx)
 }
 
 
-},{"Dune/CanvasContainer":2,"Dune/Loader":13,"Dune/View/Map":26,"Dune/View/Territory/PolarSink":30}],30:[function(require,module,exports){
+},{"Dune/CanvasContainer":2,"Dune/Loader":13,"Dune/View/Map":27,"Dune/View/Territory/PolarSink":31}],31:[function(require,module,exports){
 var Loader = require("Dune/Loader");
 var canvasContainer = require("Dune/CanvasContainer");
 var mapView = require("Dune/View/Map");
@@ -2677,7 +2864,7 @@ function drawTerritoryOutline(coords, ctx) {
 }
 
 
-},{"Dune/CanvasContainer":2,"Dune/Loader":13,"Dune/View/Map":26,"Dune/shuffle":32}],31:[function(require,module,exports){
+},{"Dune/CanvasContainer":2,"Dune/Loader":13,"Dune/View/Map":27,"Dune/shuffle":33}],32:[function(require,module,exports){
 //module.exports = promptUserSelectTraitor;
 module.exports = TraitorSelect;
 
@@ -2978,7 +3165,7 @@ function drawTraitors()
       image4, image4.xPos, image4.yPos, traitorScaleWidth, traitorScaleHeight);
 }
 
-},{"Dune/CanvasContainer":2,"Dune/EventChain":4,"Dune/Loader":13}],32:[function(require,module,exports){
+},{"Dune/CanvasContainer":2,"Dune/EventChain":4,"Dune/Loader":13}],33:[function(require,module,exports){
 module.exports = shuffleArray;
 
 function shuffleArray(array) {
