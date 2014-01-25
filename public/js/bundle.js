@@ -190,7 +190,8 @@ function CanvasContainer()
   this.deleteLayer = function(canvas) 
   {
     delete layerMap[canvas.id];
-    container.removeChild(canvas);
+    if (canvas.parentNode === container)
+      container.removeChild(canvas);
   }
 }
 
@@ -1158,7 +1159,6 @@ function BaseFactionView(obj, args) {
 
   var playerScreen = new PlayerScreen(images);
   args["private"].playerScreen = playerScreen;
-  //args["private"].traitorSelect = traitorSelect;
 
   var factionEmblemImg, 
       factionShieldImg;
@@ -1398,17 +1398,13 @@ var TraitorSelect = require("../TraitorSelect.js");
 function HarkonnenView() {
 
 
+  var traitorImages;
   var traitorSelect = new TraitorSelect();
 
   traitorSelect.selectTraitor = function(canvas, element) {
-    var traitorImages = canvas.elements;
-    console.log('harkonnen subclass');
-    console.log(traitorImages);
+    traitorImages = canvas.elements;
 
-    for (var i = 0; i < traitorImages.length; i++) {
-      var traitorImage = traitorImages[i];
-      traitorSelect.selectTraitorImage(traitorImage);
-    }
+    traitorSelect.selectTraitorImage(traitorImages.shift());
   }
 
   var priv = {};
@@ -1436,8 +1432,11 @@ function HarkonnenView() {
     eventChain.add([
       function() { obj.promptUserSelectTraitor() },
       function() { playerScreen.addTraitorCard(obj.dealtCard()) },
+      function() { traitorSelect.selectTraitorImage(traitorImages.shift()) },
       function() { playerScreen.addTraitorCard(obj.dealtCard()) },
+      function() { traitorSelect.selectTraitorImage(traitorImages.shift()) },
       function() { playerScreen.addTraitorCard(obj.dealtCard()) },
+      function() { traitorSelect.selectTraitorImage(traitorImages.shift()) },
       function() { playerScreen.addTraitorCard(obj.dealtCard()) },
       function() { obj.drawTreacheryCard() },
       function() { playerScreen.addTreacheryCard(obj.dealtCard()) },
@@ -2012,22 +2011,23 @@ function PlayerScreen(images)
 
     var TO_RADIANS = Math.PI/180;
     var numberOfDiscs = 5;
-    var angle = 180/numberOfDiscs * TO_RADIANS;
+    var centralAngle = 180/numberOfDiscs * TO_RADIANS;
 
     /* Calculate largest radius for 5 smaller circles that can fit in larger 
     * circle using steiner chain formula */
     var leaderDiscRadius = 
-      leaderCircle.radius / ( (1 - Math.sin(angle)) / Math.sin(angle) + 2 );
+      leaderCircle.radius / ( (1 - Math.sin(centralAngle)) 
+      / Math.sin(centralAngle) + 2 );
 
-    for (var i = 0; i < 5; i++) {
+    for (var i = 0; i < numberOfDiscs; i++) {
 
       var degrees = 360 / numberOfDiscs;
-      /* Angle arranges discs in star formation */
-      leaderCircle.angle = (i * degrees * TO_RADIANS) - angle/2;
+      /* centralAngle arranges discs in star formation */
+      leaderCircle.centralAngle = (i * degrees * TO_RADIANS) - centralAngle/2;
 
-      var x = leaderCircle.centerX + Math.cos(leaderCircle.angle) 
+      var x = leaderCircle.centerX + Math.cos(leaderCircle.centralAngle) 
 	* (2 * leaderCircle.radius / 3);
-      var y = leaderCircle.centerY + Math.sin(leaderCircle.angle) 
+      var y = leaderCircle.centerY + Math.sin(leaderCircle.centralAngle) 
 	* (2 * leaderCircle.radius / 3);
       
       var leaderDiscImg = leaderDiscs[i];
