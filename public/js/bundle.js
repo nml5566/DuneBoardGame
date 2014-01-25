@@ -757,7 +757,7 @@ Image.prototype.moveToCoord = function(point) {
   var image = this;
 
   //DEBUG
-  //image.speed = 5;
+  image.speed = 5;
 
   if (arguments.length > 1) {
     throw new Error("Coordinate must be a single argument")
@@ -1065,6 +1065,10 @@ function BonusDeckView()
 
   function pauseBrieflyThenMoveDealtCardLeftUntilOffscreen(bonusCardImg) {
     bonusCardImg.onHalt = function() {
+      var timeout = 1000;
+      //DEBUG
+      timeout = 0;
+
       setTimeout(function() { 
 
 	var xPos = 0 - cardScaleWidth;
@@ -1076,7 +1080,7 @@ function BonusDeckView()
 	  canvasContainer.deleteLayer(canvas);
 	  eventChain.next();
 	}
-      }, 1000);
+      }, timeout);
     }
   }
 
@@ -1180,6 +1184,10 @@ function TreacheryDeckView()
 
   function pauseBrieflyThenMoveDealtCardLeftUntilOffscreen(treacheryImg) {
     treacheryImg.onHalt = function() {
+      var timeout = 1000;
+      //DEBUG
+      timeout = 0;
+
       setTimeout(function() { 
 
 	var xPos = 0 - cardScaleWidth;
@@ -1191,7 +1199,7 @@ function TreacheryDeckView()
 	  canvasContainer.deleteLayer(canvas);
 	  eventChain.next();
 	}
-      }, 1000);
+      }, timeout);
     }
   }
 
@@ -1332,6 +1340,7 @@ function BaseFactionView(obj, args) {
 
     var troopIconImgUrl = "/img/icons/troops/" + images.troop;
     images.troop = loader.loadImage(troopIconImgUrl);
+    images.troop.faction = faction;
 
     for (var i = 0; i < images.leaders.length; i++) {
       var leaderImgUrl = images.leaderPath + images.leaders[i];
@@ -1355,7 +1364,7 @@ function BaseFactionView(obj, args) {
   {
     playerScreen.draw();
     //DEBUG
-    //obj.promptUserStartTurn();
+    obj.promptUserStartTurn();
   }
 
 
@@ -2043,6 +2052,10 @@ function PlayerScreen(images)
   this.draw = function() 
   {
     troopIconImg = images.troop;
+
+    if (! images.troop.faction) 
+      throw new Error ('Troop image has no faction property');
+
     troopIconImg.xPos = padding;
     troopIconImg.yPos = padding;
     troopIconImg.width = iconScaleWidth;
@@ -2375,7 +2388,7 @@ function PlayerScreen(images)
 
     troopReserveCount--;
     this.update();
-    var troopObj = territoryObj.addFaction('atreides', troopTokenImg);
+    var troopObj = territoryObj.addFaction(troopTokenImg);
 
     var troopScale = troopObj.scale;
     troopTokenImg.width = troopScale;
@@ -2401,6 +2414,7 @@ function PlayerScreen(images)
     var troopTokenImg = new Image();
 
     troopTokenImg.src = troopIconImg.src;
+    troopTokenImg.faction = troopIconImg.faction;
     troopTokenImg.yPos = troopIconImg.yPos + notificationCanvas.height - canvas.height;
     troopTokenImg.xPos = troopIconImg.xPos;
     troopTokenImg.height = iconScaleHeight;
@@ -2693,21 +2707,92 @@ function PolarSinkView() {
     }
   }
 
-  this.addFaction = function(faction, factionImage) {
+  this.addFaction = function(factionImage) {
+
+    var faction = factionImage.faction.constructor.name;
 
     if (occupyingFactions[faction]) {
       occupyingFactions[faction].troops.push(factionImage);
 
     } else {
-      shuffleArray(troopQuadrants);
 
       occupyingFactions[faction] = {
-      	"coords": troopQuadrants.shift(),
+      	"coords": undefined,
       	"scale": troopIconSize,
 	"troops": [factionImage]
       };
+
+      shuffleArray(troopQuadrants);
+
+
+      var TO_RADIANS = Math.PI/180;
+
+      var troopCircle = {
+	"centerX": image.xPos + image.width/2,
+	"centerY": image.yPos + image.height/2,
+	"radius": 100,
+	"angle": 0
+      };
+
+      var maxDiscs = 8;
+      var maxAngle = 180/maxDiscs * TO_RADIANS;
+
+      var maxTroopRadius = 
+	troopCircle.radius / ( (1 - Math.sin(maxAngle)) 
+	/ Math.sin(maxAngle) + 2 );
+
+      troopIconSize = maxTroopRadius * 2;
+
+      var numberOfDiscs = Object.keys(occupyingFactions).length
+      var centralAngle = 180/numberOfDiscs * TO_RADIANS;
+
+      var steinerCircleRadius = 
+	troopCircle.radius / ( (1 - Math.sin(centralAngle)) 
+	/ Math.sin(centralAngle) + 2 );
+
+      var innerCircleRadius = steinerCircleRadius * (1/Math.sin(centralAngle) - 1);
+      
+      var degrees = 360 / numberOfDiscs;
+      //for (var i = 0; i < numberOfDiscs; i++) {
+      var i = 0;
+      for (var f in occupyingFactions) { 
+      	i++;
+
+	troopCircle.angle = (i * degrees * TO_RADIANS); 
+
+	// Rotate the angle for odd disc numbers to keep things symmetrical
+	if (numberOfDiscs % 2) troopCircle.angle -= centralAngle/2;
+
+
+	var distanceFromCenter = maxTroopRadius + innerCircleRadius;
+	//if (numberOfDiscs == 1) distanceFromCenter = 0;
+	if (numberOfDiscs == 1) distanceFromCenter = -maxTroopRadius;
+	console.log('distanceFromCenter');
+	console.log(distanceFromCenter);
+
+	var x = troopCircle.centerX + Math.cos(troopCircle.angle) 
+	  * distanceFromCenter;
+	var y = troopCircle.centerY + Math.sin(troopCircle.angle) 
+	  * distanceFromCenter;
+	
+	context.beginPath();
+	context.arc(x, y,
+	  maxTroopRadius, 0, 2 * Math.PI);
+	context.strokeStyle = "green";
+	context.stroke();
+
+	console.log(troopCircle);
+	console.log({"x": x, "y": y});
+
+	occupyingFactions[f].coords = {"x": x, "y": y};
+      }
+
+
+
     }
 
+    console.log('occupyingFactions');
+    console.log(occupyingFactions);
     return occupyingFactions[faction];
   }
 
@@ -2778,12 +2863,9 @@ function PolarSinkView() {
 
     var maxDiscs = 8;
     var maxAngle = 180/maxDiscs * TO_RADIANS;
-    console.log(maxAngle);
     var maxTroopRadius = 
       troopCircle.radius / ( (1 - Math.sin(maxAngle)) 
       / Math.sin(maxAngle) + 2 );
-    console.log('maxTroopRadius');
-    console.log(maxTroopRadius);
 
 
     var numberOfDiscs = 8;
@@ -2796,8 +2878,6 @@ function PolarSinkView() {
     var innerCircleRadius = troopRadius * (1/Math.sin(centralAngle) - 1);
     //var innerCircleRadius = maxTroopRadius * (1/Math.sin(maxAngle) - 1);
     
-    console.log('innerCircleRadius');
-    console.log(innerCircleRadius);
 
 /*    context.beginPath();*/
     //context.arc(troopCircle.centerX, troopCircle.centerY, 
