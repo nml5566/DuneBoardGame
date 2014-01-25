@@ -210,16 +210,19 @@ module.exports = new GameController();
 function GameController() {
 
   var factionViews = {};
+  var turnOrder;
 
   this.startGame = function() 
   {
     gameView.game.start();
+    turnOrder = gameView.game.getTurnOrder();
 
     hideFactionSelectView();
     initViews();
-    // DEBUG skip intro
-    this.startInitialPlayerTurn();
+    this.startPlayerTurn();
   }
+
+  this.startPlayerTurn = function() { this.startPlayerSetupTurn() }
 
   function hideFactionSelectView()
   {
@@ -272,20 +275,37 @@ function GameController() {
     for (var i = 0; i < factionsArray.length; i++) {
       var factionName = factionsArray[i];
       var player = gameView.game.selectPlayer(factionName);
-      //this.players[factionName] = player;
       gameView.players[factionName] = player;
     }
   }
 
 
-  this.startInitialPlayerTurn = function() {
-    var turnOrder = gameView.game.getTurnOrder();
-    var faction = turnOrder[0];
+  this.startPlayerSetupTurn = function() {
+    var nextFaction = turnOrder.shift();
 
-    var factionView = factionViews[faction.constructor.name];
+    if (! nextFaction) {
+      turnOrder = gameView.game.getTurnOrder();
+      this.startPlayerTurn = function() { this.startPlayerRegularTurn() }
+      return;
+    }
 
-    factionView.startInitialTurn();
+    var factionView = factionViews[nextFaction.constructor.name];
+
+    factionView.startSetupTurn();
   }  
+
+  this.startPlayerRegularTurn = function() {
+    console.log('start regular turn');
+    var nextFaction = turnOrder.shift();
+
+    if (! nextFaction) {
+      console.log('TODO add round management');
+      return;
+    }
+
+    var factionView = factionViews[nextFaction.constructor.name];
+    factionView.startTurn();
+  }
 
 }
 
@@ -1456,17 +1476,23 @@ function BaseFactionView(obj, args) {
     context.drawImage(factionEmblemImg, x, y);
   }
 
-  obj.startInitialTurn = function() 
+  obj.startTurn = function() 
   {
     playerScreen.draw();
-    obj.setupEventChain();
-
     obj.promptUserStartTurn();
   }
 
+  obj.startSetupTurn = function() 
+  {
+    obj.startTurn();
+    obj.setupEventChain();
+  }
+
+
   obj.setupEventChain = function() {
     eventChain.add([
-      function() { obj.promptUserSelectTraitor() },
+      function() { 
+      	obj.promptUserSelectTraitor() },
       function() { playerScreen.addTraitorCard(obj.dealtCard()) },
       function() { obj.drawTreacheryCard() },
       function() { playerScreen.addTreacheryCard(obj.dealtCard()) },
@@ -1990,6 +2016,7 @@ function PlayerScreen(images)
       context = canvas.getContext("2d"),
       loader = new Loader();
 
+
   canvas.height = 172;
 
   var deckImgPath = "/img/deck/";
@@ -2000,6 +2027,7 @@ function PlayerScreen(images)
       traitorDeckImg,
       bonusDeckImg,
       allianceDeckImg;
+
 
   var troopReserveCount = 20;
 
@@ -2023,16 +2051,18 @@ function PlayerScreen(images)
 
   this.draw = function() 
   {
-    //canvasContainer.moveLayerToTop(canvas);
-
     troopIconImg = images.troop;
     troopIconImg.xPos = padding;
     troopIconImg.yPos = padding;
+    troopIconImg.width = iconScaleWidth;
+    troopIconImg.height = iconScaleHeight;
 
     var spiceIconImgUrl = "/img/icons/" + "spice-alt.png";
     spiceIconImg = loader.loadImage(spiceIconImgUrl);
     spiceIconImg.xPos = padding;
     spiceIconImg.yPos = troopIconImg.yPos + iconScaleHeight + padding;
+    spiceIconImg.width = iconScaleWidth;
+    spiceIconImg.height = iconScaleWidth;
 
     loadPlayerHandImages();
 
@@ -2042,6 +2072,34 @@ function PlayerScreen(images)
     canvas.redraw = drawPlayerScreen;
 
     loader.onload = function() { canvas.redraw() }
+
+    canvas.addEventListener('click', function(element) {
+      var coord = getMousePosition(canvas,element);
+
+      var icons = new Array(
+	spiceIconImg,
+	troopIconImg,
+	treacheryDeckImg,
+	traitorDeckImg,
+	bonusDeckImg,
+	allianceDeckImg
+      );
+
+      for (var i = 0; i < icons.length; i++) {
+	var image = icons[i];
+
+	if (coord.x >= image.xPos && coord.x <= image.xPos + image.width
+	    && coord.y >= image.yPos && coord.y <= image.yPos + image.height
+	) {
+	  console.log('clicked:');
+	  console.log(image);
+	}
+
+      }
+
+      controller.startPlayerTurn();
+    });
+
   }
 
   this.update = function() {
@@ -2060,7 +2118,8 @@ function PlayerScreen(images)
 
     context.drawImage(spiceIconImg, 
 	spiceIconImg.xPos, spiceIconImg.yPos, 
-	iconScaleWidth, iconScaleHeight);
+	spiceIconImg.width, spiceIconImg.height);
+	//iconScaleWidth, iconScaleHeight);
 
     context.globalAlpha = transparent;
 
@@ -2074,13 +2133,25 @@ function PlayerScreen(images)
 
     var leaderDiscs = images.leaders;
     drawLeaderDiscs(leaderDiscs);
+
+    var text = "End Turn";
+
+    var fontSize = 12;
+    context.font = fontSize + "pt Arial";
+
+    var textWidth = context.measureText(text).width;
+    var xPos = canvas.width - textWidth;
+    var yPos = canvas.height - fontSize;
+    context.fillstyle = "black";
+    context.fillText(text, xPos, yPos);
   }
 
   function drawOffPlanetTroopReserves() {
 
     context.drawImage(troopIconImg, 
       troopIconImg.xPos, troopIconImg.yPos, 
-      iconScaleWidth, iconScaleHeight);
+      troopIconImg.width, troopIconImg.height);
+      //iconScaleWidth, iconScaleHeight);
 
     drawTroopReserveCount();
   }
@@ -2144,6 +2215,8 @@ function PlayerScreen(images)
     treacheryDeckImg = loader.loadImage(treacheryDeckImgUrl);
     treacheryDeckImg.xPos = spiceIconImg.xPos + iconScaleWidth + padding;
     treacheryDeckImg.yPos = 10;
+    treacheryDeckImg.width = deckScaleWidth;
+    treacheryDeckImg.height = deckScaleHeight;
   }
 
   function loadTraitorHand()
@@ -2152,6 +2225,8 @@ function PlayerScreen(images)
     traitorDeckImg = loader.loadImage(traitorDeckImgUrl);
     traitorDeckImg.xPos = treacheryDeckImg.xPos + deckScaleWidth + padding;
     traitorDeckImg.yPos = padding;
+    traitorDeckImg.width = deckScaleWidth;
+    traitorDeckImg.height = deckScaleHeight;
   }
 
   function loadBonusHand()
@@ -2160,6 +2235,8 @@ function PlayerScreen(images)
     bonusDeckImg = loader.loadImage(bonusDeckImgUrl);
     bonusDeckImg.xPos = traitorDeckImg.xPos + deckScaleWidth + padding;
     bonusDeckImg.yPos = padding;
+    bonusDeckImg.width = deckScaleWidth;
+    bonusDeckImg.height = deckScaleHeight;
   }
 
   function loadAllianceHand()
@@ -2168,6 +2245,8 @@ function PlayerScreen(images)
     allianceDeckImg = loader.loadImage(allianceDeckImgUrl);
     allianceDeckImg.xPos = bonusDeckImg.xPos + deckScaleWidth + padding;
     allianceDeckImg.yPos = padding
+    allianceDeckImg.width = deckScaleWidth;
+    allianceDeckImg.height = deckScaleHeight;
   }
 
   function drawLeaderDiscs(leaderDiscs) 
@@ -2304,14 +2383,6 @@ function PlayerScreen(images)
     var troopCoords = troopObj.coords;
     troopTokenImg.moveToCoord([troopCoords.x, troopCoords.y]);
 
-    console.log('ship troops');
-
- /*   eventChain.add(function() { */
-      //console.log('clear enlarged territory');
-      //var notificationCanvas = canvasContainer.layer("notification");
-      //canvasContainer.deleteLayer(notificationCanvas);
-    /*});*/
-
     troopTokenImg.onHalt = eventChain.next;
 
   }
@@ -2338,6 +2409,15 @@ function PlayerScreen(images)
 
     return troopTokenImg;
   }
+}
+
+function getMousePosition(canvasElement,e)
+{
+  var rect = canvasElement.getBoundingClientRect();
+  var mousex = e.clientX - rect.left; 
+  var mousey = e.clientY - rect.top;
+
+  return {x: mousex, y: mousey};
 }
 
 

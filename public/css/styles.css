@@ -18,6 +18,7 @@
 #territoryscreen {
   z-index: 100;
   display: block;
+  height: 852px;
 }
 
 #gamestartscreen {
