@@ -1041,10 +1041,6 @@ function BonusDeckView()
     bonusDeckImages[bonusDeckImage] = loader.loadImage(bonusImgUrl);
   }
 
-  loader.onload = function() {
-    console.log('bonus images loaded');
-  }
-
   this.dealCard = function(cardName) 
   {
     canvas = canvasContainer.layer("notification");
@@ -1349,6 +1345,31 @@ function BaseFactionView(obj, args) {
 
   }
 
+  obj.startSetupTurn = function() 
+  {
+    obj.startTurn();
+    obj.setupEventChain();
+  }
+
+  obj.startTurn = function() 
+  {
+    playerScreen.draw();
+    //DEBUG
+    //obj.promptUserStartTurn();
+  }
+
+
+  obj.setupEventChain = function() {
+    eventChain.add([
+      function() { 
+      	obj.promptUserSelectTraitor() },
+      function() { playerScreen.addTraitorCard(obj.dealtCard()) },
+      function() { obj.drawTreacheryCard() },
+      function() { playerScreen.addTreacheryCard(obj.dealtCard()) },
+      function() { obj.shipInitialTroops() }
+    ]);
+  }
+
   obj.promptUserStartTurn = function() {
 
     canvas = canvasContainer.layer("notification");
@@ -1448,7 +1469,6 @@ function BaseFactionView(obj, args) {
     context.fillRect (0,0,canvas.width,canvas.height);
   }
 
- 
   obj.getLeaders = function() {
     return faction.getLeaders();
   }
@@ -1476,32 +1496,6 @@ function BaseFactionView(obj, args) {
     context.drawImage(factionEmblemImg, x, y);
   }
 
-  obj.startTurn = function() 
-  {
-    playerScreen.draw();
-    obj.promptUserStartTurn();
-  }
-
-  obj.startSetupTurn = function() 
-  {
-    obj.startTurn();
-    obj.setupEventChain();
-  }
-
-
-  obj.setupEventChain = function() {
-    eventChain.add([
-      function() { 
-      	obj.promptUserSelectTraitor() },
-      function() { playerScreen.addTraitorCard(obj.dealtCard()) },
-      function() { obj.drawTreacheryCard() },
-      function() { playerScreen.addTreacheryCard(obj.dealtCard()) },
-      function() { obj.shipInitialTroops() }
-    ]);
-  }
-
-  obj.takeCard = function(cardImage) { dealtCard = cardImage }
-  obj.dealtCard = function() { return dealtCard }
 
   obj.drawTreacheryCard = function()
   {
@@ -1509,11 +1503,8 @@ function BaseFactionView(obj, args) {
     obj.takeCard(card);
   }
 
-  obj.shipInitialTroops = function() 
-  { 
-    throw new Error(
-      "shipInitialTroops() must be implemented by child object");
-  }
+  obj.takeCard = function(cardImage) { dealtCard = cardImage }
+  obj.dealtCard = function() { return dealtCard }
 
 }
 
@@ -2073,33 +2064,36 @@ function PlayerScreen(images)
 
     loader.onload = function() { canvas.redraw() }
 
-    canvas.addEventListener('click', function(element) {
-      var coord = getMousePosition(canvas,element);
+    //TODO refactor player screen or canvas so that it doesn't get multiple
+    //onclick events
+    if (! canvas.onclick) {
+      canvas.onclick = function(element) {
+	var coord = getMousePosition(canvas,element);
 
-      var icons = new Array(
-	spiceIconImg,
-	troopIconImg,
-	treacheryDeckImg,
-	traitorDeckImg,
-	bonusDeckImg,
-	allianceDeckImg
-      );
+	var icons = new Array(
+	  spiceIconImg,
+	  troopIconImg,
+	  treacheryDeckImg,
+	  traitorDeckImg,
+	  bonusDeckImg,
+	  allianceDeckImg
+	);
 
-      for (var i = 0; i < icons.length; i++) {
-	var image = icons[i];
+	for (var i = 0; i < icons.length; i++) {
+	  var image = icons[i];
 
-	if (coord.x >= image.xPos && coord.x <= image.xPos + image.width
-	    && coord.y >= image.yPos && coord.y <= image.yPos + image.height
-	) {
-	  console.log('clicked:');
-	  console.log(image);
+	  if (coord.x >= image.xPos && coord.x <= image.xPos + image.width
+	      && coord.y >= image.yPos && coord.y <= image.yPos + image.height
+	  ) {
+	    console.log('clicked:');
+	    console.log(image);
+	  }
+
 	}
 
-      }
-
-      controller.startPlayerTurn();
-    });
-
+	controller.startPlayerTurn();
+      };
+    }
   }
 
   this.update = function() {
@@ -2119,7 +2113,6 @@ function PlayerScreen(images)
     context.drawImage(spiceIconImg, 
 	spiceIconImg.xPos, spiceIconImg.yPos, 
 	spiceIconImg.width, spiceIconImg.height);
-	//iconScaleWidth, iconScaleHeight);
 
     context.globalAlpha = transparent;
 
@@ -2130,20 +2123,9 @@ function PlayerScreen(images)
 
     context.globalAlpha = solid;
 
+    drawLeaderDiscs();
 
-    var leaderDiscs = images.leaders;
-    drawLeaderDiscs(leaderDiscs);
-
-    var text = "End Turn";
-
-    var fontSize = 12;
-    context.font = fontSize + "pt Arial";
-
-    var textWidth = context.measureText(text).width;
-    var xPos = canvas.width - textWidth;
-    var yPos = canvas.height - fontSize;
-    context.fillstyle = "black";
-    context.fillText(text, xPos, yPos);
+    drawEndTurnButton();
   }
 
   function drawOffPlanetTroopReserves() {
@@ -2201,6 +2183,69 @@ function PlayerScreen(images)
 
   }
 
+  function drawLeaderDiscs() 
+  {
+    var leaderDiscs = images.leaders;
+
+    //var discScaleWidth = 50;
+    //var discScaleHeight = 50;
+
+    var leaderCircle = {
+      "centerX": 600,
+      "centerY": canvas.height/2,
+      "radius": 75,
+      "angle": 0
+    };
+
+    var TO_RADIANS = Math.PI/180;
+    var numberOfDiscs = 5;
+    var centralAngle = 180/numberOfDiscs * TO_RADIANS;
+
+    /* Calculate largest radius for 5 smaller circles that can fit in larger 
+    * circle using steiner chain formula */
+    var leaderDiscRadius = 
+      leaderCircle.radius / ( (1 - Math.sin(centralAngle)) 
+      / Math.sin(centralAngle) + 2 );
+
+    for (var i = 0; i < numberOfDiscs; i++) {
+
+      var degrees = 360 / numberOfDiscs;
+      /* centralAngle arranges discs in star formation */
+      leaderCircle.angle = (i * degrees * TO_RADIANS) - centralAngle/2;
+
+      var x = leaderCircle.centerX + Math.cos(leaderCircle.angle) 
+	* (leaderCircle.radius - leaderDiscRadius);
+      var y = leaderCircle.centerY + Math.sin(leaderCircle.angle) 
+	* (leaderCircle.radius - leaderDiscRadius);
+      
+      var leaderDiscImg = leaderDiscs[i];
+      leaderDiscImg.xPos = x - leaderDiscRadius;
+      leaderDiscImg.yPos = y - leaderDiscRadius;
+
+      //discScaleWidth = discScaleHeight = 2 * leaderDiscRadius;
+      leaderDiscImg.width = leaderDiscImg.height = 2 * leaderDiscRadius;
+      context.drawImage(leaderDiscImg, 
+	leaderDiscImg.xPos, leaderDiscImg.yPos, 
+	leaderDiscImg.width, leaderDiscImg.height);
+	//discScaleWidth, discScaleHeight);
+
+    }
+  }
+
+  function drawEndTurnButton() {
+    var text = "End Turn";
+
+    var fontSize = 12;
+    context.font = fontSize + "pt Arial";
+
+    var textWidth = context.measureText(text).width;
+    var xPos = canvas.width - textWidth;
+    var yPos = canvas.height - fontSize;
+    context.fillstyle = "black";
+    context.fillText(text, xPos, yPos);
+
+  }
+
   function loadPlayerHandImages()
   {
     loadTreacheryHand();
@@ -2249,50 +2294,6 @@ function PlayerScreen(images)
     allianceDeckImg.height = deckScaleHeight;
   }
 
-  function drawLeaderDiscs(leaderDiscs) 
-  {
-    var discScaleWidth = 50;
-    var discScaleHeight = 50;
-
-    var leaderCircle = {
-      "centerX": 600,
-      "centerY": canvas.height/2,
-      "radius": 75,
-      "angle": 0
-    };
-
-    var TO_RADIANS = Math.PI/180;
-    var numberOfDiscs = 5;
-    var centralAngle = 180/numberOfDiscs * TO_RADIANS;
-
-    /* Calculate largest radius for 5 smaller circles that can fit in larger 
-    * circle using steiner chain formula */
-    var leaderDiscRadius = 
-      leaderCircle.radius / ( (1 - Math.sin(centralAngle)) 
-      / Math.sin(centralAngle) + 2 );
-
-    for (var i = 0; i < numberOfDiscs; i++) {
-
-      var degrees = 360 / numberOfDiscs;
-      /* centralAngle arranges discs in star formation */
-      leaderCircle.centralAngle = (i * degrees * TO_RADIANS) - centralAngle/2;
-
-      var x = leaderCircle.centerX + Math.cos(leaderCircle.centralAngle) 
-	* (2 * leaderCircle.radius / 3);
-      var y = leaderCircle.centerY + Math.sin(leaderCircle.centralAngle) 
-	* (2 * leaderCircle.radius / 3);
-      
-      var leaderDiscImg = leaderDiscs[i];
-      leaderDiscImg.xPos = x - leaderDiscRadius;
-      leaderDiscImg.yPos = y - leaderDiscRadius;
-
-      discScaleWidth = discScaleHeight = 2 * leaderDiscRadius;
-      context.drawImage(leaderDiscImg, 
-	leaderDiscImg.xPos, leaderDiscImg.yPos, 
-	discScaleWidth, discScaleHeight);
-
-    }
-  }
 
   function drawLeaderDiskStarFormation() 
   {
@@ -2648,7 +2649,6 @@ module.exports = new PolarSinkView();
 
 function PolarSinkView() {
 
-  //var canvas, context;
   var loader = new Loader();
 
   var occupyingFactions = {};
@@ -2666,16 +2666,18 @@ function PolarSinkView() {
   var largeCoords = [];;
 
   loader.onload = function() {
+    calculateImageScaleFactor();
+    setImageCoordinates();
+    troopQuadrants = calculateTroopQuadrants();
+  }
 
-    var largestSide = Math.max(image.width, image.height);
-    imageScaleFactor = 2 * circle.radius / largestSide;
+  function calculateImageScaleFactor() 
+  {
+    var largestTerritorySide = Math.max(image.width, image.height);
+    imageScaleFactor = 2 * circle.radius / largestTerritorySide;
 
     imageScaleWidth = image.width * imageScaleFactor;
     imageScaleHeight = image.height * imageScaleFactor;
-
-    setImageCoordinates();
-
-    troopQuadrants = calculateTroopQuadrants();
   }
 
   function getMapOverviewTerritoryCoordinates() {
@@ -2738,22 +2740,94 @@ function PolarSinkView() {
     );
 
     context.strokeStyle = "red";
-    context.lineWidth = 5;
+    context.lineWidth = 1;
 
     //DEBUG draw territory quadrants outline
-    for(var i=0 ; i < troopQuadrants.length-1 ; i++ ) {
-      var troopQuadrant = troopQuadrants[i];
-      context.strokeRect(
-      	  troopQuadrant.x, troopQuadrant.y,
-      	  troopIconSize, troopIconSize
-      );
-    }
+ /*   for(var i=0 ; i < troopQuadrants.length-1 ; i++ ) {*/
+      //var troopQuadrant = troopQuadrants[i];
+      //context.strokeRect(
+                //troopQuadrant.x, troopQuadrant.y,
+                //troopIconSize, troopIconSize
+      //);
+    /*}*/
 
+    //DEBUG draw placement circle outline
+    drawTroopCircle();
+  
     //DEBUG draw territory bounding box outline
     context.strokeRect(image.xPos, image.yPos, image.width, image.height);
 
 
     drawOccupyingFactions();
+  }
+
+  function drawTroopCircle() {
+    var TO_RADIANS = Math.PI/180;
+
+    var troopCircle = {
+      "centerX": image.xPos + image.width/2,
+      "centerY": image.yPos + image.height/2,
+      "radius": 100,
+      "angle": 0
+    };
+
+    context.beginPath();
+    context.arc(troopCircle.centerX, troopCircle.centerY, 
+    	troopCircle.radius, 0, 2 * Math.PI);
+    context.stroke();
+
+    var maxDiscs = 8;
+    var maxAngle = 180/maxDiscs * TO_RADIANS;
+    console.log(maxAngle);
+    var maxTroopRadius = 
+      troopCircle.radius / ( (1 - Math.sin(maxAngle)) 
+      / Math.sin(maxAngle) + 2 );
+    console.log('maxTroopRadius');
+    console.log(maxTroopRadius);
+
+
+    var numberOfDiscs = 8;
+    var centralAngle = 180/numberOfDiscs * TO_RADIANS;
+
+    var troopRadius = 
+      troopCircle.radius / ( (1 - Math.sin(centralAngle)) 
+      / Math.sin(centralAngle) + 2 );
+
+    var innerCircleRadius = troopRadius * (1/Math.sin(centralAngle) - 1);
+    //var innerCircleRadius = maxTroopRadius * (1/Math.sin(maxAngle) - 1);
+    
+    console.log('innerCircleRadius');
+    console.log(innerCircleRadius);
+
+/*    context.beginPath();*/
+    //context.arc(troopCircle.centerX, troopCircle.centerY, 
+            //innerCircleRadius, 0, 2 * Math.PI);
+    //context.strokeStyle = "green";
+    /*context.stroke();*/
+
+    for (var i = 0; i < numberOfDiscs; i++) {
+      var degrees = 360 / numberOfDiscs;
+
+      troopCircle.angle = (i * degrees * TO_RADIANS); 
+
+      // Rotate the angle for odd disc numbers to keep things symmetrical
+      if (numberOfDiscs % 2) troopCircle.angle -= centralAngle/2;
+
+
+      var distanceFromCenter = maxTroopRadius + innerCircleRadius;
+      if (numberOfDiscs == 1) distanceFromCenter = 0;
+
+      var x = troopCircle.centerX + Math.cos(troopCircle.angle) 
+	* distanceFromCenter;
+      var y = troopCircle.centerY + Math.sin(troopCircle.angle) 
+	* distanceFromCenter;
+      
+      context.beginPath();
+      //context.arc(x, y, troopRadius, 0, 2 * Math.PI);
+      context.arc(x, y, maxTroopRadius, 0, 2 * Math.PI);
+      context.strokeStyle = "red";
+      context.stroke();
+    }
   }
 
   function drawOccupyingFactions() {
