@@ -990,6 +990,7 @@ var mapView = require("Dune/View/Map");
 var Loader = require("Dune/Loader");
 var canvasContainer = require("Dune/CanvasContainer");
 var shuffleArray = require("Dune/shuffle");
+var eventChain = require("Dune/EventChain");
 
 module.exports = new TreacheryDeckView();
 
@@ -1003,6 +1004,9 @@ function TreacheryDeckView()
       cardScaleHeight = 483;
 
   var mapDimensions = mapView.circle;
+
+  var xCenterScreen = mapDimensions.centerX - cardScaleWidth/2;
+  var yCenterScreen = mapDimensions.centerY - cardScaleHeight/2;
 
   var treacheryDeckImages = new Array(
     "baliset", "chaumas", "chaumurky", "chrysknife", "cheapheroine", 
@@ -1037,35 +1041,27 @@ function TreacheryDeckView()
 
   var that = this;
 
-  this.dealCard = function() 
-  {
+  this.dealCard = function() {
+
     canvas = canvasContainer.layer("notification");
+    var treacheryImg = getNewTreacheryImage();
+
+    moveDealtCardCardFromOffscreenRightToCenter(treacheryImg);
+    pauseBrieflyThenMoveDealtCardLeftUntilOffscreen(treacheryImg);
+
+    return treacheryImg;
+  }
+
+  function moveDealtCardCardFromOffscreenRightToCenter(treacheryImg) {
     context = canvas.getContext("2d");
-
-    //var mapDimensions = mapView.circle;
-
-    //var xPos = mapDimensions.centerX - cardScaleWidth/2;
-    //var yPos = mapDimensions.centerY - cardScaleHeight/2;
 
     canvas.redraw = function() { 
       context.clearRect(0, 0, canvas.width, canvas.height)
     }
-
-    var treacheryImg = getTreacheryImage();
-/*    var treacheryImg = treacheryDeckImages.shift();*/
-
-    //treacheryImg.canvas = canvas;
-    //treacheryImg.xPos = canvas.width;
-    //treacheryImg.yPos = yPos;
-    //treacheryImg.speed = 0.02;
-    //treacheryImg.width = cardScaleWidth;
-    /*treacheryImg.height = cardScaleHeight;*/
-
-    var xCenterScreen = mapDimensions.centerX - cardScaleWidth/2;
-    var yCenterScreen = mapDimensions.centerY - cardScaleHeight/2;
-
     treacheryImg.moveToCoord([xCenterScreen, yCenterScreen]);
+  }
 
+  function pauseBrieflyThenMoveDealtCardLeftUntilOffscreen(treacheryImg) {
     treacheryImg.onHalt = function() {
       setTimeout(function() { 
 
@@ -1075,25 +1071,14 @@ function TreacheryDeckView()
 	treacheryImg.moveToCoord([xPos, yPos]);
 
 	treacheryImg.onHalt = function() {
-
 	  canvasContainer.deleteLayer(canvas);
-
-	  //TODO refactor to use eventChain
-	  if (that.onDealCard) {
-	    that.onDealCard(this);
-	    delete that.onDealCard;
-	  }
+	  eventChain.next();
 	}
-
-
       }, 1000);
-
     }
-
-    return treacheryImg;
   }
 
-  function getTreacheryImage() {
+  function getNewTreacheryImage() {
     var treacheryImg = treacheryDeckImages.shift();
 
 
@@ -1111,7 +1096,7 @@ function TreacheryDeckView()
   }
 }
 
-},{"Dune/CanvasContainer":2,"Dune/Loader":13,"Dune/View/Map":26,"Dune/shuffle":32}],17:[function(require,module,exports){
+},{"Dune/CanvasContainer":2,"Dune/EventChain":4,"Dune/Loader":13,"Dune/View/Map":26,"Dune/shuffle":32}],17:[function(require,module,exports){
 module.exports = AtreidesView;
 
 var FactionDecorator = require("./Base");
@@ -1153,24 +1138,32 @@ var treacheryDeckView = require("../Deck/Treachery.js");
 var PlayerScreen = require("../PlayerScreen");
 var mapView = require("Dune/View/Map");
 
-var promptUserSelectTraitor = require("../TraitorSelect.js");
+var TraitorSelect = require("../TraitorSelect.js");
+//var traitorSelect = new TraitorSelect();
 
 function BaseFactionView(obj, args) {
 
   ViewDecorator(obj, { "view": undefined });
 
+  if (! args["private"])
+    args["private"] = { };
+
   var faction = args.faction,
       images = args.images;
+
+  var traitorSelect = args.traitorSelect || new TraitorSelect();
 
   //TODO figure out an elegant way to squash this public variable
   obj.faction = faction;
 
   var playerScreen = new PlayerScreen(images);
-  //var treacheryDeckView = new TreacheryDeckView();
+  args["private"].playerScreen = playerScreen;
+  //args["private"].traitorSelect = traitorSelect;
 
   var factionEmblemImg, 
       factionShieldImg;
 
+  var dealtCard;
 
   obj.loadImages = function() {
 
@@ -1298,7 +1291,9 @@ function BaseFactionView(obj, args) {
     return faction.getLeaders();
   }
 
-  obj.promptUserSelectTraitor = promptUserSelectTraitor;
+  obj.promptUserSelectTraitor = function() { 
+    traitorSelect.promptUser(obj) 
+  };
 
   obj.drawPlayerSeat = function() {
 
@@ -1322,35 +1317,28 @@ function BaseFactionView(obj, args) {
   obj.startInitialTurn = function() 
   {
     playerScreen.draw();
-    eventChain.add([
-     function() 
-      { 
-	obj.promptUserSelectTraitor();
-      },
-      function() 
-      {
-	playerScreen.addTraitorCard(obj.traitorCardImage);
-      },
-      function()
-      {
-	obj.drawTreacheryCard();
-      },
-      function() 
-      {
-      	obj.shipInitialTroops();
-      }
-    ]);
+    obj.setupEventChain();
 
     obj.promptUserStartTurn();
   }
 
+  obj.setupEventChain = function() {
+    eventChain.add([
+      function() { obj.promptUserSelectTraitor() },
+      function() { playerScreen.addTraitorCard(obj.dealtCard()) },
+      function() { obj.drawTreacheryCard() },
+      function() { playerScreen.addTreacheryCard(obj.dealtCard()) },
+      function() { obj.shipInitialTroops() }
+    ]);
+  }
+
+  obj.takeCard = function(cardImage) { dealtCard = cardImage }
+  obj.dealtCard = function() { return dealtCard }
+
   obj.drawTreacheryCard = function()
   {
     var card = treacheryDeckView.dealCard();
-
-    treacheryDeckView.onDealCard = function(treacheryCardImg) {
-      playerScreen.addTreacheryCard(card);
-    }
+    obj.takeCard(card);
   }
 
   obj.shipInitialTroops = function() 
@@ -1404,10 +1392,26 @@ module.exports = HarkonnenView;
 
 var FactionDecorator = require("./Base");
 var gameView = require("Dune/View/Game");
-//var controller = require("../../Controller");
 var eventChain = require("Dune/EventChain");
+var TraitorSelect = require("../TraitorSelect.js");
 
 function HarkonnenView() {
+
+
+  var traitorSelect = new TraitorSelect();
+
+  traitorSelect.selectTraitor = function(canvas, element) {
+    var traitorImages = canvas.elements;
+    console.log('harkonnen subclass');
+    console.log(traitorImages);
+
+    for (var i = 0; i < traitorImages.length; i++) {
+      var traitorImage = traitorImages[i];
+      traitorSelect.selectTraitorImage(traitorImage);
+    }
+  }
+
+  var priv = {};
 
   var images = {
     "troop": "harkonnen.png",
@@ -1415,35 +1419,37 @@ function HarkonnenView() {
     "leaders": [ "beast_rabban.png", "captain_iakin_nefud.png", "feyd_rautha.png", 
       "piter_de_vries.png", "umman_kudu.png" ],
     "emblem": "harkonnen-53x53.png"
-  }
+  };
 
   FactionDecorator(this, {
     "faction": gameView.players['Harkonnen'],
-    //"initialTreacheryHand": 2,
+    "private": priv,
+    "traitorSelect": traitorSelect,
     "images": images
   });
 
-  var that = this;
+  var playerScreen = priv.playerScreen;
 
-  var parentStartInitialTurn = this.startInitialTurn;
+  var obj = this;
 
-  this.startInitialTurn = function() {
-    parentStartInitialTurn()
-
-    var lastEvent = eventChain.removeLast();
-    eventChain.add([function()
-    {
-      that.drawTreacheryCard();
-    }, lastEvent]);
-
+  this.setupEventChain = function() {
+    eventChain.add([
+      function() { obj.promptUserSelectTraitor() },
+      function() { playerScreen.addTraitorCard(obj.dealtCard()) },
+      function() { playerScreen.addTraitorCard(obj.dealtCard()) },
+      function() { playerScreen.addTraitorCard(obj.dealtCard()) },
+      function() { playerScreen.addTraitorCard(obj.dealtCard()) },
+      function() { obj.drawTreacheryCard() },
+      function() { playerScreen.addTreacheryCard(obj.dealtCard()) },
+      function() { obj.drawTreacheryCard() },
+      function() { playerScreen.addTreacheryCard(obj.dealtCard()) },
+      function() { obj.shipInitialTroops() }
+    ]);
   }
 
-/*  this.shipInitialTroops = function() {*/
-    //console.log('harkonnen ship troops');
-  /*}*/
 }
 
-},{"./Base":18,"Dune/EventChain":4,"Dune/View/Game":25}],24:[function(require,module,exports){
+},{"../TraitorSelect.js":31,"./Base":18,"Dune/EventChain":4,"Dune/View/Game":25}],24:[function(require,module,exports){
 module.exports = FactionSelectView;
 
 var ViewDecorator = require("./Base");
@@ -2672,7 +2678,8 @@ function drawTerritoryOutline(coords, ctx) {
 
 
 },{"Dune/CanvasContainer":2,"Dune/Loader":13,"Dune/View/Map":26,"Dune/shuffle":32}],31:[function(require,module,exports){
-module.exports = promptUserSelectTraitor;
+//module.exports = promptUserSelectTraitor;
+module.exports = TraitorSelect;
 
 var canvasContainer = require("Dune/CanvasContainer");
 var Loader = require("Dune/Loader");
@@ -2683,54 +2690,84 @@ var canvas, context, canvasContainer;
 var traitorScaleWidth = 275,
     traitorScaleHeight = 400;
 
+
 var factionView;
 
-function promptUserSelectTraitor() 
-{
-  factionView = this;
+function TraitorSelect() {
+  
+  this.promptUser = function(view) {
 
-  canvas = canvasContainer.layer('notification');
-  //canvasContainer.moveLayerToTop(canvas);
+    factionView = view;
 
+    canvas = canvasContainer.layer('notification');
 
-  context = canvas.getContext("2d");
+    context = canvas.getContext("2d");
 
-  var loader = new Loader();
+    var loader = new Loader();
 
-  faction = factionView.faction;
-  var traitorHand = faction.drawTraitorHand();
+    faction = factionView.faction;
 
-  canvas.elements = new Array();
+    canvas.elements = new Array();
 
-  for (var i = 0; i < traitorHand.length; i++) {
-    var traitor = traitorHand[i];
-    var factionName = traitor.faction.toLowerCase().split(' ').join('');
+    var that = this;
 
-    var imageUrl = "/img/traitors/" + factionName + "/" 
-      + traitor.name.toLowerCase().split(' ').join('_') + ".png";
+    loadTraitorHandImages();
+    addOnClickEvent();
 
-    var image = loader.loadImage(imageUrl);
-    image.traitor = traitor;
-    canvas.elements[i] = image;
-  }
+    function loadTraitorHandImages() {
+      var traitorHand = faction.drawTraitorHand();
 
+      for (var i = 0; i < traitorHand.length; i++) {
+	var traitor = traitorHand[i];
+	var factionName = traitor.faction.toLowerCase().split(' ').join('');
 
-  canvas.addEventListener('click', function(e) {
-    var coord = getMousePosition(this,e);
+	var imageUrl = "/img/traitors/" + factionName + "/" 
+	  + traitor.name.toLowerCase().split(' ').join('_') + ".png";
 
-    for (var i = 0; i < this.elements.length; i++) {
-      var image = this.elements[i];
-
-      if (coord.x >= image.xPos && coord.x <= image.xPos + traitorScaleWidth
-	  && coord.y >= image.yPos && coord.y <= image.yPos + traitorScaleHeight
-      ) {
-      	selectTraitorImage(image);
+	var image = loader.loadImage(imageUrl);
+	image.traitor = traitor;
+	canvas.elements[i] = image;
       }
     }
 
-  });
+    function addOnClickEvent() {
+      canvas.addEventListener('click', function(element) {
+      	that.selectTraitor(this, element);
 
-  loader.onload = drawTraitorSelectScreen;
+      });
+    }
+
+
+    loader.onload = drawTraitorSelectScreen;
+  }
+
+  this.selectTraitorImage = function(image)
+  {
+    factionView.takeCard(image);
+
+    var traitorObj = image.traitor;
+    var faction = factionView.faction;
+    faction.pickTraitor(traitorObj);
+
+    canvasContainer.deleteLayer(canvas);
+
+    eventChain.next();
+  }
+
+}
+
+TraitorSelect.prototype.selectTraitor = function(canvas, element) {
+  var coord = getMousePosition(canvas,element);
+
+  for (var i = 0; i < canvas.elements.length; i++) {
+    var image = canvas.elements[i];
+
+    if (coord.x >= image.xPos && coord.x <= image.xPos + traitorScaleWidth
+	&& coord.y >= image.yPos && coord.y <= image.yPos + traitorScaleHeight
+    ) {
+      this.selectTraitorImage(image);
+    }
+  }
 }
 
 function getMousePosition(canvasElement,e)
@@ -2742,22 +2779,6 @@ function getMousePosition(canvasElement,e)
   return {x: mousex, y: mousey};
 }
 
-function selectTraitorImage(image)
-{
-  factionView.traitorCardImage = image;
-
-  var traitorObj = image.traitor;
-  var faction = factionView.faction;
-  faction.pickTraitor(traitorObj);
-
-  canvasContainer.deleteLayer(canvas);
-
-  eventChain.next();
-/*  if (factionView.onSelectTraitor) {*/
-    //factionView.onSelectTraitor();
-    //delete factionView.onSelectTraitor;
-  /*}*/
-}
 
 
 function drawTraitorSelectScreen() 
