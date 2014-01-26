@@ -183,7 +183,8 @@ function CanvasContainer()
       case "test":
       	return 95;
       default:
-      	throw new Error("No zIndex case defined for " + layerName);
+      	return 99;
+              //throw new Error("No zIndex case defined for " + layerName);
     }
   }
 
@@ -757,7 +758,7 @@ Image.prototype.moveToCoord = function(point) {
   var image = this;
 
   //DEBUG
-  //image.speed = 5;
+  image.speed = 5;
 
   if (arguments.length > 1) {
     throw new Error("Coordinate must be a single argument")
@@ -1071,7 +1072,7 @@ function DeckViewDecorator(obj, args) {
     cardImg.onHalt = function() {
       var timeout = 1000;
       //DEBUG
-      //timeout = 0;
+      timeout = 0;
 
       setTimeout(function() { 
 
@@ -1191,7 +1192,6 @@ var bonusDeckView = require("Dune/View/Deck/Bonus.js");
 
 function AtreidesView() {
 
-  var priv = {};
 
   var images = {
     "troop": "atreides.png",
@@ -1201,25 +1201,28 @@ function AtreidesView() {
     "emblem": "atreides-53x53.png"
   }
 
-  FactionDecorator(this, {
+  var args = {
     "faction": gameView.players['Atreides'],
-    "private": priv,
     "images": images
-  });
+  };
 
-  var playerScreen = priv.playerScreen;
+  FactionDecorator(this, args);
+
+  var playerScreen = args.playerScreen;
 
   var obj = this;
 
   this.shipInitialTroops = function() 
   { 
+    var startingTerritory = "arrakeen";
+
     for (var i = 0; i < 9; i++) {
       eventChain.add(function () {
-	playerScreen.shipTroops("polarSink");
+	playerScreen.shipTroops(startingTerritory);
       });
     }
 
-    playerScreen.shipTroops("polarSink");
+    playerScreen.shipTroops(startingTerritory);
 
     eventChain.add(function() { 
       var notificationCanvas = canvasContainer.layer("notification");
@@ -1270,9 +1273,6 @@ function BaseFactionView(obj, args) {
 
   ViewDecorator(obj, { "view": undefined });
 
-  if (! args["private"])
-    args["private"] = { };
-
   var faction = args.faction,
       images = args.images;
 
@@ -1281,8 +1281,8 @@ function BaseFactionView(obj, args) {
   //TODO figure out an elegant way to squash this public variable
   obj.faction = faction;
 
-  var playerScreen = new PlayerScreen(images);
-  args["private"].playerScreen = playerScreen;
+  var playerScreen = new PlayerScreen(args);
+  args.playerScreen = playerScreen;
 
   var factionEmblemImg, 
       factionShieldImg;
@@ -1526,8 +1526,6 @@ function HarkonnenView() {
     traitorSelect.selectTraitorImage(traitorImages.shift());
   }
 
-  var priv = {};
-
   var images = {
     "troop": "harkonnen.png",
     "leaderPath": "/img/leaders/harkonnen/",
@@ -1536,14 +1534,15 @@ function HarkonnenView() {
     "emblem": "harkonnen-53x53.png"
   };
 
-  FactionDecorator(this, {
+  var args = {
     "faction": gameView.players['Harkonnen'],
-    "private": priv,
     "traitorSelect": traitorSelect,
     "images": images
-  });
+  };
 
-  var playerScreen = priv.playerScreen;
+  FactionDecorator(this, args);
+
+  var playerScreen = args.playerScreen;
 
   var obj = this;
 
@@ -1567,14 +1566,15 @@ function HarkonnenView() {
 
   this.shipInitialTroops = function() 
   { 
+    var startingTerritory = "carthag";
+
     for (var i = 0; i < 9; i++) {
       eventChain.add(function () {
-	playerScreen.shipTroops("polarSink");
+	playerScreen.shipTroops(startingTerritory);
       });
     }
 
-
-    playerScreen.shipTroops("polarSink");
+    playerScreen.shipTroops(startingTerritory);
 
     eventChain.add(function() { 
       var notificationCanvas = canvasContainer.layer("notification");
@@ -1967,10 +1967,13 @@ var eventChain = require("Dune/EventChain");
 
 var territoryView = require("Dune/View/Territory");
 
-function PlayerScreen(images) 
+function PlayerScreen(args) 
 {
+  var images = args.images;
 
-  var canvas = canvasContainer.layer("playerscreen"),
+  var layerName = "playerscreen";
+
+  var canvas = canvasContainer.layer(layerName),
       context = canvas.getContext("2d"),
       loader = new Loader();
 
@@ -2037,8 +2040,9 @@ function PlayerScreen(images)
 
     //TODO refactor player screen or canvas so that it doesn't get multiple
     //onclick events
-    if (! canvas.onclick) {
-      canvas.onclick = function(element) {
+    if (! canvas.isInteractive) {
+      canvas.isInteractive = true;
+      canvas.addEventListener('click', function(element) {
 	var coord = getMousePosition(canvas,element);
 
 	var icons = new Array(
@@ -2063,7 +2067,7 @@ function PlayerScreen(images)
 	}
 
 	controller.startPlayerTurn();
-      };
+      });
     }
   }
 
@@ -2346,18 +2350,7 @@ function PlayerScreen(images)
 
     troopReserveCount--;
     this.update();
-    //var troopObj = territoryObj.addFaction(troopTokenImg);
-    var troopObj = territoryObj.addFaction(troopTokenImg);
-
-    var troopScale = troopObj.scale;
-    troopTokenImg.width = troopScale;
-    troopTokenImg.height = troopScale;
-
-    var troopCoords = troopObj.coords;
-    troopTokenImg.moveToCoord([troopCoords.x, troopCoords.y]);
-
-    troopTokenImg.onHalt = eventChain.next;
-
+    territoryObj.addFaction(troopTokenImg);
   }
 
   function getTroopTokenImg(territoryObj) 
@@ -2428,9 +2421,8 @@ var Loader = require("Dune/Loader");
 var canvasContainer = require("Dune/CanvasContainer");
 var mapView = require("Dune/View/Map");
 
-var polarSink = require("Dune/View/Territory/PolarSink");
-//var arrakeen = require("Dune/View/Territory/Arrakeen");
-//var carthag = require("Dune/View/Territory/Carthag");
+//var polarSink = require("Dune/View/Territory/PolarSink");
+var BaseTerritoryView = require("Dune/View/Territory/Base");
 
 module.exports = new TerritoryView()
 
@@ -2439,14 +2431,13 @@ function TerritoryView()
   var loader = new Loader();
 
   var territoryImages = {
-    "carthag": "/img/territories/carthag.png",
-    "arrakeen": "/img/territories/arrakeen.png",
-    "polarSink": polarSink
+    "carthag": new BaseTerritoryView("carthag"),
+    "arrakeen": new BaseTerritoryView("arrakeen"),
+    "polarSink": new BaseTerritoryView("polarSink")
   };
 
   var that = this;
 
-  //loadTerritoryImages();
   addClickEventToImageMap();
 
   function addClickEventToImageMap() 
@@ -2456,16 +2447,9 @@ function TerritoryView()
     for (var i = 0; i < areaTags.length; i++) {
       var areaTag = areaTags[i];
       areaTag.addEventListener('click', function(e) {
-      //areaTag.attachEvent('onclick', function(e) {
-      	console.log('clicked area');
       	var territoryName = this.target;
-
-	console.log(territoryName);
-
-
 	that.enlargeTerritory(this);
       });
-      //};
     }
   }
   
@@ -2493,164 +2477,34 @@ function TerritoryView()
     return territoryObj;
   }
 
-  function drawSquaresOfTerritory(areaTag) 
-  {
-    // polar sink
-    //var coords=[374,484,368,476,361,466,350,466,341,462,332,454,327,454,321,446,324,425,333,408,348,397,366,395,379,391,384,387,391,387,397,394,409,394,413,392,425,392,436,405,434,425,424,439,418,452,411,461,410,473,395,484];
-
-    //false wall east
-    //var coords=[455,460,436,469,418,453,425,439,435,425,437,405,426,391,414,391,414,384,427,372,433,360,449,371,467,396,467,426,465,429,465,437];
-    
-    //rim wall west
-    //var coords=[484,269,483,267,485,264,484,253,522,187,527,187,532,182,536,183,536,197,530,204,527,219,516,237,516,243,510,243,510,248,500,254,500,259,487,268];
-    console.log('area tag');
-    console.log(areaTag.coords);
-
-    var coords = areaTag.coords.split(',');
-
-    var s = 8.5;
-
-    var smallestX = undefined,
-	largestX = undefined, 
-	smallestY = undefined,
-	largestY = undefined; 
-
-    for( i=2 ; i < coords.length-1 ; i+=2 )
-    {
-      var x= coords[i], y = coords[i+1];
-
-      if (smallestX == undefined) { smallestX = x }
-      else if (x < smallestX) { smallestX = x }
-
-      if (smallestY == undefined) { smallestY = y }
-      else if (y < smallestY) { smallestY = y }
-
-      if (largestX == undefined) { largestX = x }
-      else if (x > largestX) { largestX = x }
-
-      if (largestY == undefined) { largestY = y }
-      else if (y > largestY) { largestY = y }
-    }
-
-    
-
-    var width = largestX - smallestX;
-    var height = largestY - smallestY;
-
-    var canvas = canvasContainer.layer("notification");
-    var ctx = canvas.getContext("2d");
-
-    ctx.strokeRect(smallestX, smallestY,
-	width, height);
-
-    return;
-
-
-    var squarePoints = [];
-    var x = smallestX;
-    var y = smallestY;
-    while (x < largestX && y < largestY) {
-
-      squarePoints.push({x: x, y: y});
-
-      x += s;
-
-      if (x > largestX) {
-	x = smallestX;
-	y += s;
-      }
-
-    }
-
-
-    drawTerritoryOutline(coords, ctx);
-
-    var territorySquares = [];
-    for (var i = 0; i < squarePoints.length; i++) {
-      var coords = squarePoints[i];
-
-      var topLeft = {"x": coords.x, "y": coords.y};
-      var topRight = {"x": coords.x + s, "y": coords.y};
-
-      var bottomLeft = {"x": coords.x, "y": coords.y + s};
-      var bottomRight = {"x": coords.x + s, "y": coords.y + s};
-
-      if (
-	ctx.isPointInPath(topLeft.x, topLeft.y) 
-	&& ctx.isPointInPath(topRight.x, topRight.y)
-	&& ctx.isPointInPath(bottomLeft.x, bottomLeft.y) 
-	&& ctx.isPointInPath(bottomRight.x, bottomRight.y)
-      ) {
-	territorySquares.push(topLeft);
-
-	ctx.strokeStyle = "red";
-	ctx.strokeRect(topLeft.x, topLeft.y,
-	  s, s);
-      }
-
-    }
-
-    console.log('territorySquares');
-    console.log(territorySquares.length);
-  }
-
 }
 
-
-
-
-function drawTerritoryOutline(coords, ctx) 
-{
-  ctx.beginPath();
-  ctx.moveTo(coords[0], coords[1]);
-  for( item=2 ; item < coords.length-1 ; item+=2 )
-  {
-    ctx.lineTo( coords[item] , coords[item+1] )
-  }
-  ctx.closePath();
-
-}
-
-
-},{"Dune/CanvasContainer":2,"Dune/Loader":13,"Dune/View/Map":28,"Dune/View/Territory/PolarSink":32}],32:[function(require,module,exports){
+},{"Dune/CanvasContainer":2,"Dune/Loader":13,"Dune/View/Map":28,"Dune/View/Territory/Base":32}],32:[function(require,module,exports){
 var Loader = require("Dune/Loader");
 var canvasContainer = require("Dune/CanvasContainer");
 var mapView = require("Dune/View/Map");
 var shuffleArray = require("Dune/shuffle");
+var eventChain = require("Dune/EventChain");
 
-module.exports = new PolarSinkView();
+module.exports = BaseTerritoryView;
 
-function PolarSinkView() {
+function BaseTerritoryView(territoryImgName) {
 
   var loader = new Loader();
 
   var occupyingFactions = {};
-  var troopQuadrants;
 
   var circle = mapView.circle;
 
   var troopIconSize = 8.5;
-  var imageScaleFactor, imageScaleWidth, imageScaleHeight;
-
-  var imageUrl = "/img/territories/polarSink.png";
-  var image = loader.loadImage(imageUrl);
 
   var smallCoords = getMapOverviewTerritoryCoordinates();
-  var largeCoords = [];;
+
+  var imageUrl = "/img/territories/" + territoryImgName + ".png";
+  var image = loader.loadImage(imageUrl);
 
   loader.onload = function() {
-    calculateImageScaleFactor();
-    setImageCoordinates();
-    troopQuadrants = calculateTroopQuadrants();
-  }
-
-  function calculateImageScaleFactor() 
-  {
-    var largestTerritorySide = Math.max(image.width, image.height);
-    imageScaleFactor = 2 * circle.radius / largestTerritorySide;
-
-    imageScaleWidth = image.width * imageScaleFactor;
-    imageScaleHeight = image.height * imageScaleFactor;
+    setImageDimensions();
   }
 
   function getMapOverviewTerritoryCoordinates() {
@@ -2666,22 +2520,35 @@ function PolarSinkView() {
     }
   }
 
-  this.addFaction = function(factionImage) {
+  function calculateImageScaleFactor() 
+  {
+    var largestTerritorySide = Math.max(image.width, image.height);
+    var imageScaleFactor = 2 * circle.radius / largestTerritorySide;
+    return imageScaleFactor;
+  }
 
-    var faction = factionImage.faction.constructor.name;
+  function setImageDimensions() {
+    var imageScaleFactor = calculateImageScaleFactor();
+
+    image.width *= imageScaleFactor;
+    image.height *= imageScaleFactor;
+    image.xPos = circle.centerX - image.width/2; 
+    image.yPos = circle.centerY - image.height/2;
+  }
+
+
+  this.addFaction = function(troopTokenImg) {
+
+    var faction = troopTokenImg.faction.constructor.name;
 
     if (occupyingFactions[faction]) {
-      occupyingFactions[faction].troops.push(factionImage);
+      occupyingFactions[faction].troops.unshift(troopTokenImg);
 
     } else {
 
       occupyingFactions[faction] = {
-      	"coords": undefined,
-      	"scale": troopIconSize,
-	"troops": [factionImage]
+	"troops": [troopTokenImg]
       };
-
-      shuffleArray(troopQuadrants);
 
 
       var TO_RADIANS = Math.PI/180;
@@ -2692,6 +2559,7 @@ function PolarSinkView() {
 	"radius": 125,
 	"angle": 0
       };
+
 
       var maxDiscs = 8;
       var maxAngle = 180/maxDiscs * TO_RADIANS;
@@ -2712,7 +2580,11 @@ function PolarSinkView() {
       var innerCircleRadius = steinerCircleRadius * (1/Math.sin(centralAngle) - 1);
       
       var degrees = 360 / numberOfDiscs;
-      //for (var i = 0; i < numberOfDiscs; i++) {
+      var distanceFromCenter = 0;
+      if (numberOfDiscs != 1)
+	//distanceFromCenter = maxTroopRadius + innerCircleRadius;
+	distanceFromCenter = troopCircle.radius - maxTroopRadius;
+
       var i = 0;
       for (var f in occupyingFactions) { 
       	i++;
@@ -2723,9 +2595,6 @@ function PolarSinkView() {
 	if (numberOfDiscs % 2) troopCircle.angle -= centralAngle/2;
 
 
-	var distanceFromCenter = 0;
-	if (numberOfDiscs != 1)
-	  distanceFromCenter = maxTroopRadius + innerCircleRadius;
 
 	var x = troopCircle.centerX + Math.cos(troopCircle.angle) 
 	  * distanceFromCenter;
@@ -2736,21 +2605,31 @@ function PolarSinkView() {
 	y -= maxTroopRadius;
 
 	occupyingFactions[f].coords = {"x": x, "y": y};
+
+	if (f != faction) {
+	  console.log('setting new coords for '+faction);
+	  troopTokenImg.xPos = x;
+	  troopTokenImg.yPos = y;
+	}
+
+	troopTokenImg.width = maxTroopRadius * 2;
+	troopTokenImg.height = maxTroopRadius * 2;
       }
 
     }
 
-    return occupyingFactions[faction];
+    var troopCoords = occupyingFactions[faction].coords
+    troopTokenImg.moveToCoord([troopCoords.x, troopCoords.y]);
+    troopTokenImg.onHalt = eventChain.next;
   }
 
   this.enlarge = function() {
     addCanvasClickEvent();
-    drawTerritoryImage(largeCoords);
+    drawTerritoryImage();
   }
 
   this.draw = function() {
-    drawTerritoryImage(largeCoords);
-
+    drawTerritoryImage();
   }
 
   function addCanvasClickEvent() {
@@ -2760,7 +2639,7 @@ function PolarSinkView() {
     });
   }
 
-  function drawTerritoryImage(largeCoords) {
+  function drawTerritoryImage() {
 
     var canvas = canvasContainer.layer("notification");
     context = canvas.getContext("2d");
@@ -2771,91 +2650,12 @@ function PolarSinkView() {
       image.width, image.height
     );
 
-    context.strokeStyle = "red";
-    context.lineWidth = 1;
-
-    //DEBUG draw territory quadrants outline
- /*   for(var i=0 ; i < troopQuadrants.length-1 ; i++ ) {*/
-      //var troopQuadrant = troopQuadrants[i];
-      //context.strokeRect(
-                //troopQuadrant.x, troopQuadrant.y,
-                //troopIconSize, troopIconSize
-      //);
-    /*}*/
-
-    //DEBUG draw placement circle outline
-    //drawTroopCircle();
-  
-    //DEBUG draw territory bounding box outline
-    //context.strokeRect(image.xPos, image.yPos, image.width, image.height);
-
+/*    context.strokeStyle = "red";*/
+    //context.lineWidth = 5;
+    /*context.strokeRect(image.xPos, image.yPos, image.width, image.height);*/
 
     drawOccupyingFactions();
   }
-
-/*  function drawTroopCircle() {*/
-    //var TO_RADIANS = Math.PI/180;
-
-    //var troopCircle = {
-      //"centerX": image.xPos + image.width/2,
-      //"centerY": image.yPos + image.height/2,
-      //"radius": 100,
-      //"angle": 0
-    //};
-
-    //context.beginPath();
-    //context.arc(troopCircle.centerX, troopCircle.centerY, 
-            //troopCircle.radius, 0, 2 * Math.PI);
-    //context.stroke();
-
-    //var maxDiscs = 8;
-    //var maxAngle = 180/maxDiscs * TO_RADIANS;
-    //var maxTroopRadius = 
-      //troopCircle.radius / ( (1 - Math.sin(maxAngle)) 
-      /// Math.sin(maxAngle) + 2 );
-
-
-    //var numberOfDiscs = 8;
-    //var centralAngle = 180/numberOfDiscs * TO_RADIANS;
-
-    //var troopRadius = 
-      //troopCircle.radius / ( (1 - Math.sin(centralAngle)) 
-      /// Math.sin(centralAngle) + 2 );
-
-    //var innerCircleRadius = troopRadius * (1/Math.sin(centralAngle) - 1);
-    ////var innerCircleRadius = maxTroopRadius * (1/Math.sin(maxAngle) - 1);
-    
-
-//[>    context.beginPath();<]
-    ////context.arc(troopCircle.centerX, troopCircle.centerY, 
-            ////innerCircleRadius, 0, 2 * Math.PI);
-    ////context.strokeStyle = "green";
-    //[>context.stroke();<]
-
-    //for (var i = 0; i < numberOfDiscs; i++) {
-      //var degrees = 360 / numberOfDiscs;
-
-      //troopCircle.angle = (i * degrees * TO_RADIANS); 
-
-      //// Rotate the angle for odd disc numbers to keep things symmetrical
-      //if (numberOfDiscs % 2) troopCircle.angle -= centralAngle/2;
-
-
-      //var distanceFromCenter = maxTroopRadius + innerCircleRadius;
-      //if (numberOfDiscs == 1) distanceFromCenter = 0;
-
-      //var x = troopCircle.centerX + Math.cos(troopCircle.angle) 
-	//* distanceFromCenter;
-      //var y = troopCircle.centerY + Math.sin(troopCircle.angle) 
-	//* distanceFromCenter;
-      
-      //context.beginPath();
-      ////context.arc(x, y, troopRadius, 0, 2 * Math.PI);
-      //context.arc(x, y, maxTroopRadius, 0, 2 * Math.PI);
-      //context.strokeStyle = "red";
-      //context.stroke();
-    //}
-  /*}*/
 
   function drawOccupyingFactions() {
     for (var factionName in occupyingFactions) {
@@ -2864,10 +2664,22 @@ function PolarSinkView() {
       var troopIcon = troops[0];
       var troopCoords = faction.coords;
 
-      context.drawImage(troopIcon, 
+/*      console.log(factionName);*/
+      //console.log('troopIcon:');
+      //console.dir(troopIcon.xPos + ', ' + troopIcon.yPos);
+      //console.log('troopCoords:');
+      /*console.dir(troopCoords.x + ', ' + troopCoords.y);*/
+
+     context.drawImage(troopIcon, 
 	troopCoords.x, troopCoords.y
-	,troopIconSize, troopIconSize
+	//troopIcon.xPos, troopIcon.yPos
+	//,troopIconSize, troopIconSize
+	,troopIcon.width, troopIcon.height
       );
+      //context.drawImage(troopIcon, 
+	//troopIcon.xPos, troopIcon.yPos,
+	//troopIcon.width, troopIcon.height
+      //);
 
       var troopCount = troops.length;
 
@@ -2885,167 +2697,24 @@ function PolarSinkView() {
       context.fillStyle = "white";
       context.fillText(troopCount, xPos, yPos);
     }
+
+    //var troopCircle = {
+      //"centerX": image.xPos + image.width/2,
+      //"centerY": image.yPos + image.height/2,
+      //"radius": 125,
+      //"angle": 0
+    //};
+    //context.beginPath();
+    //context.arc(troopCircle.centerX, troopCircle.centerY, troopCircle.radius,
+	//0, 2 * Math.PI);
+    //context.stroke();
+
   }
 
-  function setImageCoordinates() {
-    image.xPos = circle.centerX - imageScaleWidth/2; 
-    image.yPos = circle.centerY - imageScaleHeight/2;
-  }
-
-  function calculateTroopQuadrants() {
-
-    var rectangle = getTerritoryMinimumBoundingRectangle(smallCoords);
-
-    var smallestX = rectangle.x
-    var smallestY = rectangle.y
-
-    var width = rectangle.width;
-    var height = rectangle.height;
-
-    var canvas = canvasContainer.layer("test");
-    var context = canvas.getContext("2d");
-
-    var scale = scaleCoordinatesToEnlargedTerritory(smallCoords, rectangle);
-
-    drawTerritoryOutline(largeCoords, context);
-
-    var quadrants = divideBoundingRectangleIntoQuadrants(scale);
-
-    var troopQuadrants = getQuadrantsInsideTerritoryBoundary(quadrants, context);
-
-    return troopQuadrants;
-  }
-
-  function getTerritoryMinimumBoundingRectangle(coords) {
-
-    var smallestX = undefined,
-	largestX = undefined, 
-	smallestY = undefined,
-	largestY = undefined; 
-
-    for( i=2 ; i < coords.length-1 ; i+=2 )
-    {
-      var x= coords[i], y = coords[i+1];
-
-      if (smallestX == undefined) { smallestX = x }
-      else if (x < smallestX) { smallestX = x }
-
-      if (smallestY == undefined) { smallestY = y }
-      else if (y < smallestY) { smallestY = y }
-
-      if (largestX == undefined) { largestX = x }
-      else if (x > largestX) { largestX = x }
-
-      if (largestY == undefined) { largestY = y }
-      else if (y > largestY) { largestY = y }
-    }
-
-    var width = largestX - smallestX;
-    var height = largestY - smallestY;
-
-    var rectangle = {"x": smallestX, "y": smallestY, 
-      "width": width, "height": height};
-
-    return rectangle;
-  }
-
-  function scaleCoordinatesToEnlargedTerritory(coords, rectangle) {
-
-    var xShift = coords[0] - image.xPos; 
-    var yShift = coords[1] - image.yPos;
-
-    var scaleX = image.width / rectangle.width;
-    var scaleY = image.height/ rectangle.height;
-    var scale = Math.max(scaleX, scaleY);
-
-    for( i=0 ; i < coords.length-1 ; i+=2 )
-    {
-      var xShift = (rectangle.x * scale - image.xPos);
-      var yShift = (rectangle.y * scale - image.yPos);
-
-      largeCoords[i] = coords[i] * scale;
-      largeCoords[i+1] = coords[i+1] * scale;
-
-      largeCoords[i] -= xShift;
-      largeCoords[i+1] -= yShift;
-    }
-
-    return scale;
-  }
-
-  function divideBoundingRectangleIntoQuadrants(coordScale) {
-    var quadrants = [];
-
-    troopIconSize *= coordScale;
-
-    smallestX = image.xPos;
-    smallestY = image.yPos;
-    largestX = image.xPos + image.width;
-    largestY = image.yPos + image.height;
-
-    var x = smallestX;
-    var y = smallestY;
-    
-
-    while (x < largestX && y < largestY) {
-
-      quadrants.push({x: x, y: y});
-
-      x += troopIconSize;
-
-      if (x > largestX) {
-	x = smallestX;
-	y += troopIconSize;
-      }
-
-    }
-
-    return quadrants;
-  }
-
-  function getQuadrantsInsideTerritoryBoundary(squarePoints, context) {
-
-    var territorySquares = [];
-    for (var i = 0; i < squarePoints.length; i++) {
-      var coords = squarePoints[i];
-
-      var topLeft = {"x": coords.x, "y": coords.y};
-      var topRight = {"x": coords.x + troopIconSize, "y": coords.y};
-
-      var bottomLeft = {"x": coords.x, "y": coords.y + troopIconSize};
-      var bottomRight = 
-	{"x": coords.x + troopIconSize, "y": coords.y + troopIconSize};
-
-      if (
-	context.isPointInPath(topLeft.x, topLeft.y) 
-	&& context.isPointInPath(topRight.x, topRight.y)
-	&& context.isPointInPath(bottomLeft.x, bottomLeft.y) 
-	&& context.isPointInPath(bottomRight.x, bottomRight.y)
-      ) {
-	territorySquares.push(topLeft);
-
-      }
-
-    }
-
-    return territorySquares;
-  }
 
 }
 
-function drawTerritoryOutline(coords, ctx) {
-
-  ctx.beginPath();
-  ctx.moveTo(coords[0], coords[1]);
-  for( item=2 ; item < coords.length-1 ; item+=2 ) {
-    ctx.lineTo( coords[item] , coords[item+1] )
-  }
-  ctx.closePath();
-
-}
-
-
-},{"Dune/CanvasContainer":2,"Dune/Loader":13,"Dune/View/Map":28,"Dune/shuffle":34}],33:[function(require,module,exports){
+},{"Dune/CanvasContainer":2,"Dune/EventChain":4,"Dune/Loader":13,"Dune/View/Map":28,"Dune/shuffle":34}],33:[function(require,module,exports){
 //module.exports = promptUserSelectTraitor;
 module.exports = TraitorSelect;
 
