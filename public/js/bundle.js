@@ -280,9 +280,9 @@ function GameController() {
     var nextFaction = turnOrder.shift();
 
     if (! nextFaction) {
-      //this.nextGameTurn = function() { this.nextPlayerTurn() }
       this.nextGameTurn = nextGameTurn;
-      return
+      this.nextGameTurn();
+      return;
     }
 
     var factionView = factionViews[nextFaction.constructor.name];
@@ -297,12 +297,9 @@ function GameController() {
   }
 
   this.nextPlayerTurn = function() {
-    console.log('start regular turn');
 
-    if (! turnOrder.length) {
-      console.log('refreshing turn order');
+    if (! turnOrder.length) 
       turnOrder = gameView.game.getTurnOrder();
-    }
 
     var nextFaction = turnOrder.shift();
 
@@ -316,8 +313,8 @@ function GameController() {
 module.exports = new Debug();
 
 function Debug() {
-  //this.speed = 5;
-  //this.timeout = 0;
+  this.speed = 5;
+  this.timeout = 0;
 }
 
 },{}],5:[function(require,module,exports){
@@ -2109,7 +2106,7 @@ function PlayerScreen(args)
     //onclick events
     if (! canvas.isInteractive) {
       canvas.isInteractive = true;
-      canvas.addEventListener('click', function(element) {
+      canvas.addEventListener('mousedown', function(element) {
 	var coord = getMousePosition(canvas,element);
 
 	var icons = new Array(
