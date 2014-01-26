@@ -126,7 +126,7 @@ function drawTerritoryOutline(coords, ctx) {
 }
 
 
-},{"Dune/Controller":3,"Dune/View/Territory":31}],2:[function(require,module,exports){
+},{"Dune/Controller":3,"Dune/View/Territory":32}],2:[function(require,module,exports){
 module.exports = new CanvasContainer;
 
 function CanvasContainer() 
@@ -205,6 +205,7 @@ var gameView = require("./View/Game");
 var StartMenuView = require("./View/StartMenu");
 var FactionSelectView = require("./View/FactionSelect");
 var mapView = require("./View/Map");
+var roundView = require("Dune/View/Round");
 
 module.exports = new GameController();
 
@@ -220,10 +221,10 @@ function GameController() {
 
     hideFactionSelectView();
     initViews();
-    this.startPlayerTurn();
+    this.nextPlayerSetupTurn();
   }
 
-  this.startPlayerTurn = function() { this.startPlayerSetupTurn() }
+  this.nextGameTurn = function() { this.nextPlayerSetupTurn() }
 
   function hideFactionSelectView()
   {
@@ -281,13 +282,13 @@ function GameController() {
   }
 
 
-  this.startPlayerSetupTurn = function() {
+  this.nextPlayerSetupTurn = function() {
     var nextFaction = turnOrder.shift();
 
     if (! nextFaction) {
-      turnOrder = gameView.game.getTurnOrder();
-      this.startPlayerTurn = function() { this.startPlayerRegularTurn() }
-      return;
+      //this.nextGameTurn = function() { this.nextPlayerTurn() }
+      this.nextGameTurn = nextGameTurn;
+      return
     }
 
     var factionView = factionViews[nextFaction.constructor.name];
@@ -295,14 +296,21 @@ function GameController() {
     factionView.startSetupTurn();
   }  
 
-  this.startPlayerRegularTurn = function() {
-    console.log('start regular turn');
-    var nextFaction = turnOrder.shift();
+  function nextGameTurn() 
+  {
+    console.log('next game turn');
+    roundView.start();
+  }
 
-    if (! nextFaction) {
-      console.log('TODO add round management');
-      return;
+  this.nextPlayerTurn = function() {
+    console.log('start regular turn');
+
+    if (! turnOrder.length) {
+      console.log('refreshing turn order');
+      turnOrder = gameView.game.getTurnOrder();
     }
+
+    var nextFaction = turnOrder.shift();
 
     var factionView = factionViews[nextFaction.constructor.name];
     factionView.startTurn();
@@ -310,7 +318,7 @@ function GameController() {
 
 }
 
-},{"./CanvasContainer":2,"./Loader":13,"./View/Faction/Atreides":19,"./View/Faction/BeneGesserit":21,"./View/Faction/Emperor":22,"./View/Faction/Fremen":23,"./View/Faction/Guild":24,"./View/Faction/Harkonnen":25,"./View/FactionSelect":26,"./View/Game":27,"./View/Map":28,"./View/StartMenu":30}],4:[function(require,module,exports){
+},{"./CanvasContainer":2,"./Loader":13,"./View/Faction/Atreides":19,"./View/Faction/BeneGesserit":21,"./View/Faction/Emperor":22,"./View/Faction/Fremen":23,"./View/Faction/Guild":24,"./View/Faction/Harkonnen":25,"./View/FactionSelect":26,"./View/Game":27,"./View/Map":28,"./View/StartMenu":31,"Dune/View/Round":30}],4:[function(require,module,exports){
 module.exports = new EventChain();
 
 function EventChain() 
@@ -751,7 +759,7 @@ function TreacheryDeck() {
 }
 
 
-},{"./Faction/Atreides":5,"./Faction/BeneGesserit":7,"./Faction/Emperor":8,"./Faction/Fremen":9,"./Faction/Guild":10,"./Faction/Harkonnen":11,"./Map":14,"./shuffle":34}],13:[function(require,module,exports){
+},{"./Faction/Atreides":5,"./Faction/BeneGesserit":7,"./Faction/Emperor":8,"./Faction/Fremen":9,"./Faction/Guild":10,"./Faction/Harkonnen":11,"./Map":14,"./shuffle":35}],13:[function(require,module,exports){
 module.exports = Loader;
 
 Image.prototype.moveToCoord = function(point) {
@@ -996,7 +1004,7 @@ function SpiceDeck() {
   return new Array();
 }
 
-},{"./shuffle":34}],15:[function(require,module,exports){
+},{"./shuffle":35}],15:[function(require,module,exports){
 module.exports = BaseView;
 
 function BaseView(obj, props) {
@@ -1180,7 +1188,7 @@ function TreacheryDeckView()
   }
 }
 
-},{"Dune/CanvasContainer":2,"Dune/EventChain":4,"Dune/Loader":13,"Dune/View/Deck/Base":16,"Dune/shuffle":34}],19:[function(require,module,exports){
+},{"Dune/CanvasContainer":2,"Dune/EventChain":4,"Dune/Loader":13,"Dune/View/Deck/Base":16,"Dune/shuffle":35}],19:[function(require,module,exports){
 module.exports = AtreidesView;
 
 var FactionDecorator = require("./Base");
@@ -1470,7 +1478,7 @@ function BaseFactionView(obj, args) {
 
 }
 
-},{"../Base":15,"../Deck/Bonus.js":17,"../Deck/Treachery.js":18,"../PlayerScreen":29,"../TraitorSelect.js":33,"Dune/CanvasContainer":2,"Dune/EventChain":4,"Dune/Loader":13,"Dune/View/Map":28}],21:[function(require,module,exports){
+},{"../Base":15,"../Deck/Bonus.js":17,"../Deck/Treachery.js":18,"../PlayerScreen":29,"../TraitorSelect.js":34,"Dune/CanvasContainer":2,"Dune/EventChain":4,"Dune/Loader":13,"Dune/View/Map":28}],21:[function(require,module,exports){
 
 },{}],22:[function(require,module,exports){
 module.exports=require(21)
@@ -1600,7 +1608,7 @@ function HarkonnenView() {
 
 }
 
-},{"../TraitorSelect.js":33,"./Base":20,"Dune/CanvasContainer":2,"Dune/EventChain":4,"Dune/View/Deck/Bonus.js":17,"Dune/View/Game":27}],26:[function(require,module,exports){
+},{"../TraitorSelect.js":34,"./Base":20,"Dune/CanvasContainer":2,"Dune/EventChain":4,"Dune/View/Deck/Bonus.js":17,"Dune/View/Game":27}],26:[function(require,module,exports){
 module.exports = FactionSelectView;
 
 var ViewDecorator = require("./Base");
@@ -2154,13 +2162,12 @@ function PlayerScreen(args)
 	      && image.triggerClickEvent
 	  ) {
 	    image.triggerClickEvent();
-	    //console.log('clicked:');
-	    //console.log(image);
+	    return;
 	  }
 
 	}
 
-	//controller.startPlayerTurn();
+	controller.nextGameTurn();
       });
     }
   }
@@ -2446,7 +2453,61 @@ function getMousePosition(canvasElement,e)
 }
 
 
-},{"Dune/CanvasContainer":2,"Dune/Controller":3,"Dune/EventChain":4,"Dune/Loader":13,"Dune/View/Territory":31}],30:[function(require,module,exports){
+},{"Dune/CanvasContainer":2,"Dune/Controller":3,"Dune/EventChain":4,"Dune/Loader":13,"Dune/View/Territory":32}],30:[function(require,module,exports){
+var eventChain = require("Dune/EventChain");
+module.exports = new RoundView();
+
+/*"storm", "spiceBlow", "bidding", "revival", "movement", "battle", */
+/*"collection", "control"*/
+function RoundView() 
+{
+
+  this.start = function() {
+    eventChain.add([
+      function() { storm() },
+      function() { spiceBlow() },
+      function() { bidding() },
+      function() { revival() }
+    ]);
+    eventChain.next();
+  }
+
+  function resetRounds() {
+
+    console.log('round reset');
+    rounds = new Array(
+      storm, spiceBlow, bidding
+    );
+  }
+
+  function storm() 
+  {
+    console.log('storm round');
+    eventChain.next();
+  }
+
+  function spiceBlow() 
+  {
+    console.log('spice blow round');
+    eventChain.next();
+  }
+
+  function bidding() 
+  {
+    console.log('bidding round');
+    eventChain.next();
+  }
+
+  function revival() 
+  {
+    console.log('revival round');
+    eventChain.next();
+  }
+
+
+}
+
+},{"Dune/EventChain":4}],31:[function(require,module,exports){
 module.exports = StartMenuView;
 
 var ViewDecorator = require('./Base');
@@ -2474,7 +2535,7 @@ function StartMenuView() {
 }
 
 
-},{"./Base":15,"Dune/Controller":3}],31:[function(require,module,exports){
+},{"./Base":15,"Dune/Controller":3}],32:[function(require,module,exports){
 var Loader = require("Dune/Loader");
 var canvasContainer = require("Dune/CanvasContainer");
 var mapView = require("Dune/View/Map");
@@ -2538,7 +2599,7 @@ function TerritoryView()
 
 }
 
-},{"Dune/CanvasContainer":2,"Dune/Loader":13,"Dune/View/Map":28,"Dune/View/Territory/Base":32}],32:[function(require,module,exports){
+},{"Dune/CanvasContainer":2,"Dune/Loader":13,"Dune/View/Map":28,"Dune/View/Territory/Base":33}],33:[function(require,module,exports){
 var Loader = require("Dune/Loader");
 var canvasContainer = require("Dune/CanvasContainer");
 var mapView = require("Dune/View/Map");
@@ -2773,7 +2834,7 @@ function BaseTerritoryView(territoryImgName) {
 
 }
 
-},{"Dune/CanvasContainer":2,"Dune/EventChain":4,"Dune/Loader":13,"Dune/View/Map":28,"Dune/shuffle":34}],33:[function(require,module,exports){
+},{"Dune/CanvasContainer":2,"Dune/EventChain":4,"Dune/Loader":13,"Dune/View/Map":28,"Dune/shuffle":35}],34:[function(require,module,exports){
 //module.exports = promptUserSelectTraitor;
 module.exports = TraitorSelect;
 
@@ -3074,7 +3135,7 @@ function drawTraitors()
       image4, image4.xPos, image4.yPos, traitorScaleWidth, traitorScaleHeight);
 }
 
-},{"Dune/CanvasContainer":2,"Dune/EventChain":4,"Dune/Loader":13}],34:[function(require,module,exports){
+},{"Dune/CanvasContainer":2,"Dune/EventChain":4,"Dune/Loader":13}],35:[function(require,module,exports){
 module.exports = shuffleArray;
 
 function shuffleArray(array) {
