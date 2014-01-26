@@ -1296,10 +1296,6 @@ function BaseFactionView(obj, args) {
     var factionEmblemImgUrl = obj.imagePath + "emblems/" + images.emblem;
     factionEmblemImg = loader.loadImage(factionEmblemImgUrl)
 
-    var troopIconImgUrl = "/img/icons/troops/" + images.troop;
-    images.troop = loader.loadImage(troopIconImgUrl);
-    images.troop.faction = faction;
-
     for (var i = 0; i < images.leaders.length; i++) {
       var leaderImgUrl = images.leaderPath + images.leaders[i];
       images.leaders[i] = loader.loadImage(leaderImgUrl);
@@ -1320,16 +1316,15 @@ function BaseFactionView(obj, args) {
 
   obj.startTurn = function() 
   {
-    playerScreen.draw();
-    //DEBUG
+    playerScreen.hide();
     obj.promptUserStartTurn();
+    eventChain.add(function () { playerScreen.show(); eventChain.next() });
   }
 
 
   obj.setupEventChain = function() {
     eventChain.add([
-      function() { 
-      	obj.promptUserSelectTraitor() },
+      function() { obj.promptUserSelectTraitor() },
       function() { playerScreen.addTraitorCard(obj.dealtCard()) },
       function() { obj.drawTreacheryCard() },
       function() { playerScreen.addTreacheryCard(obj.dealtCard()) },
@@ -1992,13 +1987,7 @@ function PlayerScreen(args)
 
   var troopReserveCount = 20;
 
-  var traitorHand = [],
-      treacheryHand = [],
-      bonusHand = [],
-      allianceHand = [];
-
-  var iconScaleWidth = 67.5;
-  var iconScaleHeight = 67.5;
+  var treacheryHand = [], traitorHand = [], bonusHand = [], allianceHand = [];
 
   var deckScaleWidth = 100;
   var deckScaleHeight = 145;
@@ -2010,34 +1999,137 @@ function PlayerScreen(args)
 
   var that = this;
 
-  this.draw = function() 
+  loadImages();
+
+  function loadImages() {
+    loadSpiceIcon();
+    loadTroopIcon();
+    loadPlayerHandImages();
+    loader.onload = setImageProperties;
+  }
+
+  function loadSpiceIcon() 
   {
-    troopIconImg = images.troop;
-
-    if (! images.troop.faction) 
-      throw new Error ('Troop image has no faction property');
-
-    troopIconImg.xPos = padding;
-    troopIconImg.yPos = padding;
-    troopIconImg.width = iconScaleWidth;
-    troopIconImg.height = iconScaleHeight;
-
     var spiceIconImgUrl = "/img/icons/" + "spice-alt.png";
     spiceIconImg = loader.loadImage(spiceIconImgUrl);
-    spiceIconImg.xPos = padding;
-    spiceIconImg.yPos = troopIconImg.yPos + iconScaleHeight + padding;
-    spiceIconImg.width = iconScaleWidth;
-    spiceIconImg.height = iconScaleWidth;
+  }
 
-    loadPlayerHandImages();
+  function loadTroopIcon() 
+  {
+    var troopIconImgUrl = "/img/icons/troops/" + images.troop;
+    troopIconImg = loader.loadImage(troopIconImgUrl);
+  }
 
-    context.fillStyle = "grey";
-    context.fillRect(0, 0, canvas.width, canvas.height);
+  function setImageProperties() 
+  {
+    troopIconImg.yPos = padding;
+    setIconDimensions(troopIconImg);
+    troopIconImg.faction = args.faction;
 
+    spiceIconImg.yPos = troopIconImg.yPos + troopIconImg.width + padding;
+    setIconDimensions(spiceIconImg);
+
+    setTreacheryIconProperties();
+    setTraitorIconProperties();
+    setBonusIconProperties();
+    setAllianceIconProperties();
+
+    //allianceDeckImg.xPos = bonusDeckImg.xPos + deckScaleWidth + padding;
+    //setCardDimensions(allianceDeckImg);
+  }
+
+  function setTreacheryIconProperties() {
+    treacheryDeckImg.xPos = spiceIconImg.xPos + spiceIconImg.width + padding;
+    setCardDimensions(treacheryDeckImg);
+
+    treacheryDeckImg.triggerClickEvent = 
+      function() { showPlayerHand(treacheryHand) }
+  }
+
+  function setTraitorIconProperties() {
+    traitorDeckImg.xPos = treacheryDeckImg.xPos + deckScaleWidth + padding;
+    setCardDimensions(traitorDeckImg);
+    traitorDeckImg.triggerClickEvent = 
+      function() { showPlayerHand(traitorHand) }
+  }
+
+  function setBonusIconProperties() {
+    bonusDeckImg.xPos = traitorDeckImg.xPos + deckScaleWidth + padding;
+    setCardDimensions(bonusDeckImg);
+    bonusDeckImg.triggerClickEvent = 
+      function() { showPlayerHand(bonusHand) }
+  }
+
+  function setAllianceIconProperties() {
+    allianceDeckImg.xPos = bonusDeckImg.xPos + deckScaleWidth + padding;
+    setCardDimensions(allianceDeckImg);
+    allianceDeckImg.triggerClickEvent = 
+      function() { showPlayerHand(allianceHand) }
+  }
+
+  function showPlayerHand(playerHand) {
+    if (! playerHand.length) return;
+
+    var notificationCanvas = canvasContainer.layer("notification");
+
+    var cardScaleFactor = deckScaleHeight / deckScaleWidth;
+
+    var mapHeight = notificationCanvas.height - canvas.height;
+
+    var combinedCardPadding = padding * 4;
+    var usableHeight = mapHeight - combinedCardPadding;
+    var maxCardHeight = usableHeight/4;
+    var maxCardWidth = deckScaleWidth * cardScaleFactor;
+
+
+    for (var i = 0; i < playerHand.length; i++) {
+      var cardImg = playerHand[i];
+
+      var notificationContext = notificationCanvas.getContext("2d");
+      //horizontal layout
+      //var xPos = (i * (deckScaleWidth + padding) ) + padding;
+      //var yPos = notificationCanvas.height - canvas.height - deckScaleHeight 
+	//- padding; 
+
+      // vertical layout
+      var xPos = padding;
+
+      var yPos =  mapHeight - maxCardHeight 
+	- padding - (i * (maxCardHeight + padding)); 
+
+      notificationContext.drawImage(cardImg, xPos, yPos
+	  //,deckScaleWidth, deckScaleHeight);
+	  ,maxCardWidth, maxCardHeight);
+    }
+
+    notificationCanvas.addEventListener('click', function(e) {
+      canvasContainer.deleteLayer(notificationCanvas);
+    });
+  }
+
+  function setIconDimensions(iconImg) 
+  {
+    var iconScaleSide = 67.5;
+    iconImg.width = iconImg.height = iconScaleSide;
+    iconImg.xPos = padding;
+  }
+
+  function setCardDimensions(cardImg) 
+  {
+    cardImg.yPos = padding
+    cardImg.width = deckScaleWidth;
+    cardImg.height = deckScaleHeight;
+  }
+
+  this.show = function() 
+  {
     canvas.redraw = drawPlayerScreen;
+    canvas.redraw();
+    addClickEvent();
+  }
 
-    loader.onload = function() { canvas.redraw() }
-
+  function addClickEvent() 
+  {
     //TODO refactor player screen or canvas so that it doesn't get multiple
     //onclick events
     if (! canvas.isInteractive) {
@@ -2059,29 +2151,29 @@ function PlayerScreen(args)
 
 	  if (coord.x >= image.xPos && coord.x <= image.xPos + image.width
 	      && coord.y >= image.yPos && coord.y <= image.yPos + image.height
+	      && image.triggerClickEvent
 	  ) {
-	    console.log('clicked:');
-	    console.log(image);
+	    image.triggerClickEvent();
+	    //console.log('clicked:');
+	    //console.log(image);
 	  }
 
 	}
 
-	controller.startPlayerTurn();
+	//controller.startPlayerTurn();
       });
     }
   }
 
-  this.update = function() {
-    //TODO merge with this.draw
-    canvas.redraw();
+  this.hide = function() {
+    drawBackground();
   }
 
   function drawPlayerScreen()
   {
     context.clearRect(0, 0, canvas.width, canvas.height);
 
-    context.fillStyle = "grey";
-    context.fillRect(0, 0, canvas.width, canvas.height);
+    drawBackground();
 
     drawOffPlanetTroopReserves();
 
@@ -2103,12 +2195,16 @@ function PlayerScreen(args)
     drawEndTurnButton();
   }
 
+  function drawBackground() {
+    context.fillStyle = "grey";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+  }
+
   function drawOffPlanetTroopReserves() {
 
     context.drawImage(troopIconImg, 
       troopIconImg.xPos, troopIconImg.yPos, 
       troopIconImg.width, troopIconImg.height);
-      //iconScaleWidth, iconScaleHeight);
 
     drawTroopReserveCount();
   }
@@ -2119,17 +2215,10 @@ function PlayerScreen(args)
     
     var textWidth = context.measureText(troopReserveCount).width;
 
-    // dead center
-    //var xPos = troopIconImg.xPos + iconScaleWidth/2 - textWidth/2;
-    //var yPos = troopIconImg.yPos + iconScaleHeight/2 + fontSize/2; 
-
-    // left-middle
-    //var xPos = troopIconImg.xPos; 
-    //var yPos = troopIconImg.yPos + iconScaleHeight/2 + fontSize/2; 
-   
-    // bottom-middle position
-    var xPos = troopIconImg.xPos + iconScaleWidth/2 - textWidth/2;
-    var yPos = troopIconImg.yPos + iconScaleHeight - fontSize/2;
+    /* Troop count displays at bottom-middle of troop token */
+    var xPos = troopIconImg.xPos + troopIconImg.width/2 - textWidth/2;
+    //var yPos = troopIconImg.yPos + iconScaleHeight - fontSize/2;
+    var yPos = troopIconImg.yPos + troopIconImg.height - fontSize/2;
 
     context.strokeStyle = "black";
     context.lineWidth = 8;
@@ -2161,9 +2250,6 @@ function PlayerScreen(args)
   function drawLeaderDiscs() 
   {
     var leaderDiscs = images.leaders;
-
-    //var discScaleWidth = 50;
-    //var discScaleHeight = 50;
 
     var leaderCircle = {
       "centerX": 600,
@@ -2197,13 +2283,10 @@ function PlayerScreen(args)
       leaderDiscImg.xPos = x - leaderDiscRadius;
       leaderDiscImg.yPos = y - leaderDiscRadius;
 
-      //discScaleWidth = discScaleHeight = 2 * leaderDiscRadius;
       leaderDiscImg.width = leaderDiscImg.height = 2 * leaderDiscRadius;
       context.drawImage(leaderDiscImg, 
 	leaderDiscImg.xPos, leaderDiscImg.yPos, 
 	leaderDiscImg.width, leaderDiscImg.height);
-	//discScaleWidth, discScaleHeight);
-
     }
   }
 
@@ -2233,78 +2316,43 @@ function PlayerScreen(args)
   {
     var treacheryDeckImgUrl = deckImgPath + "treachery.png";
     treacheryDeckImg = loader.loadImage(treacheryDeckImgUrl);
-    treacheryDeckImg.xPos = spiceIconImg.xPos + iconScaleWidth + padding;
-    treacheryDeckImg.yPos = 10;
-    treacheryDeckImg.width = deckScaleWidth;
-    treacheryDeckImg.height = deckScaleHeight;
   }
 
   function loadTraitorHand()
   {
     var traitorDeckImgUrl = deckImgPath + "traitor.png";
     traitorDeckImg = loader.loadImage(traitorDeckImgUrl);
-    traitorDeckImg.xPos = treacheryDeckImg.xPos + deckScaleWidth + padding;
-    traitorDeckImg.yPos = padding;
-    traitorDeckImg.width = deckScaleWidth;
-    traitorDeckImg.height = deckScaleHeight;
-  }
+   }
 
   function loadBonusHand()
   {
     var bonusDeckImgUrl = deckImgPath + "bonus.png";
     bonusDeckImg = loader.loadImage(bonusDeckImgUrl);
-    bonusDeckImg.xPos = traitorDeckImg.xPos + deckScaleWidth + padding;
-    bonusDeckImg.yPos = padding;
-    bonusDeckImg.width = deckScaleWidth;
-    bonusDeckImg.height = deckScaleHeight;
-  }
+    }
 
   function loadAllianceHand()
   {
     var allianceDeckImgUrl = deckImgPath + "alliance.png";
     allianceDeckImg = loader.loadImage(allianceDeckImgUrl);
-    allianceDeckImg.xPos = bonusDeckImg.xPos + deckScaleWidth + padding;
-    allianceDeckImg.yPos = padding
-    allianceDeckImg.width = deckScaleWidth;
-    allianceDeckImg.height = deckScaleHeight;
   }
 
-
-  function drawLeaderDiskStarFormation() 
-  {
-  }
 
   this.addTraitorCard = function(traitorCardImg) 
   {
     addCardToHand(traitorCardImg, traitorDeckImg);
-    traitorCardImg.onHalt = function() { 
-      traitorHand.push(traitorCardImg);
-      canvas.redraw() 
-
-      eventChain.next();
-    }
+    addCardOnHaltEvent(traitorCardImg, traitorHand);
   }
 
   this.addTreacheryCard = function(treacheryCardImg) 
   {
     addCardToHand(treacheryCardImg, treacheryDeckImg);
-    treacheryCardImg.onHalt = function() { 
-      treacheryHand.push(treacheryCardImg);
-      canvas.redraw() 
-
-      eventChain.next();
-    }
+    addCardOnHaltEvent(treacheryCardImg, treacheryHand);
   }
 
   this.addBonusCard = function(bonusCardImg) 
   {
     addCardToHand(bonusCardImg, bonusDeckImg);
-    bonusCardImg.onHalt = function() { 
-      bonusHand.push(bonusCardImg);
-      canvas.redraw() 
-
-      eventChain.next();
-    }
+    addCardOnHaltEvent(bonusCardImg, bonusHand);
   }
 
   function addCardToHand(cardImg, playerHandImg)
@@ -2317,6 +2365,14 @@ function PlayerScreen(args)
     cardImg.height = deckScaleHeight;
 
     cardImg.moveToCoord([playerHandImg.xPos, playerHandImg.yPos]);
+  }
+
+  function addCardOnHaltEvent(cardImg, cardHand) {
+    cardImg.onHalt = function() { 
+      cardHand.push(cardImg);
+      canvas.redraw() 
+      eventChain.next();
+    }
   }
 
   function drawHandCount(playerHandImg, playerHand)
@@ -2349,7 +2405,7 @@ function PlayerScreen(args)
     var troopTokenImg = getTroopTokenImg(territoryObj);
 
     troopReserveCount--;
-    this.update();
+    canvas.redraw();
     territoryObj.addFaction(troopTokenImg);
   }
 
@@ -2365,12 +2421,14 @@ function PlayerScreen(args)
 
     var troopTokenImg = new Image();
 
+    if (! troopIconImg.faction) 
+      throw new Error ('Troop image has no faction property');
+
     troopTokenImg.src = troopIconImg.src;
     troopTokenImg.faction = troopIconImg.faction;
     troopTokenImg.yPos = troopIconImg.yPos + notificationCanvas.height - canvas.height;
     troopTokenImg.xPos = troopIconImg.xPos;
-    troopTokenImg.height = iconScaleHeight;
-    troopTokenImg.width = iconScaleWidth;
+    troopTokenImg.height = troopTokenImg.width = troopIconImg.width;
     troopTokenImg.canvas = notificationCanvas;
     troopTokenImg.speed = 0.1;
 
@@ -2433,6 +2491,7 @@ function TerritoryView()
   var territoryImages = {
     "carthag": new BaseTerritoryView("carthag"),
     "arrakeen": new BaseTerritoryView("arrakeen"),
+    "falseWallEast": new BaseTerritoryView("falseWallEast"),
     "polarSink": new BaseTerritoryView("polarSink")
   };
 
