@@ -2,131 +2,125 @@
 var gameController = require("Dune/Controller");
 
 window.onload = function() {
-  
-
-  //var gameController = new GameController();
-
   /* DEBUG MODE */
   gameController.setFactions(new Array("Atreides", "Harkonnen"));
   gameController.startGame();
 
-  drawSquaresOfTerritory();
+  //loadRoundHighlightMarkers();
+  //highlightStormRound();
 }
 
-function drawSquaresOfTerritory() 
+
+var Loader = require("Dune/Loader");
+var loader = new Loader();
+var canvasContainer = require("Dune/CanvasContainer");
+var roundCanvas = canvasContainer.layer('roundscreen');
+var roundCtx = roundCanvas.getContext("2d");
+
+var roundMarkers = {
+  "storm": {"x": 174}, 
+  "spiceblow": {"x": 221}, 
+  "bidding": {"x": 269}, 
+  "movement": {"x": 457},
+  "battle": {"x": 504},
+  "collection": {"x": 552}
+};
+
+function loadRoundHighlightMarkers() 
 {
-/*  var canvasContainer = require("Dune/CanvasContainer");*/
-  //var canvas = canvasContainer.layer("notification");
-  /*var ctx = canvas.getContext("2d");*/
-  var territoryView = require("Dune/View/Territory");
 
-  //var territoryImage = territoryView.enlargeTerritory('carthag');
-  //console.log(territoryImage);
-  return;
-
-  // polar sink
-  //var coords=[374,484,368,476,361,466,350,466,341,462,332,454,327,454,321,446,324,425,333,408,348,397,366,395,379,391,384,387,391,387,397,394,409,394,413,392,425,392,436,405,434,425,424,439,418,452,411,461,410,473,395,484];
-
-  //false wall east
-  //var coords=[455,460,436,469,418,453,425,439,435,425,437,405,426,391,414,391,414,384,427,372,433,360,449,371,467,396,467,426,465,429,465,437];
-  
-  //rim wall west
-  var coords=[484,269,483,267,485,264,484,253,522,187,527,187,532,182,536,183,536,197,530,204,527,219,516,237,516,243,510,243,510,248,500,254,500,259,487,268];
-
-  var s = 8.5;
-
-  var smallestX = undefined,
-      largestX = undefined, 
-      smallestY = undefined,
-      largestY = undefined; 
-
-  for( i=2 ; i < coords.length-1 ; i+=2 )
-  {
-    var x= coords[i], y = coords[i+1];
-
-    if (smallestX == undefined) { smallestX = x }
-    else if (x < smallestX) { smallestX = x }
-
-    if (smallestY == undefined) { smallestY = y }
-    else if (y < smallestY) { smallestY = y }
-
-    if (largestX == undefined) { largestX = x }
-    else if (x > largestX) { largestX = x }
-
-    if (largestY == undefined) { largestY = y }
-    else if (y > largestY) { largestY = y }
-  }
-
-  
-
-  var width = largestX - smallestX;
-  var height = largestY - smallestY;
-
-  ctx.strokeRect(smallestX, smallestY,
-      width, height);
-
-
-  var squarePoints = [];
-  var x = smallestX;
-  var y = smallestY;
-  while (x < largestX && y < largestY) {
-
-    squarePoints.push({x: x, y: y});
-
-    x += s;
-
-    if (x > largestX) {
-      x = smallestX;
-      y += s;
-    }
-
+  for (var m in roundMarkers) {
+    var url = "/img/rounds/" + m + ".png";
+    roundMarkers[m].img = loader.loadImage(url);
   }
 
 
-  drawTerritoryOutline(coords, ctx);
-
-  var territorySquares = [];
-  for (var i = 0; i < squarePoints.length; i++) {
-    var coords = squarePoints[i];
-
-    var topLeft = {"x": coords.x, "y": coords.y};
-    var topRight = {"x": coords.x + s, "y": coords.y};
-
-    var bottomLeft = {"x": coords.x, "y": coords.y + s};
-    var bottomRight = {"x": coords.x + s, "y": coords.y + s};
-
-    if (
-      ctx.isPointInPath(topLeft.x, topLeft.y) 
-      && ctx.isPointInPath(topRight.x, topRight.y)
-      && ctx.isPointInPath(bottomLeft.x, bottomLeft.y) 
-      && ctx.isPointInPath(bottomRight.x, bottomRight.y)
-    ) {
-      territorySquares.push(topLeft);
-
-      ctx.strokeStyle = "red";
-      ctx.strokeRect(topLeft.x, topLeft.y,
-	s, s);
-    }
-
-  }
-
-  console.log('territorySquares');
-  console.log(territorySquares.length);
+  loader.onload = drawRoundMarkers;
 }
 
-function drawTerritoryOutline(coords, ctx) {
+function drawRoundMarkers() 
+{
+  setRoundMarkerDimensions();
 
-  ctx.beginPath();
-  ctx.moveTo(coords[0], coords[1]);
-  for( item=2 ; item < coords.length-1 ; item+=2 ) {
-    ctx.lineTo( coords[item] , coords[item+1] )
+  for (var marker in roundMarkers) {
+    var props = roundMarkers[marker];
+    var img = props.img;
+
+    roundCtx.drawImage(
+      img,
+      img.xPos, img.yPos,
+      img.width, img.height);
+
   }
-  ctx.closePath();
-
 }
 
 
-},{"Dune/Controller":3,"Dune/View/Territory":32}],2:[function(require,module,exports){
+function setRoundMarkerDimensions() 
+{
+  var markerScale = 43;
+  var yPos = 21;
+
+  for (var marker in roundMarkers) {
+    var props = roundMarkers[marker];
+    var img = props.img;
+    img.xPos = props.x;
+    img.yPos = yPos;
+    img.width = img.height = markerScale;
+  }
+}
+
+function highlightStormRound() {
+
+  var roundMarkerUrl = "/img/rounds/storm.png";
+  var roundMarkerImg = loader.loadImage(roundMarkerUrl);
+
+  var markerScale = 43;
+
+  loader.onload = function() {
+    var xPos = 174;
+    var yPos = 21;
+    roundCtx.drawImage(roundMarkerImg, xPos, yPos, markerScale, markerScale);
+  }
+}
+
+function highlightSpiceBlowRound() {
+
+  var markerScale = 43;
+
+  loader.onload = function() {
+    var xPos = 221;
+    var yPos = 21;
+    roundCtx.drawImage(roundMarkerImg, xPos, yPos, markerScale, markerScale);
+  }
+}
+
+function highlightBiddingRound() {
+  var roundMarkerUrl = "/img/rounds/bidding.png";
+  var roundMarkerImg = loader.loadImage(roundMarkerUrl);
+
+  var markerScale = 43;
+
+  loader.onload = function() {
+    var xPos = 269;
+    var yPos = 21;
+    roundCtx.drawImage(roundMarkerImg, xPos, yPos, markerScale, markerScale);
+  }
+}
+
+function highlightMovementRound() {
+  var roundMarkerUrl = "/img/rounds/movement.png";
+  var roundMarkerImg = loader.loadImage(roundMarkerUrl);
+
+  var markerScale = 43;
+
+  loader.onload = function() {
+    var xPos = 317;
+    var yPos = 21;
+    roundCtx.drawImage(roundMarkerImg, xPos, yPos, markerScale, markerScale);
+  }
+}
+
+},{"Dune/CanvasContainer":2,"Dune/Controller":3,"Dune/Loader":13}],2:[function(require,module,exports){
 module.exports = new CanvasContainer;
 
 function CanvasContainer() 
@@ -180,8 +174,12 @@ function CanvasContainer()
       	return 97;
       case "storm":
       	return 96;
+      case "turnscreen":
+      	return 96;
+      case "roundscreen":
+      	return 96;
       case "test":
-      	return 95;
+      	return 94;
       default:
       	return 99;
               //throw new Error("No zIndex case defined for " + layerName);
@@ -2454,7 +2452,10 @@ function getMousePosition(canvasElement,e)
 
 
 },{"Dune/CanvasContainer":2,"Dune/Controller":3,"Dune/EventChain":4,"Dune/Loader":13,"Dune/View/Territory":32}],30:[function(require,module,exports){
+var canvasContainer = require("Dune/CanvasContainer");
+var Loader = require("Dune/Loader");
 var eventChain = require("Dune/EventChain");
+
 module.exports = new RoundView();
 
 /*"storm", "spiceBlow", "bidding", "revival", "movement", "battle", */
@@ -2462,52 +2463,122 @@ module.exports = new RoundView();
 function RoundView() 
 {
 
+  var canvas = canvasContainer.layer('roundscreen');
+  var context = canvas.getContext("2d");
+  var timeout = 2000;
+
+  var roundMarkers = {
+    "storm": {"x": 174}, 
+    "spiceblow": {"x": 221}, 
+    "bidding": {"x": 269}, 
+    "movement": {"x": 457},
+    "battle": {"x": 504},
+    "collection": {"x": 552}
+  };
+
+  loadRoundMarkerImages();
+
+  function loadRoundMarkerImages() 
+  {
+    var loader = new Loader();
+
+    for (var m in roundMarkers) {
+      var url = "/img/rounds/" + m + ".png";
+      roundMarkers[m].img = loader.loadImage(url);
+    }
+
+    loader.onload = setRoundMarkerDimensions;
+  }
+
+  function setRoundMarkerDimensions() 
+  {
+    var markerScale = 43;
+    var yPos = 21;
+
+    for (var marker in roundMarkers) {
+      var props = roundMarkers[marker];
+      var img = props.img;
+      img.xPos = props.x;
+      img.yPos = yPos;
+      img.width = img.height = markerScale;
+    }
+  }
+
   this.start = function() {
     eventChain.add([
       function() { storm() },
       function() { spiceBlow() },
       function() { bidding() },
-      function() { revival() }
+      function() { revival() },
+      function() { movement() },
+      function() { battle() },
+      function() { collection() }
     ]);
     eventChain.next();
-  }
-
-  function resetRounds() {
-
-    console.log('round reset');
-    rounds = new Array(
-      storm, spiceBlow, bidding
-    );
   }
 
   function storm() 
   {
     console.log('storm round');
-    eventChain.next();
+    drawMarkerImage("storm");
+    setTimeout(eventChain.next, timeout);
   }
 
   function spiceBlow() 
   {
     console.log('spice blow round');
-    eventChain.next();
+    drawMarkerImage("spiceblow");
+    setTimeout(eventChain.next, timeout);
   }
 
   function bidding() 
   {
     console.log('bidding round');
-    eventChain.next();
+    drawMarkerImage("bidding");
+    setTimeout(eventChain.next, timeout);
   }
 
   function revival() 
   {
     console.log('revival round');
-    eventChain.next();
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    setTimeout(eventChain.next, timeout);
   }
 
+  function movement() 
+  {
+    console.log('movement round');
+    drawMarkerImage("movement");
+    setTimeout(eventChain.next, timeout);
+  }
+
+  function battle() 
+  {
+    console.log('battle round');
+    drawMarkerImage("battle");
+    setTimeout(eventChain.next, timeout);
+  }
+
+  function collection() 
+  {
+    console.log('collection round');
+    drawMarkerImage("collection");
+    setTimeout(eventChain.next, timeout);
+  }
+
+  function drawMarkerImage(markerName) 
+  {
+    var img = roundMarkers[markerName].img;
+
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(img,
+      img.xPos, img.yPos,
+      img.width, img.height);
+  }
 
 }
 
-},{"Dune/EventChain":4}],31:[function(require,module,exports){
+},{"Dune/CanvasContainer":2,"Dune/EventChain":4,"Dune/Loader":13}],31:[function(require,module,exports){
 module.exports = StartMenuView;
 
 var ViewDecorator = require('./Base');
