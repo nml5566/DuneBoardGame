@@ -325,7 +325,6 @@ function SpiceDeck()
 {
 
   var cards = makeDeck();
-  var drawnTerritoriesCount = 0;
 
   function makeDeck() 
   {
@@ -368,17 +367,8 @@ function SpiceDeck()
 
   this.dealCard = function() 
   {
-    if (drawnTerritoriesCount == 2) {
-      drawnTerritoriesCount = 0;
-      return false;
-    }
-
     if (! cards.length) cards = makeDeck();
     var dealtCard = cards.shift();
-
-    if (dealtCard.spice)
-      drawnTerritoriesCount++;
-
     return dealtCard;
   }
 
@@ -754,8 +744,20 @@ function Game() {
   }
 
   this.spiceBlowRound = function() {
-    var spiceCard = spiceDeck.dealCard();
-    return spiceCard;
+    var drawnTerritoriesCount = 0;
+
+    var spiceCards = [];
+
+    while (drawnTerritoriesCount < 2) 
+    {
+      var spiceCard = spiceDeck.dealCard();
+      spiceCards.push(spiceCard);
+
+      if (spiceCard.spice) 
+	drawnTerritoriesCount++;
+    }
+
+    return spiceCards;
   }
 
   this.getTurnOrder = function() {

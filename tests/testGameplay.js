@@ -3,6 +3,8 @@ var DuneGame = require("Dune/Game");
 
 module.exports = testGameplay;
 
+testGameplay();
+
 function testGameplay() 
 {
   var game = new DuneGame();
@@ -16,7 +18,7 @@ function testGameplay()
   // Initial round
   var map = game.map;
 
-  testTroops();
+  testTroops(map, atreides, harkonnen);
 
 
   var atreidesTraitorHand =  atreides.drawTraitorHand();
@@ -38,13 +40,8 @@ function testGameplay()
   atreides.drawTreacheryCard();
   harkonnen.drawTreacheryCard();
 
-  //var initialStormPosition = map.initStormPosition();
-  map.initStormPosition();
-  var initialStormPosition = map.stormSector;
-
-  assert(initialStormPosition >= 0);
-  assert(initialStormPosition <= 17);
-
+  var initialStormPosition = testStormPosition(map);
+  
   testTurnOrder();
 
   // Start Game
@@ -63,7 +60,7 @@ function testGameplay()
 
     initialStormPosition = newStormPosition;
 
-    testSpiceBlowRound();
+    testSpiceBlowRound(game);
 
 
     var turnOrder = game.getTurnOrder();
@@ -87,7 +84,7 @@ function testGameplay()
   console.log('game over');
 }
 
-function testTroops()
+function testTroops(map, atreides, harkonnen)
 {
   var atreidesTroops = atreides.getTroops(10);
   var Arrakeen = map.getTerritory("Arrakeen");
@@ -96,6 +93,17 @@ function testTroops()
   var harkonnenTroops = harkonnen.getTroops(10);
   var Carthag = map.getTerritory("Carthag");
   harkonnenTroops.occupy(Carthag);
+}
+
+function testStormPosition(map) 
+{
+  map.initStormPosition();
+  var initialStormPosition = map.stormSector;
+
+  assert(initialStormPosition >= 0);
+  assert(initialStormPosition <= 17);
+
+  return initialStormPosition;
 }
 
 function testStormMovement(initialStormPosition, newStormPosition) {
@@ -107,12 +115,14 @@ function testStormMovement(initialStormPosition, newStormPosition) {
     ), "Storm moved more than 6 quadrants" );
 }
 
-function testSpiceBlowRound() 
+function testSpiceBlowRound(game) 
 {
   var drawnTerritoriesCount = 0;
-  var spiceCard = game.spiceBlowRound();
-  while (spiceCard) 
+  var spiceCards = game.spiceBlowRound();
+
+  for (var i = 0; i < spiceCards.length; i++) 
   {
+    var spiceCard = spiceCards[i];
     if (spiceCard.spice) 
     {
       drawnTerritoriesCount++;
@@ -120,8 +130,6 @@ function testSpiceBlowRound()
       assert(spice == 6 || spice == 8 || spice == 10 || spice == 12,
 	  "Spice card value not 6, 8, 10, or 12");
     } else { assert(spiceCard.isWorm, "Spice card has no spice and isn't worm") }
-
-    spiceCard = game.spiceBlowRound();
   }
 
   assert(drawnTerritoriesCount == 2, 
