@@ -120,7 +120,7 @@ function highlightMovementRound() {
   }
 }
 
-},{"Dune/CanvasContainer":2,"Dune/Controller":3,"Dune/Loader":14}],2:[function(require,module,exports){
+},{"Dune/CanvasContainer":2,"Dune/Controller":3,"Dune/Loader":15}],2:[function(require,module,exports){
 module.exports = new CanvasContainer;
 
 function CanvasContainer() 
@@ -309,7 +309,7 @@ function GameController() {
 
 }
 
-},{"./CanvasContainer":2,"./Loader":14,"./View/Faction/Atreides":21,"./View/Faction/BeneGesserit":23,"./View/Faction/Emperor":24,"./View/Faction/Fremen":25,"./View/Faction/Guild":26,"./View/Faction/Harkonnen":27,"./View/FactionSelect":28,"./View/Game":29,"./View/Map":30,"./View/StartMenu":33,"Dune/View/Round":32}],4:[function(require,module,exports){
+},{"./CanvasContainer":2,"./Loader":15,"./View/Faction/Atreides":22,"./View/Faction/BeneGesserit":24,"./View/Faction/Emperor":25,"./View/Faction/Fremen":26,"./View/Faction/Guild":27,"./View/Faction/Harkonnen":28,"./View/FactionSelect":29,"./View/Game":30,"./View/Map":31,"./View/StartMenu":34,"Dune/View/Round":33}],4:[function(require,module,exports){
 module.exports = new Debug();
 
 function Debug() {
@@ -318,6 +318,73 @@ function Debug() {
 }
 
 },{}],5:[function(require,module,exports){
+var shuffleArray = require("Dune/shuffle");
+module.exports = new SpiceDeck();
+
+function SpiceDeck() 
+{
+
+  var cards = makeDeck();
+  var drawnTerritoriesCount = 0;
+
+  function makeDeck() 
+  {
+    var spiceCards = makeSpiceCards();
+    var wormCards = makeWormCards();
+    var cards = spiceCards.concat(wormCards);
+    shuffleArray(cards);
+    return cards;
+  }
+
+  function makeWormCards() 
+  {
+    var wormCards = Array.apply(null, new Array(6)).map(
+	function() { return { "isWorm": true } });
+    return wormCards;
+  }
+  
+  function makeSpiceCards() 
+  {
+    var spiceBlows = new Array(
+      ["cielagoSouth", 12], ["southMesa", 10], ["redChasm", 8], 
+      ["sihayaRidge", 6], ["oldGap", 6], ["brokenLand", 8], 
+      ["rockOutcroppings", 6], ["funeralPlain", 6], ["theGreatFlat", 10], 
+      ["habbanyaErg", 8], ["habbanyaRidgeFlat", 10], ["cielagoNorth", 8],
+      ["theMinorErg", 8], ["haggaBasin", 6], ["windPassNorth", 6]
+    );
+
+    var spiceCards = [];
+
+    for (var i = 0; i < spiceBlows.length; i++) 
+    {
+      var spiceBlow = spiceBlows[i];
+      var card = { "territory": spiceBlow[0], "spice": spiceBlow[1] };
+      spiceCards.push(card);
+    }
+
+    return spiceCards;
+  }
+
+
+  this.dealCard = function() 
+  {
+    if (drawnTerritoriesCount == 2) {
+      drawnTerritoriesCount = 0;
+      return false;
+    }
+
+    if (! cards.length) cards = makeDeck();
+    var dealtCard = cards.shift();
+
+    if (dealtCard.spice)
+      drawnTerritoriesCount++;
+
+    return dealtCard;
+  }
+
+}
+
+},{"Dune/shuffle":38}],6:[function(require,module,exports){
 module.exports = new EventChain();
 
 function EventChain() 
@@ -351,7 +418,7 @@ function EventChain()
   }
 }
 
-},{}],6:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 module.exports = Atreides;
 
 var internalDecorator = require("./Base.js");
@@ -373,7 +440,7 @@ function Atreides(game) {
 }
 
 
-},{"./Base.js":7}],7:[function(require,module,exports){
+},{"./Base.js":8}],8:[function(require,module,exports){
 module.exports = BaseFaction;
 
 function BaseFaction(obj, props) {
@@ -487,7 +554,7 @@ function BaseFactionTroop() {
   return this;
 }
 
-},{}],8:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 module.exports = BeneGesseritFaction;
 
 var BaseFaction = require("./Base.js");
@@ -508,7 +575,7 @@ function BeneGesseritFaction() {
   this.setSpice(5);
 }
 
-},{"./Base.js":7}],9:[function(require,module,exports){
+},{"./Base.js":8}],10:[function(require,module,exports){
 module.exports = EmperorFaction;
 
 var BaseFaction = require("./Base.js");
@@ -529,7 +596,7 @@ function EmperorFaction() {
   this.setSpice(10);
 }
 
-},{"./Base.js":7}],10:[function(require,module,exports){
+},{"./Base.js":8}],11:[function(require,module,exports){
 module.exports = FremenFaction;
 
 var BaseFaction = require("./Base.js");
@@ -551,7 +618,7 @@ function FremenFaction() {
 }
 
 
-},{"./Base.js":7}],11:[function(require,module,exports){
+},{"./Base.js":8}],12:[function(require,module,exports){
 module.exports = GuildFaction;
 
 var FactionDecorator = require("./Base.js");
@@ -570,7 +637,7 @@ function GuildFaction(game) {
       {"spice": 5, "leaders": leaders, "name": "Spacing Guild", "game": game});
 }
 
-},{"./Base.js":7}],12:[function(require,module,exports){
+},{"./Base.js":8}],13:[function(require,module,exports){
 module.exports = Harkonnen;
 
 var internalDecorator = require("./Base.js");
@@ -592,11 +659,12 @@ function Harkonnen(game) {
 
 }
 
-},{"./Base.js":7}],13:[function(require,module,exports){
+},{"./Base.js":8}],14:[function(require,module,exports){
 module.exports = Game;
 
 var ArrakisMap = require("./Map");
 var shuffleArray = require("./shuffle");
+var spiceDeck = require("Dune/Deck/Spice");
 
 function Game() {
 
@@ -607,13 +675,13 @@ function Game() {
       playerSeat = { },
       traitorPool;
 
-  var treacheryDeck = TreacheryDeck();
+  //var treacheryDeck = TreacheryDeck();
   this.map = new ArrakisMap();
 
   this.start = function() {
     isStarted = true;
     assignPlayerSeats();
-    shuffleArray(treacheryDeck);
+    //shuffleArray(treacheryDeck);
     makeTraitorPool();
   }
 
@@ -686,7 +754,8 @@ function Game() {
   }
 
   this.spiceBlowRound = function() {
-    return this.map.spiceBlow();
+    var spiceCard = spiceDeck.dealCard();
+    return spiceCard;
   }
 
   this.getTurnOrder = function() {
@@ -757,7 +826,7 @@ function TreacheryDeck() {
 }
 
 
-},{"./Faction/Atreides":6,"./Faction/BeneGesserit":8,"./Faction/Emperor":9,"./Faction/Fremen":10,"./Faction/Guild":11,"./Faction/Harkonnen":12,"./Map":15,"./shuffle":37}],14:[function(require,module,exports){
+},{"./Faction/Atreides":7,"./Faction/BeneGesserit":9,"./Faction/Emperor":10,"./Faction/Fremen":11,"./Faction/Guild":12,"./Faction/Harkonnen":13,"./Map":16,"./shuffle":38,"Dune/Deck/Spice":5}],15:[function(require,module,exports){
 var debug = require("Dune/Debug");
 module.exports = Loader;
 
@@ -905,7 +974,7 @@ function Loader() {
     }
 }
 
-},{"Dune/Debug":4}],15:[function(require,module,exports){
+},{"Dune/Debug":4}],16:[function(require,module,exports){
 module.exports = ArrakisMap;
 
 var shuffleArray = require("./shuffle");
@@ -1003,7 +1072,7 @@ function SpiceDeck() {
   return new Array();
 }
 
-},{"./shuffle":37}],16:[function(require,module,exports){
+},{"./shuffle":38}],17:[function(require,module,exports){
 module.exports = BaseView;
 
 function BaseView(obj, props) {
@@ -1017,7 +1086,7 @@ function BaseView(obj, props) {
 
 }
 
-},{}],17:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 var canvasContainer = require("Dune/CanvasContainer");
 var mapView = require("Dune/View/Map");
 var eventChain = require("Dune/EventChain");
@@ -1099,7 +1168,7 @@ function DeckViewDecorator(obj, args) {
 
 }
 
-},{"Dune/CanvasContainer":2,"Dune/Debug":4,"Dune/EventChain":5,"Dune/View/Map":30}],18:[function(require,module,exports){
+},{"Dune/CanvasContainer":2,"Dune/Debug":4,"Dune/EventChain":6,"Dune/View/Map":31}],19:[function(require,module,exports){
 var Loader = require("Dune/Loader");
 var mapView = require("Dune/View/Map");
 var DeckViewDecorator = require("Dune/View/Deck/Base");
@@ -1138,7 +1207,7 @@ function BonusDeckView()
 
 }
 
-},{"Dune/Loader":14,"Dune/View/Deck/Base":17,"Dune/View/Map":30}],19:[function(require,module,exports){
+},{"Dune/Loader":15,"Dune/View/Deck/Base":18,"Dune/View/Map":31}],20:[function(require,module,exports){
 var Loader = require("Dune/Loader");
 var DeckViewDecorator = require("Dune/View/Deck/Base");
 var gameView = require("Dune/View/Game");
@@ -1178,7 +1247,7 @@ function StormDeckView() {
 
 }
 
-},{"Dune/Loader":14,"Dune/View/Deck/Base":17,"Dune/View/Game":29}],20:[function(require,module,exports){
+},{"Dune/Loader":15,"Dune/View/Deck/Base":18,"Dune/View/Game":30}],21:[function(require,module,exports){
 var Loader = require("Dune/Loader");
 var shuffleArray = require("Dune/shuffle");
 var DeckViewDecorator = require("Dune/View/Deck/Base");
@@ -1240,7 +1309,7 @@ function TreacheryDeckView()
   }
 }
 
-},{"Dune/Loader":14,"Dune/View/Deck/Base":17,"Dune/shuffle":37}],21:[function(require,module,exports){
+},{"Dune/Loader":15,"Dune/View/Deck/Base":18,"Dune/shuffle":38}],22:[function(require,module,exports){
 module.exports = AtreidesView;
 
 var FactionDecorator = require("./Base");
@@ -1313,7 +1382,7 @@ function AtreidesView() {
 
 }
 
-},{"../../Controller":3,"./Base":22,"Dune/CanvasContainer":2,"Dune/EventChain":5,"Dune/View/Deck/Bonus.js":18,"Dune/View/Game":29}],22:[function(require,module,exports){
+},{"../../Controller":3,"./Base":23,"Dune/CanvasContainer":2,"Dune/EventChain":6,"Dune/View/Deck/Bonus.js":19,"Dune/View/Game":30}],23:[function(require,module,exports){
 module.exports = BaseFactionView;
 
 var Loader = require("Dune/Loader");
@@ -1474,11 +1543,11 @@ function BaseFactionView(obj, args) {
 
 }
 
-},{"../Base":16,"../Deck/Bonus.js":18,"../Deck/Treachery.js":20,"../PlayerScreen":31,"../TraitorSelect.js":36,"Dune/CanvasContainer":2,"Dune/EventChain":5,"Dune/Loader":14,"Dune/View/Map":30}],23:[function(require,module,exports){
+},{"../Base":17,"../Deck/Bonus.js":19,"../Deck/Treachery.js":21,"../PlayerScreen":32,"../TraitorSelect.js":37,"Dune/CanvasContainer":2,"Dune/EventChain":6,"Dune/Loader":15,"Dune/View/Map":31}],24:[function(require,module,exports){
 
-},{}],24:[function(require,module,exports){
-module.exports=require(23)
 },{}],25:[function(require,module,exports){
+module.exports=require(24)
+},{}],26:[function(require,module,exports){
 module.exports = FremenView;
 
 var BaseFactionView = require("./Base");
@@ -1501,9 +1570,9 @@ function FremenView(controller) {
 
 }
 
-},{"./Base":22,"Dune/Game":13}],26:[function(require,module,exports){
-module.exports=require(23)
-},{}],27:[function(require,module,exports){
+},{"./Base":23,"Dune/Game":14}],27:[function(require,module,exports){
+module.exports=require(24)
+},{}],28:[function(require,module,exports){
 module.exports = HarkonnenView;
 
 var FactionDecorator = require("./Base");
@@ -1604,7 +1673,7 @@ function HarkonnenView() {
 
 }
 
-},{"../TraitorSelect.js":36,"./Base":22,"Dune/CanvasContainer":2,"Dune/EventChain":5,"Dune/View/Deck/Bonus.js":18,"Dune/View/Game":29}],28:[function(require,module,exports){
+},{"../TraitorSelect.js":37,"./Base":23,"Dune/CanvasContainer":2,"Dune/EventChain":6,"Dune/View/Deck/Bonus.js":19,"Dune/View/Game":30}],29:[function(require,module,exports){
 module.exports = FactionSelectView;
 
 var ViewDecorator = require("./Base");
@@ -1751,7 +1820,7 @@ function FactionSelectView() {
 }
 
 
-},{"./Base":16,"Dune/Controller":3}],29:[function(require,module,exports){
+},{"./Base":17,"Dune/Controller":3}],30:[function(require,module,exports){
 var DuneGame = require("Dune/Game");
 
 module.exports = new GameView();
@@ -1762,7 +1831,7 @@ function GameView()
   this.players = {};
 }
 
-},{"Dune/Game":13}],30:[function(require,module,exports){
+},{"Dune/Game":14}],31:[function(require,module,exports){
 
 var ViewDecorator = require("./Base");
 var gameView = require("Dune/View/Game");
@@ -1923,7 +1992,7 @@ function MapView() {
 
 
 
-},{"./Base":16,"Dune/CanvasContainer":2,"Dune/EventChain":5,"Dune/Loader":14,"Dune/View/Game":29}],31:[function(require,module,exports){
+},{"./Base":17,"Dune/CanvasContainer":2,"Dune/EventChain":6,"Dune/Loader":15,"Dune/View/Game":30}],32:[function(require,module,exports){
 module.exports = PlayerScreen;
 
 var controller = require("Dune/Controller");
@@ -2417,7 +2486,7 @@ function getMousePosition(canvasElement,e)
 }
 
 
-},{"Dune/CanvasContainer":2,"Dune/Controller":3,"Dune/EventChain":5,"Dune/Loader":14,"Dune/View/Territory":34}],32:[function(require,module,exports){
+},{"Dune/CanvasContainer":2,"Dune/Controller":3,"Dune/EventChain":6,"Dune/Loader":15,"Dune/View/Territory":35}],33:[function(require,module,exports){
 var canvasContainer = require("Dune/CanvasContainer");
 var Loader = require("Dune/Loader");
 var eventChain = require("Dune/EventChain");
@@ -2548,7 +2617,7 @@ function RoundView()
 
 }
 
-},{"Dune/CanvasContainer":2,"Dune/EventChain":5,"Dune/Loader":14,"Dune/View/Deck/Storm":19,"Dune/View/Map":30}],33:[function(require,module,exports){
+},{"Dune/CanvasContainer":2,"Dune/EventChain":6,"Dune/Loader":15,"Dune/View/Deck/Storm":20,"Dune/View/Map":31}],34:[function(require,module,exports){
 module.exports = StartMenuView;
 
 var ViewDecorator = require('./Base');
@@ -2576,7 +2645,7 @@ function StartMenuView() {
 }
 
 
-},{"./Base":16,"Dune/Controller":3}],34:[function(require,module,exports){
+},{"./Base":17,"Dune/Controller":3}],35:[function(require,module,exports){
 var Loader = require("Dune/Loader");
 var canvasContainer = require("Dune/CanvasContainer");
 var mapView = require("Dune/View/Map");
@@ -2640,7 +2709,7 @@ function TerritoryView()
 
 }
 
-},{"Dune/CanvasContainer":2,"Dune/Loader":14,"Dune/View/Map":30,"Dune/View/Territory/Base":35}],35:[function(require,module,exports){
+},{"Dune/CanvasContainer":2,"Dune/Loader":15,"Dune/View/Map":31,"Dune/View/Territory/Base":36}],36:[function(require,module,exports){
 var Loader = require("Dune/Loader");
 var canvasContainer = require("Dune/CanvasContainer");
 var mapView = require("Dune/View/Map");
@@ -2875,7 +2944,7 @@ function BaseTerritoryView(territoryImgName) {
 
 }
 
-},{"Dune/CanvasContainer":2,"Dune/EventChain":5,"Dune/Loader":14,"Dune/View/Map":30,"Dune/shuffle":37}],36:[function(require,module,exports){
+},{"Dune/CanvasContainer":2,"Dune/EventChain":6,"Dune/Loader":15,"Dune/View/Map":31,"Dune/shuffle":38}],37:[function(require,module,exports){
 //module.exports = promptUserSelectTraitor;
 module.exports = TraitorSelect;
 
@@ -3176,7 +3245,7 @@ function drawTraitors()
       image4, image4.xPos, image4.yPos, traitorScaleWidth, traitorScaleHeight);
 }
 
-},{"Dune/CanvasContainer":2,"Dune/EventChain":5,"Dune/Loader":14}],37:[function(require,module,exports){
+},{"Dune/CanvasContainer":2,"Dune/EventChain":6,"Dune/Loader":15}],38:[function(require,module,exports){
 module.exports = shuffleArray;
 
 function shuffleArray(array) {

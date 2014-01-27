@@ -1,80 +1,101 @@
-//module.exports = testGameplay;
-
 var assert = require("assert");
 var DuneGame = require("Dune/Game");
-var game = new DuneGame();
 
-var atreides = game.selectPlayer("Atreides");
-var harkonnen = game.selectPlayer("Harkonnen");
-var guild = game.selectPlayer("Guild");
+module.exports = testGameplay;
 
-console.log('start game');
-game.start();
-// Initial round
-var map = game.map;
+function testGameplay() 
+{
+  var game = new DuneGame();
 
-var atreidesTroops = atreides.getTroops(10);
-var Arrakeen = map.getTerritory("Arrakeen");
-atreidesTroops.occupy(Arrakeen);
+  var atreides = game.selectPlayer("Atreides");
+  var harkonnen = game.selectPlayer("Harkonnen");
+  var guild = game.selectPlayer("Guild");
 
-var harkonnenTroops = harkonnen.getTroops(10);
-var Carthag = map.getTerritory("Carthag");
-harkonnenTroops.occupy(Carthag);
+  console.log('start game');
+  game.start();
+  // Initial round
+  var map = game.map;
 
-var atreidesTraitorHand =  atreides.drawTraitorHand();
-assert(atreidesTraitorHand.length == 4);
+  testTroops();
 
-var cardFaction = atreidesTraitorHand[0].faction
-assert(cardFaction == "Harkonnen" || cardFaction == "Atreides" || cardFaction == "GuildFaction", 
-    "Didn't get expected traitor card faction");
 
-var harkonnenTraitorHand = harkonnen.drawTraitorHand();
-assert(harkonnenTraitorHand.length == 4);
+  var atreidesTraitorHand =  atreides.drawTraitorHand();
+  assert(atreidesTraitorHand.length == 4);
 
-var atreidesTraitor = atreidesTraitorHand[0];
-atreides.pickTraitor(atreidesTraitor);
+  var cardFaction = atreidesTraitorHand[0].faction
+  assert(cardFaction == "Harkonnen" || cardFaction == "Atreides" || cardFaction == "GuildFaction", 
+      "Didn't get expected traitor card faction");
 
-var harkonnenTraitor = harkonnenTraitorHand[0];
-harkonnen.pickTraitor(harkonnenTraitor);
+  var harkonnenTraitorHand = harkonnen.drawTraitorHand();
+  assert(harkonnenTraitorHand.length == 4);
 
-atreides.drawTreacheryCard();
-harkonnen.drawTreacheryCard();
+  var atreidesTraitor = atreidesTraitorHand[0];
+  atreides.pickTraitor(atreidesTraitor);
 
-//var initialStormPosition = map.initStormPosition();
-map.initStormPosition();
-var initialStormPosition = map.stormSector;
+  var harkonnenTraitor = harkonnenTraitorHand[0];
+  harkonnen.pickTraitor(harkonnenTraitor);
 
-assert(initialStormPosition >= 0);
-assert(initialStormPosition <= 17);
+  atreides.drawTreacheryCard();
+  harkonnen.drawTreacheryCard();
 
-testTurnOrder();
+  //var initialStormPosition = map.initStormPosition();
+  map.initStormPosition();
+  var initialStormPosition = map.stormSector;
 
-// Start Game
-while (! game.isOver()) {
-  var newStormPosition = game.stormRound();
+  assert(initialStormPosition >= 0);
+  assert(initialStormPosition <= 17);
 
-  testStormMovement(initialStormPosition, newStormPosition)
+  testTurnOrder();
 
-  initialStormPosition = newStormPosition;
+  // Start Game
+  while (! game.isOver()) {
+    var stormMovement = game.stormRound();
 
-  var territory = game.spiceBlowRound();
+    var newStormPosition = initialStormPosition + stormMovement;
 
-  var turnOrder = game.getTurnOrder();
+    /* Reset storm quandrant position when it goes below 0 */
+    var quadrants = 17;
+    if (newStormPosition > quadrants)
+      newStormPosition -= quadrants;
 
-  // Bid round
-  for (var i = 0; i < turnOrder.length; i++) {
-    var player = turnOrder[i];
+
+    testStormMovement(initialStormPosition, newStormPosition)
+
+    initialStormPosition = newStormPosition;
+
+    testSpiceBlowRound();
+
+
+    var turnOrder = game.getTurnOrder();
+
+    // Bid round
+    for (var i = 0; i < turnOrder.length; i++) {
+      var player = turnOrder[i];
+    }
+
+
+    // Movement round
+    for (var i = 0; i < turnOrder.length; i++) {
+      var player = turnOrder[i];
+    }
+
+    game.battleRound();
+    game.collectionRound();
+    game.controlRound();
   }
 
+  console.log('game over');
+}
 
-  // Movement round
-  for (var i = 0; i < turnOrder.length; i++) {
-    var player = turnOrder[i];
-  }
+function testTroops()
+{
+  var atreidesTroops = atreides.getTroops(10);
+  var Arrakeen = map.getTerritory("Arrakeen");
+  atreidesTroops.occupy(Arrakeen);
 
-  game.battleRound();
-  game.collectionRound();
-  game.controlRound();
+  var harkonnenTroops = harkonnen.getTroops(10);
+  var Carthag = map.getTerritory("Carthag");
+  harkonnenTroops.occupy(Carthag);
 }
 
 function testStormMovement(initialStormPosition, newStormPosition) {
@@ -86,8 +107,27 @@ function testStormMovement(initialStormPosition, newStormPosition) {
     ), "Storm moved more than 6 quadrants" );
 }
 
+function testSpiceBlowRound() 
+{
+  var drawnTerritoriesCount = 0;
+  var spiceCard = game.spiceBlowRound();
+  while (spiceCard) 
+  {
+    if (spiceCard.spice) 
+    {
+      drawnTerritoriesCount++;
+      var spice = spiceCard.spice;
+      assert(spice == 6 || spice == 8 || spice == 10 || spice == 12,
+	  "Spice card value not 6, 8, 10, or 12");
+    } else { assert(spiceCard.isWorm, "Spice card has no spice and isn't worm") }
 
-console.log('game over');
+    spiceCard = game.spiceBlowRound();
+  }
+
+  assert(drawnTerritoriesCount == 2, 
+      "Spice blow round didn't draw exactly 2 territories");
+
+}
 
 function testTurnOrder() 
 {
