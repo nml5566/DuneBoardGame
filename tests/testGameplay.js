@@ -60,7 +60,7 @@ function testGameplay()
 
     initialStormPosition = newStormPosition;
 
-    testSpiceBlowRound(game);
+    testSpiceBlow(game);
 
 
     var turnOrder = game.getTurnOrder();
@@ -114,6 +114,12 @@ function testStormMovement(initialStormPosition, newStormPosition) {
       || (initialStormPosition + 17 - newStormPosition <= 6) 
     ), "Storm moved more than 6 quadrants" );
 }
+
+function testSpiceBlow(game)
+{
+  testSpiceBlowRound(game);
+}
+
 
 function testSpiceBlowRound(game) 
 {

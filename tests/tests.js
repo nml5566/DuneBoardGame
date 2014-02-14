@@ -1,5 +1,4 @@
-var testFactions = require("./testFactions");
-var testArrakisMap = require("./testArrakisMap");
+var testSpiceDeck = require("Dune/Deck/tests/testSpiceDeck");
+var testGameplay = require("./testGameplay");
 
-testFactions();
-testArrakisMap();
+testSpiceDeck();
