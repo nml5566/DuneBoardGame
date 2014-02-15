@@ -1,4 +1,4 @@
-var testSpiceDeck = require("Dune/Deck/tests/testSpiceDeck");
-var testGameplay = require("./testGameplay");
+var testDecks = require("Dune/Deck/tests/testDecks");
+//var testGameplay = require("./tests/testGameplay");
 
-testSpiceDeck();
+testDecks();
