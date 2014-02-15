@@ -309,7 +309,7 @@ function GameController() {
 
 }
 
-},{"./CanvasContainer":2,"./Loader":16,"./View/Faction/Atreides":23,"./View/Faction/BeneGesserit":25,"./View/Faction/Emperor":26,"./View/Faction/Fremen":27,"./View/Faction/Guild":28,"./View/Faction/Harkonnen":29,"./View/FactionSelect":30,"./View/Game":31,"./View/Map":32,"./View/StartMenu":35,"Dune/View/Round":34}],4:[function(require,module,exports){
+},{"./CanvasContainer":2,"./Loader":16,"./View/Faction/Atreides":24,"./View/Faction/BeneGesserit":26,"./View/Faction/Emperor":27,"./View/Faction/Fremen":28,"./View/Faction/Guild":29,"./View/Faction/Harkonnen":30,"./View/FactionSelect":31,"./View/Game":32,"./View/Map":33,"./View/StartMenu":36,"Dune/View/Round":35}],4:[function(require,module,exports){
 module.exports = new Debug();
 
 function Debug() {
@@ -374,7 +374,7 @@ function SpiceDeck()
 
 }
 
-},{"Dune/shuffle":39}],6:[function(require,module,exports){
+},{"Dune/shuffle":40}],6:[function(require,module,exports){
 var shuffleArray = require("Dune/shuffle");
 
 module.exports = new TreacheryDeck();
@@ -420,7 +420,7 @@ function TreacheryDeck() {
 }
 
 
-},{"Dune/shuffle":39}],7:[function(require,module,exports){
+},{"Dune/shuffle":40}],7:[function(require,module,exports){
 module.exports = new EventChain();
 
 function EventChain() 
@@ -874,7 +874,7 @@ function TreacheryDeck() {
 }
 
 
-},{"./Faction/Atreides":8,"./Faction/BeneGesserit":10,"./Faction/Emperor":11,"./Faction/Fremen":12,"./Faction/Guild":13,"./Faction/Harkonnen":14,"./Map":17,"./shuffle":39,"Dune/Deck/Spice":5}],16:[function(require,module,exports){
+},{"./Faction/Atreides":8,"./Faction/BeneGesserit":10,"./Faction/Emperor":11,"./Faction/Fremen":12,"./Faction/Guild":13,"./Faction/Harkonnen":14,"./Map":17,"./shuffle":40,"Dune/Deck/Spice":5}],16:[function(require,module,exports){
 var debug = require("Dune/Debug");
 module.exports = Loader;
 
@@ -1033,12 +1033,11 @@ function ArrakisMap() {
   var stormDeck = [];
 
   /* Quadrants start at top of map and number 0 to 17 counterclockwise */
-  var stormSector;
   var quadrants = 17;
 
 
   this.initStormPosition = function() {
-    return stormSector = this.stormSector = Math.floor((Math.random()*quadrants)+0);
+    return this.stormSector = Math.floor((Math.random()*quadrants)+0);
   }
 
   this.getTerritory = function(territoryName) {
@@ -1093,16 +1092,15 @@ function ArrakisMap() {
     }
 
     var stormMovement = stormDeck.shift();
-    return stormMovement;
 
     /* Storm moves counterclockwise */
-/*    stormSector += stormMovement;*/
+    this.stormSector += stormMovement;
 
     //[> Reset storm quandrant position when it goes below 0 <]
-    //if (stormSector > 17)
-      //stormSector -= quadrants;
+    if (this.stormSector > quadrants)
+      this.stormSector -= quadrants;
 
-    /*return stormSector;*/
+    return stormMovement;
   }
 
   this.spiceBlow = function() {
@@ -1120,7 +1118,7 @@ function SpiceDeck() {
   return new Array();
 }
 
-},{"./shuffle":39}],18:[function(require,module,exports){
+},{"./shuffle":40}],18:[function(require,module,exports){
 module.exports = BaseView;
 
 function BaseView(obj, props) {
@@ -1135,6 +1133,7 @@ function BaseView(obj, props) {
 }
 
 },{}],19:[function(require,module,exports){
+var Loader = require("Dune/Loader");
 var canvasContainer = require("Dune/CanvasContainer");
 var mapView = require("Dune/View/Map");
 var eventChain = require("Dune/EventChain");
@@ -1157,10 +1156,28 @@ function DeckViewDecorator(obj, args) {
   var xMapCenter = mapDimensions.centerX - cardScaleWidth/2;
   var yMapCenter = mapDimensions.centerY - cardScaleHeight/2;
 
-  obj.dealCard = function(cardName) 
+  loadImages();
+
+  function loadImages() 
+  {
+    var loader = new Loader();
+    var deckImages = args.deckImages;
+    var deckImagePath = args.deckImagePath;
+
+    if (! deckImages) throw new Error("No images for DeckView");
+    if (! deckImagePath) throw new Error("No image path for DeckView");
+
+    for (var i = 0; i < deckImages.length; i++) {
+      var deckImage = deckImages[i];
+      var imgUrl = "/img/deck/" + deckImagePath + deckImage + ".png";
+      deckImages[deckImage] = loader.loadImage(imgUrl);
+    }
+  }
+
+  obj.dealCard = function(card) 
   {
     canvas = canvasContainer.layer("notification");
-    var cardImage = getCardImage(cardName);
+    var cardImage = getCardImage(card);
     setCardImageProperties(cardImage);
 
     moveDealtCardCardFromOffscreenRightToCenter(cardImage);
@@ -1216,9 +1233,7 @@ function DeckViewDecorator(obj, args) {
 
 }
 
-},{"Dune/CanvasContainer":2,"Dune/Debug":4,"Dune/EventChain":7,"Dune/View/Map":32}],20:[function(require,module,exports){
-var Loader = require("Dune/Loader");
-var mapView = require("Dune/View/Map");
+},{"Dune/CanvasContainer":2,"Dune/Debug":4,"Dune/EventChain":7,"Dune/Loader":16,"Dune/View/Map":33}],20:[function(require,module,exports){
 var DeckViewDecorator = require("Dune/View/Deck/Base");
 
 module.exports = new BonusDeckView();
@@ -1229,21 +1244,9 @@ function BonusDeckView()
     "carryalls", "harvesters", "ornithopters", "smugglers"
   );
 
-  loadImages();
-
-  var args = {"getCardImage": getBonusCardImage}; 
+  var args = {"getCardImage": getBonusCardImage, "deckImages": bonusDeckImages,
+    "deckImagePath": "bonus/" }; 
   DeckViewDecorator(this, args);
-
-  function loadImages() 
-  {
-    var loader = new Loader();
-
-    for (var i = 0; i < bonusDeckImages.length; i++) {
-      var bonusDeckImage = bonusDeckImages[i];
-      var bonusImgUrl = "/img/bonus/" + bonusDeckImage + ".png";
-      bonusDeckImages[bonusDeckImage] = loader.loadImage(bonusImgUrl);
-    }
-  }
 
   function getBonusCardImage(cardName) {
     if (!bonusDeckImages[cardName]) 
@@ -1255,8 +1258,39 @@ function BonusDeckView()
 
 }
 
-},{"Dune/Loader":16,"Dune/View/Deck/Base":19,"Dune/View/Map":32}],21:[function(require,module,exports){
-var Loader = require("Dune/Loader");
+},{"Dune/View/Deck/Base":19}],21:[function(require,module,exports){
+var DeckViewDecorator = require("Dune/View/Deck/Base");
+var spiceDeck = require("Dune/Deck/Spice");
+
+module.exports = new SpiceDeckView();
+
+function SpiceDeckView() 
+{
+
+  var spiceDeckImages = new Array(
+    "cielagoSouth", "southMesa", "redChasm", "sihayaRidge", "oldGap", 
+    "brokenLand", "rockOutcroppings", "funeralPlain", "theGreatFlat",
+    "habbanyaErg", "habbanyaRidgeFlat", "cielagoNorth",
+    "theMinorErg", "haggaBasin", "windPassNorth", "shai-hulud"
+  );
+
+  var args = {"getCardImage": getSpiceCardImage, "deckImages": spiceDeckImages,
+    "deckImagePath": "spice/" }; 
+  DeckViewDecorator(this, args);
+
+  function getSpiceCardImage(card) 
+  {
+    if (! card) throw new Error("No spice card argument");
+
+    var cardImage = spiceDeckImages["shai-hulud"];
+    if (card.spice) 
+      cardImage = spiceDeckImages[card.territory];
+
+    return cardImage;
+  }
+}
+
+},{"Dune/Deck/Spice":5,"Dune/View/Deck/Base":19}],22:[function(require,module,exports){
 var DeckViewDecorator = require("Dune/View/Deck/Base");
 var gameView = require("Dune/View/Game");
 
@@ -1268,22 +1302,9 @@ function StormDeckView() {
     "1sector", "2sector", "3sector", "4sector", "5sector", "6sector"
   );
 
-  loadImages();
-
-  var args = {"getCardImage": getStormCardImage}; 
+  var args = {"getCardImage": getStormCardImage, "deckImages": stormCardImages,
+    "deckImagePath": "storm/" }; 
   DeckViewDecorator(this, args);
-
-  function loadImages() {
-    var loader = new Loader();
-
-    for (var i = 0; i < stormCardImages.length; i++) 
-    {
-      var stormCardImage = stormCardImages[i];
-      var stormImgUrl = "/img/storm/" + stormCardImage + ".png";
-      stormCardImages[stormCardImage] = loader.loadImage(stormImgUrl);
-    }
-
-  }
 
   function getStormCardImage() 
   {
@@ -1295,8 +1316,7 @@ function StormDeckView() {
 
 }
 
-},{"Dune/Loader":16,"Dune/View/Deck/Base":19,"Dune/View/Game":31}],22:[function(require,module,exports){
-var Loader = require("Dune/Loader");
+},{"Dune/View/Deck/Base":19,"Dune/View/Game":32}],23:[function(require,module,exports){
 var DeckViewDecorator = require("Dune/View/Deck/Base");
 var treacheryDeck = require("Dune/Deck/Treachery");
 
@@ -1313,22 +1333,10 @@ function TreacheryDeckView()
     "triptogamont", "weathercontrol", "shield", "snooper", "cheaphero", "karama"
   );
 
-  var args = {"getCardImage": getNewTreacheryImage, "deckImages": [], 
-    "deckPathUrl": "img/treachery/"}; 
+  var args = {"getCardImage": getNewTreacheryImage, 
+    "deckImages": treacheryDeckImages, "deckImagePath": "treachery/"}; 
 
   DeckViewDecorator(this, args);
-
-  loadImages();
-
-  function loadImages() {
-    var loader = new Loader();
-
-    for (var i = 0; i < treacheryDeckImages.length; i++) {
-      var image = treacheryDeckImages[i];
-      var treacheryImgUrl = "/img/treachery/" + image + ".png";
-      treacheryDeckImages[image] = loader.loadImage(treacheryImgUrl);
-    }
-  }
 
   function getNewTreacheryImage() {
     var treacheryCard = treacheryDeck.dealCard();
@@ -1337,7 +1345,7 @@ function TreacheryDeckView()
   }
 }
 
-},{"Dune/Deck/Treachery":6,"Dune/Loader":16,"Dune/View/Deck/Base":19}],23:[function(require,module,exports){
+},{"Dune/Deck/Treachery":6,"Dune/View/Deck/Base":19}],24:[function(require,module,exports){
 module.exports = AtreidesView;
 
 var FactionDecorator = require("./Base");
@@ -1410,7 +1418,7 @@ function AtreidesView() {
 
 }
 
-},{"../../Controller":3,"./Base":24,"Dune/CanvasContainer":2,"Dune/EventChain":7,"Dune/View/Deck/Bonus.js":20,"Dune/View/Game":31}],24:[function(require,module,exports){
+},{"../../Controller":3,"./Base":25,"Dune/CanvasContainer":2,"Dune/EventChain":7,"Dune/View/Deck/Bonus.js":20,"Dune/View/Game":32}],25:[function(require,module,exports){
 module.exports = BaseFactionView;
 
 var Loader = require("Dune/Loader");
@@ -1571,11 +1579,11 @@ function BaseFactionView(obj, args) {
 
 }
 
-},{"../Base":18,"../Deck/Bonus.js":20,"../Deck/Treachery.js":22,"../PlayerScreen":33,"../TraitorSelect.js":38,"Dune/CanvasContainer":2,"Dune/EventChain":7,"Dune/Loader":16,"Dune/View/Map":32}],25:[function(require,module,exports){
+},{"../Base":18,"../Deck/Bonus.js":20,"../Deck/Treachery.js":23,"../PlayerScreen":34,"../TraitorSelect.js":39,"Dune/CanvasContainer":2,"Dune/EventChain":7,"Dune/Loader":16,"Dune/View/Map":33}],26:[function(require,module,exports){
 
-},{}],26:[function(require,module,exports){
-module.exports=require(25)
 },{}],27:[function(require,module,exports){
+module.exports=require(26)
+},{}],28:[function(require,module,exports){
 module.exports = FremenView;
 
 var BaseFactionView = require("./Base");
@@ -1598,9 +1606,9 @@ function FremenView(controller) {
 
 }
 
-},{"./Base":24,"Dune/Game":15}],28:[function(require,module,exports){
-module.exports=require(25)
-},{}],29:[function(require,module,exports){
+},{"./Base":25,"Dune/Game":15}],29:[function(require,module,exports){
+module.exports=require(26)
+},{}],30:[function(require,module,exports){
 module.exports = HarkonnenView;
 
 var FactionDecorator = require("./Base");
@@ -1701,7 +1709,7 @@ function HarkonnenView() {
 
 }
 
-},{"../TraitorSelect.js":38,"./Base":24,"Dune/CanvasContainer":2,"Dune/EventChain":7,"Dune/View/Deck/Bonus.js":20,"Dune/View/Game":31}],30:[function(require,module,exports){
+},{"../TraitorSelect.js":39,"./Base":25,"Dune/CanvasContainer":2,"Dune/EventChain":7,"Dune/View/Deck/Bonus.js":20,"Dune/View/Game":32}],31:[function(require,module,exports){
 module.exports = FactionSelectView;
 
 var ViewDecorator = require("./Base");
@@ -1848,7 +1856,7 @@ function FactionSelectView() {
 }
 
 
-},{"./Base":18,"Dune/Controller":3}],31:[function(require,module,exports){
+},{"./Base":18,"Dune/Controller":3}],32:[function(require,module,exports){
 var DuneGame = require("Dune/Game");
 
 module.exports = new GameView();
@@ -1859,8 +1867,8 @@ function GameView()
   this.players = {};
 }
 
-},{"Dune/Game":15}],32:[function(require,module,exports){
-
+},{"Dune/Game":15}],33:[function(require,module,exports){
+var debug = require("Dune/Debug");
 var ViewDecorator = require("./Base");
 var gameView = require("Dune/View/Game");
 var Loader = require("Dune/Loader");
@@ -1910,7 +1918,10 @@ function MapView() {
   {
     stormImage.xPos = 0; 
     stormImage.yPos = 0; 
+
     stormImage.speed = .01; 
+    //if (debug.speed) stormImage.speed = debug.speed;
+
     stormImage.radius = 25;
   }
 
@@ -1956,11 +1967,14 @@ function MapView() {
     circle.angle = that.convertSectorNumberToMapAngle(that.stormSector);
 
     var stopAngle = circle.angle - movementRadians;
+
     animateStormSectorMovement(img, stopAngle);
 
   }
 
   function animateStormSectorMovement(img, stopAngle) {
+    var timeout = 33;
+    if (debug.timeout !== undefined) timeout = debug.timeout;
     var interval = setInterval(function() {
       context.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -1973,10 +1987,6 @@ function MapView() {
 
       circle.angle -= img.speed;
 
-      if (circle.angle <= stopAngle) {
-	clearInterval(interval);
-	eventChain.next();
-      }
 
       context.save();
       context.translate(coordinates[0],coordinates[1]);
@@ -1993,7 +2003,12 @@ function MapView() {
       context.drawImage(img, -img.width/2, -img.height/2);
       context.restore();
 
-    }, 33);
+      if (circle.angle <= stopAngle) {
+	clearInterval(interval);
+	eventChain.next();
+      }
+
+    }, timeout);
   }
 
   this.convertSectorNumberToMapAngle = function(sectorNumber) {
@@ -2020,7 +2035,7 @@ function MapView() {
 
 
 
-},{"./Base":18,"Dune/CanvasContainer":2,"Dune/EventChain":7,"Dune/Loader":16,"Dune/View/Game":31}],33:[function(require,module,exports){
+},{"./Base":18,"Dune/CanvasContainer":2,"Dune/Debug":4,"Dune/EventChain":7,"Dune/Loader":16,"Dune/View/Game":32}],34:[function(require,module,exports){
 module.exports = PlayerScreen;
 
 var controller = require("Dune/Controller");
@@ -2514,11 +2529,13 @@ function getMousePosition(canvasElement,e)
 }
 
 
-},{"Dune/CanvasContainer":2,"Dune/Controller":3,"Dune/EventChain":7,"Dune/Loader":16,"Dune/View/Territory":36}],34:[function(require,module,exports){
+},{"Dune/CanvasContainer":2,"Dune/Controller":3,"Dune/EventChain":7,"Dune/Loader":16,"Dune/View/Territory":37}],35:[function(require,module,exports){
 var canvasContainer = require("Dune/CanvasContainer");
 var Loader = require("Dune/Loader");
 var eventChain = require("Dune/EventChain");
 var stormDeckView = require("Dune/View/Deck/Storm");
+var spiceDeckView = require("Dune/View/Deck/Spice");
+var gameView = require("Dune/View/Game");
 var mapView = require("Dune/View/Map");
 
 module.exports = new RoundView();
@@ -2532,6 +2549,7 @@ function RoundView()
   var context = canvas.getContext("2d");
   var timeout = 2000;
   var stormMovement;
+  var game = gameView.game;
 
   var roundMarkers = {
     "storm": {"x": 174}, 
@@ -2574,12 +2592,12 @@ function RoundView()
     eventChain.add([
       function() { storm() },
       function() { mapView.moveStormNumberOfSectors(stormMovement) },
-      function() { spiceBlow() },
-      function() { bidding() },
-      function() { revival() },
-      function() { movement() },
-      function() { battle() },
-      function() { collection() }
+      function() { spiceBlow() }
+      //function() { bidding() },
+/*      function() { revival() },*/
+      //function() { movement() },
+      //function() { battle() },
+      /*function() { collection() }*/
     ]);
     eventChain.next();
   }
@@ -2593,9 +2611,23 @@ function RoundView()
 
   function spiceBlow() 
   {
-    console.log('spice blow round');
     drawMarkerImage("spiceblow");
-    setTimeout(eventChain.next, timeout);
+
+    var spiceCards = game.spiceBlowRound();
+    for (var i = 0; i < spiceCards.length; i++) 
+    {
+      var spiceCard = spiceCards[i];
+      var spiceBlowEvent = makeSpiceBlowEvent(spiceCard);
+      eventChain.add(spiceBlowEvent);
+    }
+
+    eventChain.add(bidding);
+    eventChain.next();
+  }
+
+  function makeSpiceBlowEvent(spiceCard) 
+  {
+    return function() { spiceDeckView.dealCard(spiceCard) }
   }
 
   function bidding() 
@@ -2645,7 +2677,7 @@ function RoundView()
 
 }
 
-},{"Dune/CanvasContainer":2,"Dune/EventChain":7,"Dune/Loader":16,"Dune/View/Deck/Storm":21,"Dune/View/Map":32}],35:[function(require,module,exports){
+},{"Dune/CanvasContainer":2,"Dune/EventChain":7,"Dune/Loader":16,"Dune/View/Deck/Spice":21,"Dune/View/Deck/Storm":22,"Dune/View/Game":32,"Dune/View/Map":33}],36:[function(require,module,exports){
 module.exports = StartMenuView;
 
 var ViewDecorator = require('./Base');
@@ -2673,7 +2705,7 @@ function StartMenuView() {
 }
 
 
-},{"./Base":18,"Dune/Controller":3}],36:[function(require,module,exports){
+},{"./Base":18,"Dune/Controller":3}],37:[function(require,module,exports){
 var Loader = require("Dune/Loader");
 var canvasContainer = require("Dune/CanvasContainer");
 var mapView = require("Dune/View/Map");
@@ -2737,7 +2769,7 @@ function TerritoryView()
 
 }
 
-},{"Dune/CanvasContainer":2,"Dune/Loader":16,"Dune/View/Map":32,"Dune/View/Territory/Base":37}],37:[function(require,module,exports){
+},{"Dune/CanvasContainer":2,"Dune/Loader":16,"Dune/View/Map":33,"Dune/View/Territory/Base":38}],38:[function(require,module,exports){
 var Loader = require("Dune/Loader");
 var canvasContainer = require("Dune/CanvasContainer");
 var mapView = require("Dune/View/Map");
@@ -2972,7 +3004,7 @@ function BaseTerritoryView(territoryImgName) {
 
 }
 
-},{"Dune/CanvasContainer":2,"Dune/EventChain":7,"Dune/Loader":16,"Dune/View/Map":32,"Dune/shuffle":39}],38:[function(require,module,exports){
+},{"Dune/CanvasContainer":2,"Dune/EventChain":7,"Dune/Loader":16,"Dune/View/Map":33,"Dune/shuffle":40}],39:[function(require,module,exports){
 //module.exports = promptUserSelectTraitor;
 module.exports = TraitorSelect;
 
@@ -3273,7 +3305,7 @@ function drawTraitors()
       image4, image4.xPos, image4.yPos, traitorScaleWidth, traitorScaleHeight);
 }
 
-},{"Dune/CanvasContainer":2,"Dune/EventChain":7,"Dune/Loader":16}],39:[function(require,module,exports){
+},{"Dune/CanvasContainer":2,"Dune/EventChain":7,"Dune/Loader":16}],40:[function(require,module,exports){
 module.exports = shuffleArray;
 
 function shuffleArray(array) {
