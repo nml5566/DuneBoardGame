@@ -6,121 +6,150 @@ window.onload = function() {
   gameController.setFactions(new Array("Atreides", "Harkonnen"));
   gameController.startGame();
 
-  //loadRoundHighlightMarkers();
-  //highlightStormRound();
+  //drawTroopShipments();
 }
 
-
-var Loader = require("Dune/Loader");
-var loader = new Loader();
 var canvasContainer = require("Dune/CanvasContainer");
-var roundCanvas = canvasContainer.layer('roundscreen');
-var roundCtx = roundCanvas.getContext("2d");
+var shuffleArray = require("Dune/shuffle");
+var canvas = canvasContainer.layer("troopscreen");
+var ctx = canvas.getContext("2d");
 
-var roundMarkers = {
-  "storm": {"x": 174}, 
-  "spiceblow": {"x": 221}, 
-  "bidding": {"x": 269}, 
-  "movement": {"x": 457},
-  "battle": {"x": 504},
-  "collection": {"x": 552}
-};
+function drawTroopShipments() 
+{
+  console.log('draw troop shipments test');
+  var areas = document.getElementsByTagName("area");
 
-function loadRoundHighlightMarkers() 
+  for (var i = 0; i < areas.length; i++) 
+  {
+    var area = areas[i];
+    area.addEventListener('click', function(e) 
+    {
+      if (this.clickCount === undefined) this.clickCount = 0;
+      this.clickCount++;
+      divideTerritory(this);
+    });
+  }
+}
+
+function drawTerritoryPath(coords) 
 {
 
-  for (var m in roundMarkers) {
-    var url = "/img/rounds/" + m + ".png";
-    roundMarkers[m].img = loader.loadImage(url);
+  ctx.beginPath();
+  ctx.moveTo(coords[0], coords[1]);
+  for( item=2 ; item < coords.length-1 ; item+=2 ) {
+    ctx.lineTo( coords[item] , coords[item+1] )
   }
-
-
-  loader.onload = drawRoundMarkers;
+  ctx.closePath();
 }
 
-function drawRoundMarkers() 
+function divideTerritory(area) 
 {
-  setRoundMarkerDimensions();
 
-  for (var marker in roundMarkers) {
-    var props = roundMarkers[marker];
-    var img = props.img;
+    var coords = 
+      area.coords.split(",").map(function(c) { return parseInt(c, 10); });
 
-    roundCtx.drawImage(
-      img,
-      img.xPos, img.yPos,
-      img.width, img.height);
+    var testCanvas = document.createElement("canvas");
+    testCanvas.width = canvas.width;
+    testCanvas.height = canvas.height;
+    var testCtx = testCanvas.getContext("2d");
 
+    testCtx.globalCompositeOperation = "destination-atop";
+    var rectangle = getTerritoryMinimumBoundingRectangle(coords);
+
+    var alpha = "0.8)";
+    var red = "rgba(255,0,0," + alpha;
+    var orange = "rgba(255,128,0," + alpha;
+    var yellow = "rgba(255,255,0," + alpha;
+    var green = "rgba(0,255,0," + alpha;
+    var blue = "rgba(0,0,255," + alpha;
+    var black = "rgba(0,0,0," + alpha;
+
+
+    var colors = new Array(red, orange, yellow, green, blue, black);
+    var order = {};
+    for (var i = 0; i < colors.length; i++) { order[colors[i]] = i }
+
+    shuffleArray(colors);
+
+    var selectColors = colors.slice(0, area.clickCount);
+    selectColors.sort(function(a, b) {
+      return order[a] - order[b]
+    });
+
+    if (area.clickCount > 6) area.clickCount = 6;
+
+    //for (var i = 1; i < area.clickCount; i++)
+    //{
+      //testCtx.fillStyle = selectColors.shift();
+      //testCtx.lineWidth = 4;
+      //testCtx.strokeStyle = "black";
+      //testCtx.strokeRect(rectangle.x, rectangle.y, 
+	//rectangle.width * i / area.clickCount, rectangle.height
+      //);
+      //testCtx.fillRect(rectangle.x, rectangle.y, 
+	//rectangle.width * i / area.clickCount, rectangle.height
+      //);
+    //}
+
+    testCtx.beginPath();
+    testCtx.moveTo(coords[0], coords[1]);
+    for( item=2 ; item < coords.length-1 ; item+=2 ) {
+      testCtx.lineTo( coords[item] , coords[item+1] )
+    }
+    testCtx.closePath();
+    //testCtx.fillStyle = selectColors.shift();
+    testCtx.fillStyle = black;
+    testCtx.fill();
+
+
+    ctx.fillStyle = "black";
+    drawTerritoryPath(coords);
+    ctx.fill();
+    
+    ctx.globalCompositeOperation = "xor";
+    drawTerritoryPath(coords);
+    ctx.fill();
+    ctx.globalCompositeOperation = "source-over";
+
+    ctx.drawImage(testCanvas, 0, 0);
+
+}
+
+function getTerritoryMinimumBoundingRectangle(coords) {
+
+  var smallestX = undefined,
+      largestX = undefined, 
+      smallestY = undefined,
+      largestY = undefined; 
+
+  for( i=2 ; i < coords.length-1 ; i+=2 )
+  {
+    var x= coords[i], y = coords[i+1];
+
+    if (smallestX == undefined) { smallestX = x }
+    else if (x < smallestX) { smallestX = x }
+
+    if (smallestY == undefined) { smallestY = y }
+    else if (y < smallestY) { smallestY = y }
+
+    if (largestX == undefined) { largestX = x }
+    else if (x > largestX) { largestX = x }
+
+    if (largestY == undefined) { largestY = y }
+    else if (y > largestY) { largestY = y }
   }
+
+  var width = largestX - smallestX;
+  var height = largestY - smallestY;
+
+  var rectangle = {"x": smallestX, "y": smallestY, 
+    "width": width, "height": height};
+
+  return rectangle;
 }
 
 
-function setRoundMarkerDimensions() 
-{
-  var markerScale = 43;
-  var yPos = 21;
-
-  for (var marker in roundMarkers) {
-    var props = roundMarkers[marker];
-    var img = props.img;
-    img.xPos = props.x;
-    img.yPos = yPos;
-    img.width = img.height = markerScale;
-  }
-}
-
-function highlightStormRound() {
-
-  var roundMarkerUrl = "/img/rounds/storm.png";
-  var roundMarkerImg = loader.loadImage(roundMarkerUrl);
-
-  var markerScale = 43;
-
-  loader.onload = function() {
-    var xPos = 174;
-    var yPos = 21;
-    roundCtx.drawImage(roundMarkerImg, xPos, yPos, markerScale, markerScale);
-  }
-}
-
-function highlightSpiceBlowRound() {
-
-  var markerScale = 43;
-
-  loader.onload = function() {
-    var xPos = 221;
-    var yPos = 21;
-    roundCtx.drawImage(roundMarkerImg, xPos, yPos, markerScale, markerScale);
-  }
-}
-
-function highlightBiddingRound() {
-  var roundMarkerUrl = "/img/rounds/bidding.png";
-  var roundMarkerImg = loader.loadImage(roundMarkerUrl);
-
-  var markerScale = 43;
-
-  loader.onload = function() {
-    var xPos = 269;
-    var yPos = 21;
-    roundCtx.drawImage(roundMarkerImg, xPos, yPos, markerScale, markerScale);
-  }
-}
-
-function highlightMovementRound() {
-  var roundMarkerUrl = "/img/rounds/movement.png";
-  var roundMarkerImg = loader.loadImage(roundMarkerUrl);
-
-  var markerScale = 43;
-
-  loader.onload = function() {
-    var xPos = 317;
-    var yPos = 21;
-    roundCtx.drawImage(roundMarkerImg, xPos, yPos, markerScale, markerScale);
-  }
-}
-
-},{"Dune/CanvasContainer":2,"Dune/Controller":3,"Dune/Loader":16}],2:[function(require,module,exports){
+},{"Dune/CanvasContainer":2,"Dune/Controller":3,"Dune/shuffle":40}],2:[function(require,module,exports){
 module.exports = new CanvasContainer;
 
 function CanvasContainer() 
@@ -219,6 +248,7 @@ function GameController() {
 
     hideFactionSelectView();
     initViews();
+    //DEBUG
     this.nextPlayerSetupTurn();
   }
 
@@ -2728,20 +2758,20 @@ function TerritoryView()
 
   var that = this;
 
-  addClickEventToImageMap();
+  //addClickEventToImageMap();
 
-  function addClickEventToImageMap() 
-  {
-    var areaTags = document.getElementsByTagName("area");
+/*  function addClickEventToImageMap() */
+  //{
+    //var areaTags = document.getElementsByTagName("area");
 
-    for (var i = 0; i < areaTags.length; i++) {
-      var areaTag = areaTags[i];
-      areaTag.addEventListener('click', function(e) {
-      	var territoryName = this.target;
-	that.enlargeTerritory(this);
-      });
-    }
-  }
+    //for (var i = 0; i < areaTags.length; i++) {
+      //var areaTag = areaTags[i];
+      //areaTag.addEventListener('click', function(e) {
+              //var territoryName = this.target;
+	//that.enlargeTerritory(this);
+      //});
+    //}
+  /*}*/
   
   this.getTerritory = function(territoryName) {
     var territoryObj = territoryImages[territoryName];
@@ -2754,18 +2784,18 @@ function TerritoryView()
 
   }
 
-  this.enlargeTerritory = function(areaTag) 
-  {
-    var territoryName = areaTag.target;
-    var territoryObj = territoryImages[territoryName];
+/*  this.enlargeTerritory = function(areaTag) */
+  //{
+    //var territoryName = areaTag.target;
+    //var territoryObj = territoryImages[territoryName];
 
-    if (! territoryObj) 
-      throw new Error("No territory " + territoryName);
+    //if (! territoryObj) 
+      //throw new Error("No territory " + territoryName);
 
-    territoryObj.enlarge(areaTag);
+    //territoryObj.enlarge(areaTag);
 
-    return territoryObj;
-  }
+    //return territoryObj;
+  /*}*/
 
 }
 
@@ -2778,8 +2808,8 @@ var eventChain = require("Dune/EventChain");
 
 module.exports = BaseTerritoryView;
 
-function BaseTerritoryView(territoryImgName) {
-
+function BaseTerritoryView(territoryName) 
+{
   var loader = new Loader();
 
   var occupyingFactions = {};
@@ -2788,10 +2818,11 @@ function BaseTerritoryView(territoryImgName) {
 
   var troopIconSize = 8.5;
 
-  var smallCoords = getMapOverviewTerritoryCoordinates();
+  var coords = getMapOverviewTerritoryCoordinates();
 
-  var imageUrl = "/img/territories/" + territoryImgName + ".png";
+  var imageUrl = "/img/territories/" + territoryName + ".png";
   var image = loader.loadImage(imageUrl);
+
 
   loader.onload = function() {
     setImageDimensions();
@@ -2803,8 +2834,9 @@ function BaseTerritoryView(territoryImgName) {
     for (var i = 0; i < areaTags.length; i++) {
       var areaTag = areaTags[i];
 
-      if (areaTag.target == "polarSink") {
-	var coords = areaTag.coords.split(',');
+      if (areaTag.target == territoryName) {
+	var coords = 
+	  areaTag.coords.split(",").map(function(c) { return parseInt(c, 10) });
 	return coords;
       }
     }
@@ -2833,93 +2865,30 @@ function BaseTerritoryView(territoryImgName) {
 
     if (occupyingFactions[faction]) {
       occupyingFactions[faction].troops.unshift(troopTokenImg);
-
     } else {
-
       occupyingFactions[faction] = {
 	"troops": [troopTokenImg]
       };
-
-
-      var TO_RADIANS = Math.PI/180;
-
-      var troopCircle = {
-	"centerX": image.xPos + image.width/2,
-	"centerY": image.yPos + image.height/2,
-	"radius": 125,
-	"angle": 0
-      };
-
-
-      var maxDiscs = 8;
-      var maxAngle = 180/maxDiscs * TO_RADIANS;
-
-      var maxTroopRadius = 
-	troopCircle.radius / ( (1 - Math.sin(maxAngle)) 
-	/ Math.sin(maxAngle) + 2 );
-
-      troopIconSize = maxTroopRadius * 2;
-
-      var numberOfDiscs = Object.keys(occupyingFactions).length
-      var centralAngle = 180/numberOfDiscs * TO_RADIANS;
-
-      var steinerCircleRadius = 
-	troopCircle.radius / ( (1 - Math.sin(centralAngle)) 
-	/ Math.sin(centralAngle) + 2 );
-
-      var innerCircleRadius = steinerCircleRadius * (1/Math.sin(centralAngle) - 1);
-      
-      var degrees = 360 / numberOfDiscs;
-      var distanceFromCenter = 0;
-      if (numberOfDiscs != 1)
-	//distanceFromCenter = maxTroopRadius + innerCircleRadius;
-	distanceFromCenter = troopCircle.radius - maxTroopRadius;
-
-      var i = 0;
-      for (var f in occupyingFactions) { 
-      	i++;
-
-	troopCircle.angle = (i * degrees * TO_RADIANS); 
-
-	// Rotate the angle for odd disc numbers to keep things symmetrical
-	if (numberOfDiscs % 2) troopCircle.angle -= centralAngle/2;
-
-
-
-	var x = troopCircle.centerX + Math.cos(troopCircle.angle) 
-	  * distanceFromCenter;
-	var y = troopCircle.centerY + Math.sin(troopCircle.angle) 
-	  * distanceFromCenter;
-	
-	x -= maxTroopRadius;
-	y -= maxTroopRadius;
-
-	occupyingFactions[f].coords = {"x": x, "y": y};
-
-	if (f != faction) {
-	  console.log('setting new coords for '+faction);
-	  troopTokenImg.xPos = x;
-	  troopTokenImg.yPos = y;
-	}
-
-	troopTokenImg.width = maxTroopRadius * 2;
-	troopTokenImg.height = maxTroopRadius * 2;
-      }
-
     }
 
-    var troopCoords = occupyingFactions[faction].coords
-    troopTokenImg.moveToCoord([troopCoords.x, troopCoords.y]);
+    var rectangle = getTerritoryMinimumBoundingRectangle(coords);
+
+    troopTokenImg.moveToCoord([
+      rectangle.x + rectangle.width/2 - troopTokenImg.width/2, 
+      rectangle.y + rectangle.height/2 - troopTokenImg.height/2
+    ]);
+
     troopTokenImg.onHalt = eventChain.next;
   }
 
-  this.enlarge = function() {
-    addCanvasClickEvent();
-    drawTerritoryImage();
-  }
+  //this.enlarge = function() {
+    //addCanvasClickEvent();
+    //drawTerritoryImage();
+  //}
 
   this.draw = function() {
-    drawTerritoryImage();
+    divideTerritory();
+    //drawTerritoryImage();
   }
 
   function addCanvasClickEvent() {
@@ -2940,10 +2909,6 @@ function BaseTerritoryView(territoryImgName) {
       image.width, image.height
     );
 
-/*    context.strokeStyle = "red";*/
-    //context.lineWidth = 5;
-    /*context.strokeRect(image.xPos, image.yPos, image.width, image.height);*/
-
     drawOccupyingFactions();
   }
 
@@ -2954,22 +2919,10 @@ function BaseTerritoryView(territoryImgName) {
       var troopIcon = troops[0];
       var troopCoords = faction.coords;
 
-/*      console.log(factionName);*/
-      //console.log('troopIcon:');
-      //console.dir(troopIcon.xPos + ', ' + troopIcon.yPos);
-      //console.log('troopCoords:');
-      /*console.dir(troopCoords.x + ', ' + troopCoords.y);*/
-
      context.drawImage(troopIcon, 
 	troopCoords.x, troopCoords.y
-	//troopIcon.xPos, troopIcon.yPos
-	//,troopIconSize, troopIconSize
 	,troopIcon.width, troopIcon.height
       );
-      //context.drawImage(troopIcon, 
-	//troopIcon.xPos, troopIcon.yPos,
-	//troopIcon.width, troopIcon.height
-      //);
 
       var troopCount = troops.length;
 
@@ -2987,20 +2940,131 @@ function BaseTerritoryView(territoryImgName) {
       context.fillStyle = "white";
       context.fillText(troopCount, xPos, yPos);
     }
+  }
 
-    //var troopCircle = {
-      //"centerX": image.xPos + image.width/2,
-      //"centerY": image.yPos + image.height/2,
-      //"radius": 125,
-      //"angle": 0
-    //};
-    //context.beginPath();
-    //context.arc(troopCircle.centerX, troopCircle.centerY, troopCircle.radius,
-	//0, 2 * Math.PI);
-    //context.stroke();
+  function divideTerritory() 
+  {
+    var canvas = canvasContainer.layer("troopscreen");
+    var ctx = canvas.getContext("2d");
+
+    var testCanvas = document.createElement("canvas");
+    testCanvas.width = canvas.width;
+    testCanvas.height = canvas.height;
+    var testCtx = testCanvas.getContext("2d");
+
+    testCtx.globalCompositeOperation = "destination-atop";
+    var rectangle = getTerritoryMinimumBoundingRectangle(coords);
+
+    var factionNames = [];
+    for (var factionName in occupyingFactions) {
+      factionNames.push(factionName);
+    }
+    var factionsCount = factionNames.length
+
+    for (var i = 0; i < factionNames.length - 1; i++)
+    {
+      var factionName = factionNames[i];
+      testCtx.fillStyle = getFactionColor(factionName);
+      testCtx.fillStyle = black;
+      testCtx.lineWidth = 4;
+      testCtx.strokeStyle = "black";
+      testCtx.strokeRect(rectangle.x, rectangle.y, 
+	rectangle.width * i / factionsCount, rectangle.height
+      );
+      testCtx.fillRect(rectangle.x, rectangle.y, 
+	rectangle.width * i / factionsCount, rectangle.height
+      );
+    }
+
+    testCtx.beginPath();
+    testCtx.moveTo(coords[0], coords[1]);
+    for( item=2 ; item < coords.length-1 ; item+=2 ) {
+      testCtx.lineTo( coords[item] , coords[item+1] )
+    }
+    testCtx.closePath();
+    //testCtx.fillStyle = selectColors.shift();
+    testCtx.fillStyle = getFactionColor(factionNames.shift());
+    testCtx.fill();
+
+
+    ctx.fillStyle = "black";
+    drawTerritoryPath(coords,ctx);
+    ctx.fill();
+    
+    ctx.globalCompositeOperation = "xor";
+    drawTerritoryPath(coords,ctx);
+    ctx.fill();
+    ctx.globalCompositeOperation = "source-over";
+
+    ctx.drawImage(testCanvas, 0, 0);
 
   }
 
+  function getFactionColor(factionName)
+  {
+    var alpha = "0.8)";
+    var red = "rgba(255,0,0," + alpha;
+    var orange = "rgba(255,128,0," + alpha;
+    var yellow = "rgba(255,255,0," + alpha;
+    var green = "rgba(0,255,0," + alpha;
+    var blue = "rgba(0,0,255," + alpha;
+    var black = "rgba(0,0,0," + alpha;
+
+    switch(factionName.toLowerCase())
+    {
+      case "atreides": return green;
+      case "harkonnen": return black;
+      case "guild": return orange;
+      case "fremen": return yellow;
+      case "benegesserit": return blue;
+      case "emperor": return red;
+      default: throw new Error("No faction color defined for "+factionName);
+    }
+  }
+
+  function getTerritoryMinimumBoundingRectangle(coords) {
+
+    var smallestX = undefined,
+	largestX = undefined, 
+	smallestY = undefined,
+	largestY = undefined; 
+
+    for( i=2 ; i < coords.length-1 ; i+=2 )
+    {
+      var x= coords[i], y = coords[i+1];
+
+      if (smallestX == undefined) { smallestX = x }
+      else if (x < smallestX) { smallestX = x }
+
+      if (smallestY == undefined) { smallestY = y }
+      else if (y < smallestY) { smallestY = y }
+
+      if (largestX == undefined) { largestX = x }
+      else if (x > largestX) { largestX = x }
+
+      if (largestY == undefined) { largestY = y }
+      else if (y > largestY) { largestY = y }
+    }
+
+    var width = largestX - smallestX;
+    var height = largestY - smallestY;
+
+    var rectangle = {"x": smallestX, "y": smallestY, 
+      "width": width, "height": height};
+
+    return rectangle;
+  }
+
+  function drawTerritoryPath(coords,ctx) 
+  {
+
+    ctx.beginPath();
+    ctx.moveTo(coords[0], coords[1]);
+    for( item=2 ; item < coords.length-1 ; item+=2 ) {
+      ctx.lineTo( coords[item] , coords[item+1] )
+    }
+    ctx.closePath();
+  }
 
 }
 
