@@ -81,16 +81,40 @@ function divideTerritory(area)
     testCtx.globalCompositeOperation = "destination-atop";
     var rectangle = getTerritoryMinimumBoundingRectangle(coords);
 
-    testCtx.fillStyle = "rgba(255,0,0,0.7)";
-    testCtx.fillRect(rectangle.x, rectangle.y, 
-      rectangle.width * 1/3, rectangle.height
-    );
+    var alpha = "0.8)";
+    var red = "rgba(255,0,0," + alpha;
+    var orange = "rgba(255,128,0," + alpha;
+    var yellow = "rgba(255,255,0," + alpha;
+    var green = "rgba(0,255,0," + alpha;
+    var blue = "rgba(0,0,255," + alpha;
+    var black = "rgba(0,0,0," + alpha;
 
-    var orange = "rgba(255,128,0,0.7)"
-    testCtx.fillStyle = orange;
-    testCtx.fillRect(rectangle.x, rectangle.y, 
-      rectangle.width * 2/3, rectangle.height
-    );
+
+    var colors = new Array(red, orange, yellow, green, blue, black);
+    var order = {};
+    for (var i = 0; i < colors.length; i++) { order[colors[i]] = i }
+
+    shuffleArray(colors);
+
+    var selectColors = colors.slice(0, area.clickCount);
+    selectColors.sort(function(a, b) {
+      return order[a] - order[b]
+    });
+
+    if (area.clickCount > 6) area.clickCount = 6;
+
+    for (var i = 1; i < area.clickCount; i++)
+    {
+      testCtx.fillStyle = selectColors.shift();
+      testCtx.lineWidth = 4;
+      testCtx.strokeStyle = "black";
+      testCtx.strokeRect(rectangle.x, rectangle.y, 
+	rectangle.width * i / area.clickCount, rectangle.height
+      );
+      testCtx.fillRect(rectangle.x, rectangle.y, 
+	rectangle.width * i / area.clickCount, rectangle.height
+      );
+    }
 
     testCtx.beginPath();
     testCtx.moveTo(coords[0], coords[1]);
@@ -98,58 +122,21 @@ function divideTerritory(area)
       testCtx.lineTo( coords[item] , coords[item+1] )
     }
     testCtx.closePath();
-    testCtx.fillStyle = "rgba(0,0,0,0.7)";
+    testCtx.fillStyle = selectColors.shift();
     testCtx.fill();
 
 
     ctx.fillStyle = "black";
-    ctx.fillRect(rectangle.x, rectangle.y, rectangle.width, rectangle.height);
+    drawTerritoryPath(coords);
+    ctx.fill();
     
     ctx.globalCompositeOperation = "xor";
-    ctx.fillRect(rectangle.x, rectangle.y, rectangle.width, rectangle.height);
-
+    drawTerritoryPath(coords);
+    ctx.fill();
     ctx.globalCompositeOperation = "source-over";
 
     ctx.drawImage(testCanvas, 0, 0);
 
-}
-
-function scaleCoords(coords, percent) {
-
-  var scaleCoords = [];
-
-  var rectangle = getTerritoryMinimumBoundingRectangle(coords);
-
-  var newWidth = rectangle.width - (percent * rectangle.width);
-  var newHeight = rectangle.height - (percent * rectangle.height);
-
-  var newSize = {
-    "xPos": rectangle.x + (rectangle.width - newWidth)/2,
-    "yPos": rectangle.y + (rectangle.height - newHeight)/2,
-    "width": newWidth,
-    "height": newHeight
-  }
-
-  var xShift = coords[0] - newSize.xPos; 
-  var yShift = coords[1] - newSize.yPos;
-
-  var scaleX = newSize.width / rectangle.width;
-  var scaleY = newSize.height/ rectangle.height;
-  var scale = Math.max(scaleX, scaleY);
-
-  for( i=0 ; i < coords.length-1 ; i+=2 )
-  {
-    var xShift = (rectangle.x * scale - newSize.xPos);
-    var yShift = (rectangle.y * scale - newSize.yPos);
-
-    scaleCoords[i] = coords[i] * scale;
-    scaleCoords[i+1] = coords[i+1] * scale;
-
-    scaleCoords[i] -= xShift;
-    scaleCoords[i+1] -= yShift;
-  }
-
-  return scaleCoords;
 }
 
 function getTerritoryMinimumBoundingRectangle(coords) {
