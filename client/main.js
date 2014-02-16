@@ -8,52 +8,55 @@ window.onload = function() {
   drawTroopShipments();
 }
 
+var canvasContainer = require("Dune/CanvasContainer");
+var shuffleArray = require("Dune/shuffle");
+var canvas = canvasContainer.layer("troopscreen");
+var ctx = canvas.getContext("2d");
+
 function drawTroopShipments() 
 {
   console.log('draw troop shipments test');
   var areas = document.getElementsByTagName("area");
-  console.log(areas);
-  var coords;
+
   for (var i = 0; i < areas.length; i++) 
   {
     var area = areas[i];
-    if (area.target == "rimWallWest") 
+    area.addEventListener('click', function(e) 
     {
-      coords = area.coords.split(",").map(function(c) { return parseInt(c, 10); });
-      break;
-    }
+      if (this.clickCount === undefined) this.clickCount = 0;
+      this.clickCount++;
+
+      //drawFactionGradient(this);
+
+      var coords = 
+	this.coords.split(",").map(function(c) { return parseInt(c, 10); });
+      //drawTerritoryOutline(coords);
+      divideTerritory(this);
+    });
   }
-  console.log('coords');
-  console.log(coords);
-  drawTerritoryOutline(coords, "white", 5);
-  drawTerritoryOutline(coords, "black");
+}
 
-/*  var scale = 0.05;*/
-  //scale = 0.1;
-  //var redCoords = scaleCoords(coords, scale * 1);
-  //drawTerritoryOutline(redCoords, "red");
-  
-  //var blueCoords = scaleCoords(coords, scale * 2);
-  //drawTerritoryOutline(blueCoords, "blue");
+function drawTerritoryOutline(coords)
+{
 
-  //var greenCoords = scaleCoords(coords, scale * 3);
-  //drawTerritoryOutline(greenCoords, "green");
+  var rectangle = getTerritoryMinimumBoundingRectangle(coords);
+  var grad = ctx.createLinearGradient(rectangle.x, rectangle.y, 
+    rectangle.x + rectangle.width, rectangle.y);
+  grad.addColorStop(0, 'rgba(0,255,0,0.6)');
+  grad.addColorStop(1 / 5, 'white');
+  grad.addColorStop(2 / 5, 'rgba(0,0,0,0.6)');
+  grad.addColorStop(3 / 5, 'white');
+  grad.addColorStop(4 / 5, 'rgba(255,128,0,0.6)');
+  //grad.addColorStop(1, 'white');
 
-  //var orangeCoords = scaleCoords(coords, scale * 4);
-  //drawTerritoryOutline(orangeCoords, "orange");
-
-  //var blackCoords = scaleCoords(coords, scale * 5);
-  /*drawTerritoryOutline(blackCoords, "black");*/
+  drawTerritoryPath(coords);
+  ctx.fillStyle = grad;
+  ctx.fill();
 
 }
 
-function drawTerritoryOutline(coords, strokeStyle, lineWidth) {
-
-  if (! lineWidth) lineWidth = 3;
-
-  var canvasContainer = require("Dune/CanvasContainer");
-  var canvas = canvasContainer.layer("troopscreen");
-  var ctx = canvas.getContext("2d");
+function drawTerritoryPath(coords) 
+{
 
   ctx.beginPath();
   ctx.moveTo(coords[0], coords[1]);
@@ -61,10 +64,53 @@ function drawTerritoryOutline(coords, strokeStyle, lineWidth) {
     ctx.lineTo( coords[item] , coords[item+1] )
   }
   ctx.closePath();
+}
 
-  ctx.lineWidth = lineWidth;
-  ctx.strokeStyle = strokeStyle;
-  ctx.stroke();
+function divideTerritory(area) 
+{
+
+    var coords = 
+      area.coords.split(",").map(function(c) { return parseInt(c, 10); });
+
+    //var testCanvas = canvasContainer.layer("test");
+    var testCanvas = document.createElement("canvas");
+    testCanvas.width = canvas.width;
+    testCanvas.height = canvas.height;
+    var testCtx = testCanvas.getContext("2d");
+
+    testCtx.globalCompositeOperation = "destination-atop";
+    var rectangle = getTerritoryMinimumBoundingRectangle(coords);
+
+    testCtx.fillStyle = "rgba(255,0,0,0.7)";
+    testCtx.fillRect(rectangle.x, rectangle.y, 
+      rectangle.width * 1/3, rectangle.height
+    );
+
+    var orange = "rgba(255,128,0,0.7)"
+    testCtx.fillStyle = orange;
+    testCtx.fillRect(rectangle.x, rectangle.y, 
+      rectangle.width * 2/3, rectangle.height
+    );
+
+    testCtx.beginPath();
+    testCtx.moveTo(coords[0], coords[1]);
+    for( item=2 ; item < coords.length-1 ; item+=2 ) {
+      testCtx.lineTo( coords[item] , coords[item+1] )
+    }
+    testCtx.closePath();
+    testCtx.fillStyle = "rgba(0,0,0,0.7)";
+    testCtx.fill();
+
+
+    ctx.fillStyle = "black";
+    ctx.fillRect(rectangle.x, rectangle.y, rectangle.width, rectangle.height);
+    
+    ctx.globalCompositeOperation = "xor";
+    ctx.fillRect(rectangle.x, rectangle.y, rectangle.width, rectangle.height);
+
+    ctx.globalCompositeOperation = "source-over";
+
+    ctx.drawImage(testCanvas, 0, 0);
 
 }
 
@@ -83,8 +129,6 @@ function scaleCoords(coords, percent) {
     "width": newWidth,
     "height": newHeight
   }
-  console.log(rectangle);
-  console.log(newSize);
 
   var xShift = coords[0] - newSize.xPos; 
   var yShift = coords[1] - newSize.yPos;
@@ -141,3 +185,79 @@ function getTerritoryMinimumBoundingRectangle(coords) {
   return rectangle;
 }
 
+function drawFactionGradient(area) 
+{
+
+  var coords = 
+	area.coords.split(",").map(function(c) { return parseInt(c, 10); });
+
+  var rectangle = getTerritoryMinimumBoundingRectangle(coords);
+  var grad = ctx.createLinearGradient(
+    rectangle.x, rectangle.y,
+    rectangle.x + rectangle.width, rectangle.y + rectangle.height
+  ); 
+
+  var red = "rgba(255,0,0,1)"
+  var orange = "rgba(255,128,0,1)"
+  var yellow = "rgba(255,255,0,1)"
+  var green = "rgba(0,255,0,1)"
+  var blue = "rgba(0,0,255,1)"
+  var black = "rgba(0,0,0,1)"
+
+  var order = {
+    "rgba(255,0,0,1)": 0,
+    "rgba(255,128,0,1)": 1,
+    "rgba(255,255,0,1)": 2,
+    "rgba(0,255,0,1)": 3,
+    "rgba(0,0,255,1)": 4,
+    "rgba(0,0,0,1)": 5,
+  }
+
+  var colors = new Array(red, orange, yellow, green, blue, black);
+  shuffleArray(colors);
+
+  var selectColors = colors.slice(0, area.clickCount);
+  selectColors.sort(function(a, b) {
+    return order[a] - order[b]
+  });
+
+  grad.addColorStop(0, colors.shift());
+
+  if (area.clickCount > 6) area.clickCount = 6;
+
+  if (area.clickCount == 1) {
+    grad.addColorStop(1, 'white');
+  } else {
+    for (var i = 1; i < area.clickCount; i++) {
+      grad.addColorStop(i / area.clickCount, colors.shift());
+    }
+  }
+  grad.addColorStop(1, 'white');
+
+  drawTerritoryPath(coords);
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+}
+
+function getColors(number, colors) 
+{
+  //var colors = new Array("green");
+  //shuffleArray(colors);
+  var c = colors.slice(0, number);
+  return c;
+}
+
+function getStrokeStyle(color) 
+{
+  switch (color) {
+    case "blue":
+    case "black":
+    case "green":
+      return "white";
+    case "red":
+    case "orange":
+    case "yellow":
+      return "black";
+  }
+}
