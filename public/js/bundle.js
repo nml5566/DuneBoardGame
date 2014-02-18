@@ -149,7 +149,7 @@ function getTerritoryMinimumBoundingRectangle(coords) {
 }
 
 
-},{"Dune/CanvasContainer":2,"Dune/Controller":3,"Dune/shuffle":40}],2:[function(require,module,exports){
+},{"Dune/CanvasContainer":2,"Dune/Controller":3,"Dune/shuffle":39}],2:[function(require,module,exports){
 module.exports = new CanvasContainer;
 
 function CanvasContainer() 
@@ -343,8 +343,8 @@ function GameController() {
 module.exports = new Debug();
 
 function Debug() {
-  this.speed = 5;
-  this.timeout = 0;
+  //this.speed = 5;
+  //this.timeout = 0;
 }
 
 },{}],5:[function(require,module,exports){
@@ -404,7 +404,7 @@ function SpiceDeck()
 
 }
 
-},{"Dune/shuffle":40}],6:[function(require,module,exports){
+},{"Dune/shuffle":39}],6:[function(require,module,exports){
 var shuffleArray = require("Dune/shuffle");
 
 module.exports = new TreacheryDeck();
@@ -450,7 +450,7 @@ function TreacheryDeck() {
 }
 
 
-},{"Dune/shuffle":40}],7:[function(require,module,exports){
+},{"Dune/shuffle":39}],7:[function(require,module,exports){
 module.exports = new EventChain();
 
 function EventChain() 
@@ -904,7 +904,7 @@ function TreacheryDeck() {
 }
 
 
-},{"./Faction/Atreides":8,"./Faction/BeneGesserit":10,"./Faction/Emperor":11,"./Faction/Fremen":12,"./Faction/Guild":13,"./Faction/Harkonnen":14,"./Map":17,"./shuffle":40,"Dune/Deck/Spice":5}],16:[function(require,module,exports){
+},{"./Faction/Atreides":8,"./Faction/BeneGesserit":10,"./Faction/Emperor":11,"./Faction/Fremen":12,"./Faction/Guild":13,"./Faction/Harkonnen":14,"./Map":17,"./shuffle":39,"Dune/Deck/Spice":5}],16:[function(require,module,exports){
 var debug = require("Dune/Debug");
 module.exports = Loader;
 
@@ -1148,7 +1148,7 @@ function SpiceDeck() {
   return new Array();
 }
 
-},{"./shuffle":40}],18:[function(require,module,exports){
+},{"./shuffle":39}],18:[function(require,module,exports){
 module.exports = BaseView;
 
 function BaseView(obj, props) {
@@ -1609,7 +1609,7 @@ function BaseFactionView(obj, args) {
 
 }
 
-},{"../Base":18,"../Deck/Bonus.js":20,"../Deck/Treachery.js":23,"../PlayerScreen":34,"../TraitorSelect.js":39,"Dune/CanvasContainer":2,"Dune/EventChain":7,"Dune/Loader":16,"Dune/View/Map":33}],26:[function(require,module,exports){
+},{"../Base":18,"../Deck/Bonus.js":20,"../Deck/Treachery.js":23,"../PlayerScreen":34,"../TraitorSelect.js":38,"Dune/CanvasContainer":2,"Dune/EventChain":7,"Dune/Loader":16,"Dune/View/Map":33}],26:[function(require,module,exports){
 
 },{}],27:[function(require,module,exports){
 module.exports=require(26)
@@ -1739,7 +1739,7 @@ function HarkonnenView() {
 
 }
 
-},{"../TraitorSelect.js":39,"./Base":25,"Dune/CanvasContainer":2,"Dune/EventChain":7,"Dune/View/Deck/Bonus.js":20,"Dune/View/Game":32}],31:[function(require,module,exports){
+},{"../TraitorSelect.js":38,"./Base":25,"Dune/CanvasContainer":2,"Dune/EventChain":7,"Dune/View/Deck/Bonus.js":20,"Dune/View/Game":32}],31:[function(require,module,exports){
 module.exports = FactionSelectView;
 
 var ViewDecorator = require("./Base");
@@ -1899,11 +1899,13 @@ function GameView()
 
 },{"Dune/Game":15}],33:[function(require,module,exports){
 var debug = require("Dune/Debug");
-var ViewDecorator = require("./Base");
-var gameView = require("Dune/View/Game");
 var Loader = require("Dune/Loader");
 var canvasContainer = require("Dune/CanvasContainer");
 var eventChain = require("Dune/EventChain");
+
+var ViewDecorator = require("./Base");
+var gameView = require("Dune/View/Game");
+var BaseTerritoryView = require("Dune/View/Territory");
 
 module.exports = new MapView();
 
@@ -1914,15 +1916,14 @@ function MapView() {
   });
 
   var canvas = canvasContainer.layer("storm");
-
-  this.element = document.getElementById("mapscreen");
-
   var context = canvas.getContext("2d");
 
   var circle = {centerX:385, centerY:425, radius:338, angle: 0}
   this.circle = circle;
 
-  this.stormSector = gameView.game.map.initStormPosition();
+  var territoryViews = { };
+
+  var stormSector = gameView.game.map.initStormPosition();
 
   var that = this;
 
@@ -1965,7 +1966,7 @@ function MapView() {
     var x = -w/2;
     var y = -h/2;
 
-    circle.angle = that.convertSectorNumberToMapAngle(that.stormSector);
+    circle.angle = that.convertSectorNumberToMapAngle(stormSector);
 
     var coordinates = that.calculateSectorEdgeFromMapAngle();
     coordinates[0] += x, coordinates[1] += y;
@@ -1976,7 +1977,7 @@ function MapView() {
 
     var TO_RADIANS = Math.PI/180;
     var degreesPerSector = 20;
-    var degrees = (that.stormSector - 3) * degreesPerSector;
+    var degrees = (stormSector - 3) * degreesPerSector;
 
     context.rotate(degrees * TO_RADIANS);
     context.drawImage(img, -img.width/2, -img.height/2);
@@ -1994,7 +1995,7 @@ function MapView() {
     //DEBUG: I think other function are messing with the circle angle
     //TODO Need to move circle into its own module so functions that
     //need the calculations can get a fresh copy
-    circle.angle = that.convertSectorNumberToMapAngle(that.stormSector);
+    circle.angle = that.convertSectorNumberToMapAngle(stormSector);
 
     var stopAngle = circle.angle - movementRadians;
 
@@ -2061,11 +2062,19 @@ function MapView() {
     );
   }
 
+  this.getTerritory = function(territoryName) 
+  {
+    if (! territoryViews[territoryName]) 
+      territoryViews[territoryName] = new BaseTerritoryView(territoryName);
+
+    return territoryViews[territoryName];
+  }
+
 }
 
 
 
-},{"./Base":18,"Dune/CanvasContainer":2,"Dune/Debug":4,"Dune/EventChain":7,"Dune/Loader":16,"Dune/View/Game":32}],34:[function(require,module,exports){
+},{"./Base":18,"Dune/CanvasContainer":2,"Dune/Debug":4,"Dune/EventChain":7,"Dune/Loader":16,"Dune/View/Game":32,"Dune/View/Territory":37}],34:[function(require,module,exports){
 module.exports = PlayerScreen;
 
 var controller = require("Dune/Controller");
@@ -2074,7 +2083,8 @@ var canvasContainer = require("Dune/CanvasContainer");
 var Loader = require("Dune/Loader");
 var eventChain = require("Dune/EventChain");
 
-var territoryView = require("Dune/View/Territory");
+//var territoryView = require("Dune/View/Territory");
+var mapView = require("Dune/View/Map");
 
 function PlayerScreen(args) 
 {
@@ -2513,7 +2523,8 @@ function PlayerScreen(args)
 
   this.shipTroops = function(territoryName) 
   {
-    var territoryObj = territoryView.getTerritory(territoryName);
+    //var territoryObj = territoryView.getTerritory(territoryName);
+    var territoryObj = mapView.getTerritory(territoryName);
 
     var troopTokenImg = getTroopTokenImg(territoryObj);
 
@@ -2559,7 +2570,7 @@ function getMousePosition(canvasElement,e)
 }
 
 
-},{"Dune/CanvasContainer":2,"Dune/Controller":3,"Dune/EventChain":7,"Dune/Loader":16,"Dune/View/Territory":37}],35:[function(require,module,exports){
+},{"Dune/CanvasContainer":2,"Dune/Controller":3,"Dune/EventChain":7,"Dune/Loader":16,"Dune/View/Map":33}],35:[function(require,module,exports){
 var canvasContainer = require("Dune/CanvasContainer");
 var Loader = require("Dune/Loader");
 var eventChain = require("Dune/EventChain");
@@ -2738,71 +2749,6 @@ function StartMenuView() {
 },{"./Base":18,"Dune/Controller":3}],37:[function(require,module,exports){
 var Loader = require("Dune/Loader");
 var canvasContainer = require("Dune/CanvasContainer");
-var mapView = require("Dune/View/Map");
-
-//var polarSink = require("Dune/View/Territory/PolarSink");
-var BaseTerritoryView = require("Dune/View/Territory/Base");
-
-module.exports = new TerritoryView()
-
-function TerritoryView() 
-{
-  var loader = new Loader();
-
-  var territoryImages = {
-    "carthag": new BaseTerritoryView("carthag"),
-    "arrakeen": new BaseTerritoryView("arrakeen"),
-    "falseWallEast": new BaseTerritoryView("falseWallEast"),
-    "polarSink": new BaseTerritoryView("polarSink")
-  };
-
-  var that = this;
-
-  //addClickEventToImageMap();
-
-/*  function addClickEventToImageMap() */
-  //{
-    //var areaTags = document.getElementsByTagName("area");
-
-    //for (var i = 0; i < areaTags.length; i++) {
-      //var areaTag = areaTags[i];
-      //areaTag.addEventListener('click', function(e) {
-              //var territoryName = this.target;
-	//that.enlargeTerritory(this);
-      //});
-    //}
-  /*}*/
-  
-  this.getTerritory = function(territoryName) {
-    var territoryObj = territoryImages[territoryName];
-
-    if (! territoryObj) 
-      throw new Error("No territory " + territoryName);
-
-
-    return territoryObj;
-
-  }
-
-/*  this.enlargeTerritory = function(areaTag) */
-  //{
-    //var territoryName = areaTag.target;
-    //var territoryObj = territoryImages[territoryName];
-
-    //if (! territoryObj) 
-      //throw new Error("No territory " + territoryName);
-
-    //territoryObj.enlarge(areaTag);
-
-    //return territoryObj;
-  /*}*/
-
-}
-
-},{"Dune/CanvasContainer":2,"Dune/Loader":16,"Dune/View/Map":33,"Dune/View/Territory/Base":38}],38:[function(require,module,exports){
-var Loader = require("Dune/Loader");
-var canvasContainer = require("Dune/CanvasContainer");
-var mapView = require("Dune/View/Map");
 var shuffleArray = require("Dune/shuffle");
 var eventChain = require("Dune/EventChain");
 
@@ -2814,21 +2760,12 @@ function BaseTerritoryView(territoryName)
 
   var occupyingFactions = {};
 
-  var circle = mapView.circle;
-
   var troopIconSize = 8.5;
 
   var coords = getMapOverviewTerritoryCoordinates();
 
-  var imageUrl = "/img/territories/" + territoryName + ".png";
-  var image = loader.loadImage(imageUrl);
-
-
-  loader.onload = function() {
-    setImageDimensions();
-  }
-
-  function getMapOverviewTerritoryCoordinates() {
+  function getMapOverviewTerritoryCoordinates() 
+  {
     var areaTags = document.getElementsByTagName("area");
 
     for (var i = 0; i < areaTags.length; i++) {
@@ -2842,25 +2779,8 @@ function BaseTerritoryView(territoryName)
     }
   }
 
-  function calculateImageScaleFactor() 
+  this.addFaction = function(troopTokenImg) 
   {
-    var largestTerritorySide = Math.max(image.width, image.height);
-    var imageScaleFactor = 2 * circle.radius / largestTerritorySide;
-    return imageScaleFactor;
-  }
-
-  function setImageDimensions() {
-    var imageScaleFactor = calculateImageScaleFactor();
-
-    image.width *= imageScaleFactor;
-    image.height *= imageScaleFactor;
-    image.xPos = circle.centerX - image.width/2; 
-    image.yPos = circle.centerY - image.height/2;
-  }
-
-
-  this.addFaction = function(troopTokenImg) {
-
     var faction = troopTokenImg.faction.constructor.name;
 
     if (occupyingFactions[faction]) {
@@ -2881,68 +2801,9 @@ function BaseTerritoryView(territoryName)
     troopTokenImg.onHalt = eventChain.next;
   }
 
-  //this.enlarge = function() {
-    //addCanvasClickEvent();
-    //drawTerritoryImage();
-  //}
+  this.draw = function() { highlightTerritoryWithFactionColors() }
 
-  this.draw = function() {
-    divideTerritory();
-    //drawTerritoryImage();
-  }
-
-  function addCanvasClickEvent() {
-    var canvas = canvasContainer.layer("notification");
-    canvas.addEventListener('click', function(e) {
-      canvasContainer.deleteLayer(canvas);
-    });
-  }
-
-  function drawTerritoryImage() {
-
-    var canvas = canvasContainer.layer("notification");
-    context = canvas.getContext("2d");
-
-
-    context.drawImage(image, 
-      image.xPos, image.yPos,
-      image.width, image.height
-    );
-
-    drawOccupyingFactions();
-  }
-
-  function drawOccupyingFactions() {
-    for (var factionName in occupyingFactions) {
-      var faction = occupyingFactions[factionName];
-      var troops = faction.troops;
-      var troopIcon = troops[0];
-      var troopCoords = faction.coords;
-
-     context.drawImage(troopIcon, 
-	troopCoords.x, troopCoords.y
-	,troopIcon.width, troopIcon.height
-      );
-
-      var troopCount = troops.length;
-
-      var fontSize = 10;
-      
-      var textWidth = context.measureText(troopCount).width;
-
-      var xPos = troopCoords.x + troopIconSize/2 - textWidth/2;
-      var yPos = troopCoords.y + troopIconSize - fontSize/2;
-
-      context.strokeStyle = "black";
-      context.lineWidth = 5;
-      context.strokeText(troopCount, xPos, yPos);
-
-      context.fillStyle = "white";
-      context.fillText(troopCount, xPos, yPos);
-    }
-  }
-
-  function divideTerritory() 
+  function highlightTerritoryWithFactionColors() 
   {
     var canvas = canvasContainer.layer("troopscreen");
     var ctx = canvas.getContext("2d");
@@ -2982,7 +2843,6 @@ function BaseTerritoryView(territoryName)
       testCtx.lineTo( coords[item] , coords[item+1] )
     }
     testCtx.closePath();
-    //testCtx.fillStyle = selectColors.shift();
     testCtx.fillStyle = getFactionColor(factionNames.shift());
     testCtx.fill();
 
@@ -3008,12 +2868,13 @@ function BaseTerritoryView(territoryName)
     var yellow = "rgba(255,255,0," + alpha;
     var green = "rgba(0,255,0," + alpha;
     var blue = "rgba(0,0,255," + alpha;
-    var black = "rgba(0,0,0," + alpha;
+    //var black = "rgba(0,0,0," + alpha;
+    var grey = "rgba(96,96,96," + alpha;
 
     switch(factionName.toLowerCase())
     {
       case "atreides": return green;
-      case "harkonnen": return black;
+      case "harkonnen": return grey;
       case "guild": return orange;
       case "fremen": return yellow;
       case "benegesserit": return blue;
@@ -3022,8 +2883,8 @@ function BaseTerritoryView(territoryName)
     }
   }
 
-  function getTerritoryMinimumBoundingRectangle(coords) {
-
+  function getTerritoryMinimumBoundingRectangle(coords) 
+  {
     var smallestX = undefined,
 	largestX = undefined, 
 	smallestY = undefined,
@@ -3068,7 +2929,7 @@ function BaseTerritoryView(territoryName)
 
 }
 
-},{"Dune/CanvasContainer":2,"Dune/EventChain":7,"Dune/Loader":16,"Dune/View/Map":33,"Dune/shuffle":40}],39:[function(require,module,exports){
+},{"Dune/CanvasContainer":2,"Dune/EventChain":7,"Dune/Loader":16,"Dune/shuffle":39}],38:[function(require,module,exports){
 //module.exports = promptUserSelectTraitor;
 module.exports = TraitorSelect;
 
@@ -3369,7 +3230,7 @@ function drawTraitors()
       image4, image4.xPos, image4.yPos, traitorScaleWidth, traitorScaleHeight);
 }
 
-},{"Dune/CanvasContainer":2,"Dune/EventChain":7,"Dune/Loader":16}],40:[function(require,module,exports){
+},{"Dune/CanvasContainer":2,"Dune/EventChain":7,"Dune/Loader":16}],39:[function(require,module,exports){
 module.exports = shuffleArray;
 
 function shuffleArray(array) {
