@@ -6,150 +6,60 @@ window.onload = function() {
   gameController.setFactions(new Array("Atreides", "Harkonnen"));
   gameController.startGame();
 
-  //drawTroopShipments();
+  test();
 }
 
 var canvasContainer = require("Dune/CanvasContainer");
-var shuffleArray = require("Dune/shuffle");
-var canvas = canvasContainer.layer("troopscreen");
+var canvas = canvasContainer.layer("notification");
 var ctx = canvas.getContext("2d");
 
-function drawTroopShipments() 
-{
-  console.log('draw troop shipments test');
-  var areas = document.getElementsByTagName("area");
+var eventChain = require("Dune/EventChain");
+var spiceDeckView = require("Dune/View/Deck/Spice");
+var mapView = require("Dune/View/Map");
 
-  for (var i = 0; i < areas.length; i++) 
+function test() 
+{
+
+  var spiceBlowTerritories = [
+    /*["cielagoSouth", 12],*/
+    //["cielagoNorth", 8],
+    //["windPassNorth", 6],
+    //["theMinorErg", 8],
+    //["haggaBasin", 6],
+    //["brokenLand", 8],
+    //["oldGap", 6],
+    //["sihayaRidge", 6],
+    //["redChasm", 8],
+    //["southMesa", 10],
+    //["rockOutcroppings", 6],
+    //["funeralPlain", 6],
+    //["theGreatFlat", 10],
+    /*["habbanyaErg", 8],*/
+    ["habbanyaRidgeFlat", 10]
+  ];
+
+  for (var i = 0; i < spiceBlowTerritories.length; i++) 
   {
-    var area = areas[i];
-    area.addEventListener('click', function(e) 
-    {
-      if (this.clickCount === undefined) this.clickCount = 0;
-      this.clickCount++;
-      divideTerritory(this);
-    });
+    //var territoryName = "cielagoNorth";
+    var territoryName = spiceBlowTerritories[i][0];
+    var spiceCount = spiceBlowTerritories[i][1];
+
+    var territoryView = mapView.getTerritory(territoryName);
+
+    var card = {territory: territoryName, spice: spiceCount};
+
+    makeSpiceBlowEvent(card, territoryView);
   }
+  eventChain.next();
 }
 
-function drawTerritoryPath(coords) 
+function makeSpiceBlowEvent(card, territoryView) 
 {
-
-  ctx.beginPath();
-  ctx.moveTo(coords[0], coords[1]);
-  for( item=2 ; item < coords.length-1 ; item+=2 ) {
-    ctx.lineTo( coords[item] , coords[item+1] )
-  }
-  ctx.closePath();
+  eventChain.add(function () { spiceDeckView.dealCard(card) });
+  eventChain.add(function () { territoryView.animateSpiceBlow(card) });
 }
 
-function divideTerritory(area) 
-{
-
-    var coords = 
-      area.coords.split(",").map(function(c) { return parseInt(c, 10); });
-
-    var testCanvas = document.createElement("canvas");
-    testCanvas.width = canvas.width;
-    testCanvas.height = canvas.height;
-    var testCtx = testCanvas.getContext("2d");
-
-    testCtx.globalCompositeOperation = "destination-atop";
-    var rectangle = getTerritoryMinimumBoundingRectangle(coords);
-
-    var alpha = "0.8)";
-    var red = "rgba(255,0,0," + alpha;
-    var orange = "rgba(255,128,0," + alpha;
-    var yellow = "rgba(255,255,0," + alpha;
-    var green = "rgba(0,255,0," + alpha;
-    var blue = "rgba(0,0,255," + alpha;
-    var black = "rgba(0,0,0," + alpha;
-
-
-    var colors = new Array(red, orange, yellow, green, blue, black);
-    var order = {};
-    for (var i = 0; i < colors.length; i++) { order[colors[i]] = i }
-
-    shuffleArray(colors);
-
-    var selectColors = colors.slice(0, area.clickCount);
-    selectColors.sort(function(a, b) {
-      return order[a] - order[b]
-    });
-
-    if (area.clickCount > 6) area.clickCount = 6;
-
-    //for (var i = 1; i < area.clickCount; i++)
-    //{
-      //testCtx.fillStyle = selectColors.shift();
-      //testCtx.lineWidth = 4;
-      //testCtx.strokeStyle = "black";
-      //testCtx.strokeRect(rectangle.x, rectangle.y, 
-	//rectangle.width * i / area.clickCount, rectangle.height
-      //);
-      //testCtx.fillRect(rectangle.x, rectangle.y, 
-	//rectangle.width * i / area.clickCount, rectangle.height
-      //);
-    //}
-
-    testCtx.beginPath();
-    testCtx.moveTo(coords[0], coords[1]);
-    for( item=2 ; item < coords.length-1 ; item+=2 ) {
-      testCtx.lineTo( coords[item] , coords[item+1] )
-    }
-    testCtx.closePath();
-    //testCtx.fillStyle = selectColors.shift();
-    testCtx.fillStyle = black;
-    testCtx.fill();
-
-
-    ctx.fillStyle = "black";
-    drawTerritoryPath(coords);
-    ctx.fill();
-    
-    ctx.globalCompositeOperation = "xor";
-    drawTerritoryPath(coords);
-    ctx.fill();
-    ctx.globalCompositeOperation = "source-over";
-
-    ctx.drawImage(testCanvas, 0, 0);
-
-}
-
-function getTerritoryMinimumBoundingRectangle(coords) {
-
-  var smallestX = undefined,
-      largestX = undefined, 
-      smallestY = undefined,
-      largestY = undefined; 
-
-  for( i=2 ; i < coords.length-1 ; i+=2 )
-  {
-    var x= coords[i], y = coords[i+1];
-
-    if (smallestX == undefined) { smallestX = x }
-    else if (x < smallestX) { smallestX = x }
-
-    if (smallestY == undefined) { smallestY = y }
-    else if (y < smallestY) { smallestY = y }
-
-    if (largestX == undefined) { largestX = x }
-    else if (x > largestX) { largestX = x }
-
-    if (largestY == undefined) { largestY = y }
-    else if (y > largestY) { largestY = y }
-  }
-
-  var width = largestX - smallestX;
-  var height = largestY - smallestY;
-
-  var rectangle = {"x": smallestX, "y": smallestY, 
-    "width": width, "height": height};
-
-  return rectangle;
-}
-
-
-},{"Dune/CanvasContainer":2,"Dune/Controller":3,"Dune/shuffle":39}],2:[function(require,module,exports){
+},{"Dune/CanvasContainer":2,"Dune/Controller":3,"Dune/EventChain":7,"Dune/View/Deck/Spice":21,"Dune/View/Map":33}],2:[function(require,module,exports){
 module.exports = new CanvasContainer;
 
 function CanvasContainer() 
@@ -197,6 +107,8 @@ function CanvasContainer()
       	return 200;
       case "playerscreen":
       	return 99;
+      case "spicescreen":
+      	return 99;
       case "troopscreen":
       	return 98;
       case "playerseat":
@@ -234,6 +146,8 @@ var FactionSelectView = require("./View/FactionSelect");
 var mapView = require("./View/Map");
 var roundView = require("Dune/View/Round");
 
+var debug = require("Dune/Debug");
+
 module.exports = new GameController();
 
 function GameController() {
@@ -248,8 +162,7 @@ function GameController() {
 
     hideFactionSelectView();
     initViews();
-    //DEBUG
-    this.nextPlayerSetupTurn();
+    if (! debug.disableStart) this.nextPlayerSetupTurn();
   }
 
   this.nextGameTurn = function() { this.nextPlayerSetupTurn() }
@@ -339,10 +252,11 @@ function GameController() {
 
 }
 
-},{"./CanvasContainer":2,"./Loader":16,"./View/Faction/Atreides":24,"./View/Faction/BeneGesserit":26,"./View/Faction/Emperor":27,"./View/Faction/Fremen":28,"./View/Faction/Guild":29,"./View/Faction/Harkonnen":30,"./View/FactionSelect":31,"./View/Game":32,"./View/Map":33,"./View/StartMenu":36,"Dune/View/Round":35}],4:[function(require,module,exports){
+},{"./CanvasContainer":2,"./Loader":16,"./View/Faction/Atreides":24,"./View/Faction/BeneGesserit":26,"./View/Faction/Emperor":27,"./View/Faction/Fremen":28,"./View/Faction/Guild":29,"./View/Faction/Harkonnen":30,"./View/FactionSelect":31,"./View/Game":32,"./View/Map":33,"./View/StartMenu":36,"Dune/Debug":4,"Dune/View/Round":35}],4:[function(require,module,exports){
 module.exports = new Debug();
 
 function Debug() {
+  this.disableStart = true;
   //this.speed = 5;
   //this.timeout = 0;
 }
@@ -2762,6 +2676,8 @@ function BaseTerritoryView(territoryName)
 
   var troopIconSize = 8.5;
 
+  var totalSpiceCount = 0;
+
   var coords = getMapOverviewTerritoryCoordinates();
 
   function getMapOverviewTerritoryCoordinates() 
@@ -2777,6 +2693,8 @@ function BaseTerritoryView(territoryName)
 	return coords;
       }
     }
+
+    throw new Error("No area tag for " + territoryName);
   }
 
   this.addFaction = function(troopTokenImg) 
@@ -2858,6 +2776,116 @@ function BaseTerritoryView(territoryName)
 
     ctx.drawImage(testCanvas, 0, 0);
 
+  }
+
+  this.animateSpiceBlow = function(card) 
+  {
+    var spiceBlowCoords = getSpiceBlowCoordinates();
+    var spiceBlowText = spiceBlowCoords.text;
+
+    var canvas = canvasContainer.layer("notification");
+    var ctx = canvas.getContext("2d");
+
+    var count = 0;
+    var timeout = 53 * 12 / card.spice;
+    var interval = setInterval(function() {
+
+      /* Territory highlight  */
+      drawTerritoryPath(coords,ctx);
+      
+      var creamColor = "rgb(255,244,199)";
+      ctx.lineWidth = 20;
+      ctx.strokeStyle = creamColor;
+      ctx.stroke();
+
+      ctx.lineWidth = 10;
+      ctx.strokeStyle = "black";
+      ctx.stroke();
+
+      //ctx.fillStyle = "rgb(126,2,0)";
+      ctx.fillStyle = getSpiceBlowHighlightColor(card.spice);
+      ctx.fill();
+
+      /* Spice Icon */
+      var radius = 10;
+      ctx.beginPath();
+      ctx.arc(spiceBlowCoords.x, spiceBlowCoords.y, radius, 0, 2*Math.PI);
+      ctx.fillStyle = creamColor;
+      ctx.fill();
+
+      /* Text */
+      drawSpiceCount(spiceBlowText, ctx);
+  
+      totalSpiceCount++;
+      count++;
+
+      if (count == card.spice) {
+	clearInterval(interval);
+	canvasContainer.deleteLayer(canvas);
+
+	var spiceCanvas = canvasContainer.layer("spicescreen");
+	var spiceCtx = spiceCanvas.getContext("2d");
+
+	drawSpiceCount(spiceBlowText, spiceCtx);
+ 
+	eventChain.next();
+      }
+
+    }, timeout);
+
+  }
+
+  function drawSpiceCount(spiceBlowText, ctx) 
+  {
+    ctx.font = "12pt Arial";
+
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "rgb(255,244,199)";
+
+    ctx.strokeText(totalSpiceCount, spiceBlowText.x, spiceBlowText.y);
+
+    ctx.fillStyle = "black";
+    ctx.fillText(totalSpiceCount, spiceBlowText.x, spiceBlowText.y);
+  }
+
+  function getSpiceBlowCoordinates()
+  {
+    switch(territoryName) 
+    {
+      case "cielagoSouth": return {"x": 397, "y": 735, "text": {x: 407, y: 740}};
+      case "cielagoNorth": return {"x": 422, "y": 536, "text": {x: 436, y: 544}};
+      case "windPassNorth": return {"x": 318, "y": 466, "text": {x: 330, y: 475}};
+      case "theMinorErg": return {"x": 493, "y": 372, "text": {x: 507, y: 377}};
+      case "haggaBasin": return {"x": 296, "y": 321, "text": {x: 310, y: 326}};
+      case "brokenLand": return {"x": 268, "y": 139, "text": {x: 283 , y: 142 }};
+      case "oldGap": return {"x": 456, "y": 121, "text": {x:  470, y: 128  }};
+      case "sihayaRidge": return {"x": 603, "y": 199, "text": {x:  614, y: 211  }};
+      case "redChasm": return {"x": 694, "y": 399, "text": {x:  671, y: 404  }};
+      case "southMesa": return {"x": 669, "y": 548, "text": {x:  655, y: 575 }};
+      case "rockOutcroppings": return {"x": 131, "y": 242, "text": {x:  143, y: 245  }};
+      case "funeralPlain": return {"x": 82, "y": 364, "text": {x:  97, y: 370  }};
+      case "theGreatFlat": return {"x": 77, "y": 402, "text": {x:  88, y: 407  }};
+      case "habbanyaErg": return {"x": 85, "y": 502, "text": {x:  98, y: 508  }};
+      case "habbanyaRidgeFlat": return {"x": 182, "y": 658, "text": {x:  193, y: 663  }};
+      default: throw new Error("No coordinates defined for " + territoryName);
+    }
+  }
+
+  function getSpiceBlowHighlightColor(spiceBlowCount) 
+  {
+    switch (spiceBlowCount)
+    {
+      case 12: return "rgb(126,2,0)";
+      case 10: return "rgb(150,51,0)";
+      case 8: return "rgb(186,113,0)";
+      case 6: return "rgb(214,163,0)";
+      default: throw new Error('No highlight color for '+spiceBlowCount+' spice');
+    }
+  }
+
+  function endSpiceBlowAnimation(interval) 
+  {
+    clearInterval(interval);
   }
 
   function getFactionColor(factionName)
