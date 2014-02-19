@@ -6,7 +6,7 @@ window.onload = function() {
   gameController.setFactions(new Array("Atreides", "Harkonnen"));
   gameController.startGame();
 
-  test();
+  //test();
 }
 
 var canvasContainer = require("Dune/CanvasContainer");
@@ -256,9 +256,9 @@ function GameController() {
 module.exports = new Debug();
 
 function Debug() {
-  this.disableStart = true;
-  //this.speed = 5;
-  //this.timeout = 0;
+  //this.disableStart = true;
+  this.speed = 5;
+  this.timeout = 0;
 }
 
 },{}],5:[function(require,module,exports){
@@ -1324,6 +1324,7 @@ function AtreidesView() {
   this.shipInitialTroops = function() 
   { 
     var startingTerritory = "arrakeen";
+    //var startingTerritory = "carthag";
 
     for (var i = 0; i < 9; i++) {
       eventChain.add(function () {
@@ -2495,8 +2496,6 @@ var mapView = require("Dune/View/Map");
 
 module.exports = new RoundView();
 
-/*"storm", "spiceBlow", "bidding", "revival", "movement", "battle", */
-/*"collection", "control"*/
 function RoundView() 
 {
 
@@ -2572,17 +2571,22 @@ function RoundView()
     for (var i = 0; i < spiceCards.length; i++) 
     {
       var spiceCard = spiceCards[i];
-      var spiceBlowEvent = makeSpiceBlowEvent(spiceCard);
-      eventChain.add(spiceBlowEvent);
+      addSpiceBlowEvent(spiceCard);
     }
 
     eventChain.add(bidding);
     eventChain.next();
   }
 
-  function makeSpiceBlowEvent(spiceCard) 
+  function addSpiceBlowEvent(spiceCard) 
   {
-    return function() { spiceDeckView.dealCard(spiceCard) }
+    eventChain.add(function () { spiceDeckView.dealCard(spiceCard) });
+
+    //TODO: deal with worm removing spice/troops from last territory drawn
+    if (spiceCard.isWorm) return;
+
+    var territoryView = mapView.getTerritory(spiceCard.territory);
+    eventChain.add(function () { territoryView.animateSpiceBlow(spiceCard) });
   }
 
   function bidding() 
@@ -2744,7 +2748,6 @@ function BaseTerritoryView(territoryName)
     {
       var factionName = factionNames[i];
       testCtx.fillStyle = getFactionColor(factionName);
-      testCtx.fillStyle = black;
       testCtx.lineWidth = 4;
       testCtx.strokeStyle = "black";
       testCtx.strokeRect(rectangle.x, rectangle.y, 
@@ -2777,6 +2780,7 @@ function BaseTerritoryView(territoryName)
     ctx.drawImage(testCanvas, 0, 0);
 
   }
+
 
   this.animateSpiceBlow = function(card) 
   {

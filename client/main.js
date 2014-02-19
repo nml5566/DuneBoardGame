@@ -5,7 +5,7 @@ window.onload = function() {
   gameController.setFactions(new Array("Atreides", "Harkonnen"));
   gameController.startGame();
 
-  test();
+  //test();
 }
 
 var canvasContainer = require("Dune/CanvasContainer");
