@@ -4,3 +4,5 @@ node_modules/jade
 node_modules/browserify
 node_modules/watchify
 node_modules/nodemon
+
+public/js/bundle.js
