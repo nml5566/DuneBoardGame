@@ -1,9 +1,10 @@
 var assert = require("assert");
 var DuneGame = require("Dune/Game");
+var modulino = require("modulino");
 
 module.exports = testGameplay;
 
-testGameplay();
+modulino(testGameplay, module);
 
 function testGameplay() 
 {
@@ -18,24 +19,10 @@ function testGameplay()
   // Initial round
   var map = game.map;
 
-  testTroops(map, atreides, harkonnen);
+  testTroopOccupation(map, atreides, harkonnen);
 
+  testTraitorSelection(atreides, harkonnen);
 
-  var atreidesTraitorHand =  atreides.drawTraitorHand();
-  assert(atreidesTraitorHand.length == 4);
-
-  var cardFaction = atreidesTraitorHand[0].faction
-  assert(cardFaction == "Harkonnen" || cardFaction == "Atreides" || cardFaction == "GuildFaction", 
-      "Didn't get expected traitor card faction");
-
-  var harkonnenTraitorHand = harkonnen.drawTraitorHand();
-  assert(harkonnenTraitorHand.length == 4);
-
-  var atreidesTraitor = atreidesTraitorHand[0];
-  atreides.pickTraitor(atreidesTraitor);
-
-  var harkonnenTraitor = harkonnenTraitorHand[0];
-  harkonnen.pickTraitor(harkonnenTraitor);
 
   atreides.drawTreacheryCard();
   harkonnen.drawTreacheryCard();
@@ -63,19 +50,10 @@ function testGameplay()
     testSpiceBlow(game);
 
 
-    var turnOrder = game.getTurnOrder();
+    testBidRound(game);
+    testMovementRound(game);
 
-    // Bid round
-    for (var i = 0; i < turnOrder.length; i++) {
-      var player = turnOrder[i];
-    }
-
-
-    // Movement round
-    for (var i = 0; i < turnOrder.length; i++) {
-      var player = turnOrder[i];
-    }
-
+    
     game.battleRound();
     game.collectionRound();
     game.controlRound();
@@ -84,7 +62,7 @@ function testGameplay()
   console.log('game over');
 }
 
-function testTroops(map, atreides, harkonnen)
+function testTroopOccupation(map, atreides, harkonnen)
 {
   var atreidesTroops = atreides.getTroops(10);
   var Arrakeen = map.getTerritory("Arrakeen");
@@ -93,6 +71,26 @@ function testTroops(map, atreides, harkonnen)
   var harkonnenTroops = harkonnen.getTroops(10);
   var Carthag = map.getTerritory("Carthag");
   harkonnenTroops.occupy(Carthag);
+}
+
+function testTraitorSelection(atreides, harkonnen) 
+{
+  var atreidesTraitorHand =  atreides.drawTraitorHand();
+  assert(atreidesTraitorHand.length == 4);
+
+  var cardFaction = atreidesTraitorHand[0].faction
+  assert(cardFaction == "Harkonnen" || cardFaction == "Atreides" || cardFaction == "Guild", 
+      "Didn't get expected traitor card faction");
+
+  var harkonnenTraitorHand = harkonnen.drawTraitorHand();
+  assert(harkonnenTraitorHand.length == 4);
+
+  var atreidesTraitor = atreidesTraitorHand[0];
+  atreides.pickTraitor(atreidesTraitor);
+
+  var harkonnenTraitor = harkonnenTraitorHand[0];
+  harkonnen.pickTraitor(harkonnenTraitor);
+
 }
 
 function testStormPosition(map) 
@@ -141,6 +139,54 @@ function testSpiceBlowRound(game)
   assert(drawnTerritoriesCount == 2, 
       "Spice blow round didn't draw exactly 2 territories");
 
+}
+
+function testBidRound(game)
+{
+  var bidRound = game.bidRound();
+  var minimumBid = bidRound.minimumBid();
+
+  assert(minimumBid == 1, "Expect minimum bid is 1 spice");
+
+  var player1 = bidRound.nextBidder();
+  player1.placeBid(minimumBid);
+
+  minimumBid = bidRound.minimumBid();
+  assert(minimumBid == 2, "Expect minimum bid is 2 spice");
+
+  var player2 = bidRound.nextBidder();
+
+  var invalidBid = function() 
+  {
+    var spice = player2.spice();
+    player2.placeBid(spice + 1);
+  }
+
+  assert.throws(invalidBid, Error, 
+      "Expect bidding more spice than available throws Error");
+
+  var oldTreacheryCardCount = player1.treacheryCardCount();
+
+  player2.passBid();
+
+  var player3 = bidRound.nextBidder();
+  player3.passBid();
+
+  var newTreacheryCardCount = player1.treacheryCardCount();
+
+  assert(oldTreacheryCardCount + 1 == newTreacheryCardCount, 
+      "Expect treachery card count increases by 1")
+
+  //TODO test if all bidders pass
+}
+
+function testMovementRound(game)
+{
+  // Movement round
+  var turnOrder = game.getTurnOrder();
+  for (var i = 0; i < turnOrder.length; i++) {
+    var player = turnOrder[i];
+  }
 }
 
 function testTurnOrder() 
